@@ -8,7 +8,7 @@ export default {
     },
   },
   solidity: {
-    version: "0.8.22",
+    version: "0.8.21",
     settings: {
       optimizer: {
         enabled: true,
