@@ -20,26 +20,26 @@ contract ERC20 is IERC20 {
     }
 
     function approve(address spender, uint256 value) external override returns (bool) {
-      allowance[msg.sender][spender] = value;
-      return true;
+        allowance[msg.sender][spender] = value;
+        return true;
     }
 
     function transfer(address to, uint256 value) external override returns (bool) {
-      balanceOf[msg.sender] = balanceOf[msg.sender] - value;
-      balanceOf[to] = balanceOf[to] + value;
-      return true;
+        balanceOf[msg.sender] = balanceOf[msg.sender] - value;
+        balanceOf[to] = balanceOf[to] + value;
+        return true;
     }
 
     function transferFrom(address from, address to, uint256 value) external override returns (bool) {
-      if (allowance[from][msg.sender] >= value) {
-          allowance[from][msg.sender] = allowance[from][msg.sender] - value;
-      }
-      balanceOf[from] = balanceOf[from] - value;
-      balanceOf[to] = balanceOf[to] = value;
-      return true;
+        if (allowance[from][msg.sender] >= value) {
+            allowance[from][msg.sender] = allowance[from][msg.sender] - value;
+        }
+        balanceOf[from] = balanceOf[from] - value;
+        balanceOf[to] = balanceOf[to] = value;
+        return true;
     }
 
     function mint(address to, uint256 value) external {
-      balanceOf[to] = balanceOf[to] + value;
+        balanceOf[to] = balanceOf[to] + value;
     }
 }
