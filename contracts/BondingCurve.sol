@@ -5,18 +5,13 @@ import './interfaces/IBondingCurve.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
-import { exp } from "@prb/math/ud60x18/Math.sol";
+import { UD60x18, ud, convert } from '@prb/math/src/UD60x18.sol';
+import { exp, ln } from '@prb/math/src/ud60x18/Math.sol';
 import './libraries/Math.sol';
 
 /*
-      UD60x18 value = UD60x18.wrap(100000000000000); // e^0.0001
-      UD60x18 result = value.exp();
-      uint256 resultUint = UD60x18.unwrap(result);
-*/
-/*
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
- - find which math lib is a better fit (ABDKMathQuad, PRB-Math, etc.)
  - update function visibility as appropriate
  */
 
@@ -26,8 +21,10 @@ contract BondingCurve is IBondingCurve {
     uint256 private constant ONE_YEAR_IN_SECONDS = 365 days;
     uint256 public constant SPREAD_PRECISION = 1000;
     uint256 public constant BASE_SPREAD = 1;
+    uint256 public constant PRB_MATH_PRECISION = 1e18;
 
-    bytes16 public lastInternalPrice; // IP(t')
+    // bytes16 public lastInternalPrice; // IP(t')
+    uint256 public lastInternalPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t’)) – ln(Index(t’- 20years))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
 
@@ -64,27 +61,25 @@ contract BondingCurve is IBondingCurve {
 
     // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
     function getInternalPrice() public view returns (uint256) {
+        return getInternalPriceForTimestamp(block.timestamp);
+    }
+
+    function getInternalPriceForTimestamp(uint256 timestamp) internal view returns (uint256) {
         return
-            lastInternalPrice
-                .mul(
-                    ABDKMathQuad.exp(
-                        ABDKMathQuad.fromUInt(lastOracleInflationRate).mul(
-                            (
-                                ABDKMathQuad.fromUInt(block.timestamp).sub(
-                                    ABDKMathQuad.fromUInt(lastOracleUpdateTimestamp)
-                                )
-                            ).div(ABDKMathQuad.fromUInt(ONE_YEAR_IN_SECONDS))
-                        )
-                    )
+            lastInternalPrice *
+            convert(
+                exp(
+                    convert((lastOracleInflationRate * ((timestamp - lastOracleUpdateTimestamp) / ONE_YEAR_IN_SECONDS)))
                 )
-                .toUInt();
+            );
     }
 
     function updateInternals() public {
         (uint256 currentPriceIndex, uint256 currentOracleUpdateTimestamp) = inflationOracle.getLatestPriceIndex();
         uint256 pastPriceIndex = inflationOracle.getPastPriceIndex(
-            currentOracleUpdateTimestamp - (block.timestamp - TWENTY_YEARS_IN_SECONDS)
+            currentOracleUpdateTimestamp - TWENTY_YEARS_IN_SECONDS
         );
+
         uint256 priceIndexDelta = ABDKMathQuad.toUInt(
             ABDKMathQuad
                 .sub(
@@ -94,17 +89,16 @@ contract BondingCurve is IBondingCurve {
                 .div(ABDKMathQuad.fromUInt(TWENTY_YEARS))
         );
 
-        lastInternalPrice = lastInternalPrice.mul(
-            ABDKMathQuad.exp(
-                ABDKMathQuad.fromUInt(lastOracleInflationRate).mul(
-                    (
-                        ABDKMathQuad.fromUInt(currentOracleUpdateTimestamp).sub(
-                            ABDKMathQuad.fromUInt(lastOracleUpdateTimestamp)
-                        )
-                    ).div(ABDKMathQuad.fromUInt(ONE_YEAR_IN_SECONDS))
+        uint256 priceIndexDelta = convert(
+            ABDKMathQuad
+                .sub(
+                    ln(convert(currentPriceIndex)),
+                    ln(convert(pastPriceIndex))
                 )
-            )
+                .div(ABDKMathQuad.fromUInt(TWENTY_YEARS))
         );
+
+        lastInternalPrice = getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
         lastOracleInflationRate = Math.min(100, Math.max(0, priceIndexDelta));
         lastOracleUpdateTimestamp = currentOracleUpdateTimestamp;
     }

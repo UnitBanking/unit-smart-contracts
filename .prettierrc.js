@@ -8,7 +8,8 @@ const config = {
     {
       files: '*.sol',
       options: {
-        tabWidth: 4
+        tabWidth: 4,
+        singleQuote: true,
       }
     }
   ]
