@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.22;
+pragma solidity 0.8.21;
 
 import './interfaces/IERC20.sol';
 
@@ -9,14 +9,22 @@ contract ERC20 is IERC20 {
     string public override symbol;
     uint8 public override decimals;
     uint256 public override totalSupply;
+    address public override minter;
 
     mapping(address => uint256) public override balanceOf;
     mapping(address => mapping(address => uint256)) public override allowance;
 
-    constructor() {
+    constructor(address _minter) {
+        minter = _minter;
         name = 'ERC20';
         symbol = 'ERC20';
         decimals = 18;
+    }
+
+    function setMinter(address newMinter) external {
+        require(msg.sender == minter, 'Forbidden');
+
+        minter = newMinter;
     }
 
     function approve(address spender, uint256 value) external override returns (bool) {
@@ -40,6 +48,7 @@ contract ERC20 is IERC20 {
     }
 
     function mint(address to, uint256 value) external {
+        require(msg.sender == minter, 'Not a minter');
         balanceOf[to] = balanceOf[to] + value;
     }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.22;
+pragma solidity 0.8.21;
 
 interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -11,6 +11,8 @@ interface IERC20 {
     function symbol() external view returns (string memory);
 
     function decimals() external view returns (uint8);
+
+    function minter() external view returns (address);
 
     function totalSupply() external view returns (uint256);
 
