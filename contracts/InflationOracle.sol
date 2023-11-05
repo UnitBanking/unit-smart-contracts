@@ -9,7 +9,7 @@ contract InflationOracle is IInflationOracle {
         return (1, block.timestamp);
     }
 
-    function getPastPriceIndex(uint256 pastTimestamp) external pure returns (uint256) {
+    function getPriceIndexForTimestamp(uint256 pastTimestamp) external pure returns (uint256) {
         return 1;
     }
 }

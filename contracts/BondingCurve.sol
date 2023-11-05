@@ -13,6 +13,7 @@ import './libraries/Math.sol';
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - update function visibility as appropriate
+ - convert constants to UD60x18
  */
 
 contract BondingCurve is IBondingCurve {
@@ -23,7 +24,6 @@ contract BondingCurve is IBondingCurve {
     uint256 public constant BASE_SPREAD = 1;
     uint256 public constant PRB_MATH_PRECISION = 1e18;
 
-    // bytes16 public lastInternalPrice; // IP(t')
     uint256 public lastInternalPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t’)) – ln(Index(t’- 20years))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
@@ -33,7 +33,7 @@ contract BondingCurve is IBondingCurve {
     IERC20 public unitToken;
 
     constructor(IERC20 _unitToken, IInflationOracle _inflationOracle, IEthUsdOracle _ethUsdOracle) {
-        lastInternalPrice = ABDKMathQuad.fromUInt(1);
+        lastInternalPrice = 1;
 
         unitToken = _unitToken;
         inflationOracle = _inflationOracle;
@@ -69,34 +69,23 @@ contract BondingCurve is IBondingCurve {
             lastInternalPrice *
             convert(
                 exp(
-                    convert((lastOracleInflationRate * ((timestamp - lastOracleUpdateTimestamp) / ONE_YEAR_IN_SECONDS)))
+                    convert(lastOracleInflationRate).mul(
+                        convert(timestamp - lastOracleUpdateTimestamp).div(convert(ONE_YEAR_IN_SECONDS))
+                    ) // TODO: use a UD60x18 constant
                 )
             );
     }
 
     function updateInternals() public {
         (uint256 currentPriceIndex, uint256 currentOracleUpdateTimestamp) = inflationOracle.getLatestPriceIndex();
-        uint256 pastPriceIndex = inflationOracle.getPastPriceIndex(
+
+        uint256 pastPriceIndex = inflationOracle.getPriceIndexForTimestamp(
             currentOracleUpdateTimestamp - TWENTY_YEARS_IN_SECONDS
         );
 
-        uint256 priceIndexDelta = ABDKMathQuad.toUInt(
-            ABDKMathQuad
-                .sub(
-                    ABDKMathQuad.ln(ABDKMathQuad.fromUInt(currentPriceIndex)),
-                    ABDKMathQuad.ln(ABDKMathQuad.fromUInt(pastPriceIndex))
-                )
-                .div(ABDKMathQuad.fromUInt(TWENTY_YEARS))
-        );
-
-        uint256 priceIndexDelta = convert(
-            ABDKMathQuad
-                .sub(
-                    ln(convert(currentPriceIndex)),
-                    ln(convert(pastPriceIndex))
-                )
-                .div(ABDKMathQuad.fromUInt(TWENTY_YEARS))
-        );
+        uint256 priceIndexDelta = convert((ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(
+            convert(TWENTY_YEARS)
+        )); // TODO: use a UD60x18 constant
 
         lastInternalPrice = getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
         lastOracleInflationRate = Math.min(100, Math.max(0, priceIndexDelta));
@@ -104,7 +93,6 @@ contract BondingCurve is IBondingCurve {
     }
 
     // function mint(address receiver) external payable {
-
     // }
 
     function getSpread() internal pure returns (uint256) {

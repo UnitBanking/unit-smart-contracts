@@ -8,7 +8,7 @@ import { EthUsdOracle } from '../contracts/EthUsdOracle.sol';
 import { ERC20 } from '../contracts/ERC20.sol';
 import 'forge-std/console.sol';
 
-contract BondingCurveTest is Test {
+contract BondingCurveTests is Test {
     InflationOracle public inflationOracle;
     EthUsdOracle public ethUsdOracle;
     ERC20 public unitToken;
@@ -23,7 +23,5 @@ contract BondingCurveTest is Test {
         bondingCurve = new BondingCurveTest(unitToken, inflationOracle, ethUsdOracle);
     }
 
-    function test_getInternalPrice() public {
-      
-    }
+    function test_getInternalPrice() public {}
 }
