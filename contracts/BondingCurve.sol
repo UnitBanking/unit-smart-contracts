@@ -5,21 +5,22 @@ import './interfaces/IBondingCurve.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
-import { UD60x18, ud, convert } from '@prb/math/src/UD60x18.sol';
+import { UD60x18, ud, convert, uUNIT } from '@prb/math/src/UD60x18.sol';
 import { exp, ln } from '@prb/math/src/ud60x18/Math.sol';
 import './libraries/Math.sol';
+
+import 'hardhat/console.sol';
 
 /*
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - update function visibility as appropriate
- - convert constants to UD60x18
  */
 
 contract BondingCurve is IBondingCurve {
     uint256 private constant TWENTY_YEARS_IN_SECONDS = 20 * 365 days;
-    uint256 private constant TWENTY_YEARS = 20;
-    uint256 private constant ONE_YEAR_IN_SECONDS = 365 days;
+    UD60x18 private constant TWENTY_YEARS_UD60x18 = UD60x18.wrap(20 * uUNIT);
+    UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
     uint256 public constant SPREAD_PRECISION = 1000;
     uint256 public constant BASE_SPREAD = 1;
     uint256 public constant PRB_MATH_PRECISION = 1e18;
@@ -70,8 +71,8 @@ contract BondingCurve is IBondingCurve {
             convert(
                 exp(
                     convert(lastOracleInflationRate).mul(
-                        convert(timestamp - lastOracleUpdateTimestamp).div(convert(ONE_YEAR_IN_SECONDS))
-                    ) // TODO: use a UD60x18 constant
+                        convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18)
+                    )
                 )
             );
     }
@@ -83,9 +84,9 @@ contract BondingCurve is IBondingCurve {
             currentOracleUpdateTimestamp - TWENTY_YEARS_IN_SECONDS
         );
 
-        uint256 priceIndexDelta = convert((ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(
-            convert(TWENTY_YEARS)
-        )); // TODO: use a UD60x18 constant
+        uint256 priceIndexDelta = convert(
+            (ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(TWENTY_YEARS_UD60x18)
+        );
 
         lastInternalPrice = getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
         lastOracleInflationRate = Math.min(100, Math.max(0, priceIndexDelta));
