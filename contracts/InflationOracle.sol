@@ -5,11 +5,22 @@ pragma solidity 0.8.21;
 import './interfaces/IInflationOracle.sol';
 
 contract InflationOracle is IInflationOracle {
-    function getLatestPriceIndex() external view returns (uint256, uint256) {
-        return (1, block.timestamp);
+    uint256 private priceIndexNow = 121;
+    uint256 private priceIndexTwentyYearsAgo = 77;
+
+    function setLatestPriceIndex(uint256 priceIndex) external {
+        priceIndexNow = priceIndex;
     }
 
-    function getPriceIndexForTimestamp(uint256 pastTimestamp) external pure returns (uint256) {
-        return 1;
+    function setPriceIndexTwentyYearsAgo(uint256 priceIndex) external {
+        priceIndexTwentyYearsAgo = priceIndex;
+    }
+
+    function getLatestPriceIndex() external view returns (uint256) {
+        return priceIndexNow;
+    }
+
+    function getPriceIndexTwentyYearsAgo() external view returns (uint256) {
+        return priceIndexTwentyYearsAgo;
     }
 }

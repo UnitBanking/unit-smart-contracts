@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Deployed with donations via Gitcoin GR9
 
 pragma solidity 0.8.21;
 
-interface IBondingCurve {}
+import { UD60x18 } from '@prb/math/src/UD60x18.sol';
+
+interface IBondingCurve {
+    function getInternalPrice() external view returns (UD60x18);
+}

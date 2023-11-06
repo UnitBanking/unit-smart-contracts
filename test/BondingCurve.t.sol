@@ -8,7 +8,7 @@ import { EthUsdOracle } from '../contracts/EthUsdOracle.sol';
 import { ERC20 } from '../contracts/ERC20.sol';
 import 'forge-std/console.sol';
 
-contract BondingCurveTests is Test {
+contract BondingCurveTestTest is Test {
     InflationOracle public inflationOracle;
     EthUsdOracle public ethUsdOracle;
     ERC20 public unitToken;
@@ -23,5 +23,9 @@ contract BondingCurveTests is Test {
         bondingCurve = new BondingCurveTest(unitToken, inflationOracle, ethUsdOracle);
     }
 
-    function test_getInternalPrice() public {}
+    function test_getInternalPriceForTimestamp() public {
+        vm.warp(1799023595); // set block.timestamp
+        uint256 price = bondingCurve.testGetInternalPriceForTimestamp(block.timestamp);
+        console.logUint(price);
+    }
 }

@@ -15,7 +15,7 @@ describe('BondingCurve', () => {
     // Assert
     const address = await bondingCurve.getAddress()
     expect(address.length).to.be.gt(0)
-    expect(await bondingCurve.lastInternalPrice()).to.be.eq('0x3fff0000000000000000000000000000')
+    expect(await bondingCurve.lastInternalPrice()).to.be.eq(1)
   })
 
   it('update internals', async () => {

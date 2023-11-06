@@ -5,11 +5,9 @@ import './interfaces/IBondingCurve.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
-import { UD60x18, ud, convert, uUNIT } from '@prb/math/src/UD60x18.sol';
+import { UD60x18, ud, convert, uUNIT, UNIT, unwrap, wrap } from '@prb/math/src/UD60x18.sol';
 import { exp, ln } from '@prb/math/src/ud60x18/Math.sol';
 import './libraries/Math.sol';
-
-import 'hardhat/console.sol';
 
 /*
  TODOs:
@@ -23,9 +21,8 @@ contract BondingCurve is IBondingCurve {
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
     uint256 public constant SPREAD_PRECISION = 1000;
     uint256 public constant BASE_SPREAD = 1;
-    uint256 public constant PRB_MATH_PRECISION = 1e18;
 
-    uint256 public lastInternalPrice; // IP(t')
+    UD60x18 public lastInternalPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t’)) – ln(Index(t’- 20years))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
 
@@ -34,7 +31,7 @@ contract BondingCurve is IBondingCurve {
     IERC20 public unitToken;
 
     constructor(IERC20 _unitToken, IInflationOracle _inflationOracle, IEthUsdOracle _ethUsdOracle) {
-        lastInternalPrice = 1;
+        lastInternalPrice = UNIT;
 
         unitToken = _unitToken;
         inflationOracle = _inflationOracle;
@@ -52,44 +49,41 @@ contract BondingCurve is IBondingCurve {
         if (unitTotalSupply > 0) {
             return
                 Math.min(
-                    getInternalPrice() / ethUsdOracle.getEthUsdPrice(),
+                    unwrap(getInternalPriceForTimestamp(block.timestamp)) / ethUsdOracle.getEthUsdPrice(),
                     address(this).balance / unitToken.totalSupply()
                 );
         } else {
-            return getInternalPrice() / ethUsdOracle.getEthUsdPrice();
+            return unwrap(getInternalPriceForTimestamp(block.timestamp)) / ethUsdOracle.getEthUsdPrice();
         }
     }
 
     // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
-    function getInternalPrice() public view returns (uint256) {
+    function getInternalPrice() external view returns (UD60x18) {
         return getInternalPriceForTimestamp(block.timestamp);
     }
 
-    function getInternalPriceForTimestamp(uint256 timestamp) internal view returns (uint256) {
+    function getInternalPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
         return
             lastInternalPrice *
-            convert(
-                exp(
-                    convert(lastOracleInflationRate).mul(
-                        convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18)
-                    )
+            exp(
+                wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(
+                    convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18)
                 )
             );
     }
 
     function updateInternals() public {
-        (uint256 currentPriceIndex, uint256 currentOracleUpdateTimestamp) = inflationOracle.getLatestPriceIndex();
+        uint256 currentOracleUpdateTimestamp = block.timestamp;
+        uint256 currentPriceIndex = inflationOracle.getLatestPriceIndex();
+        uint256 pastPriceIndex = inflationOracle.getPriceIndexTwentyYearsAgo();
 
-        uint256 pastPriceIndex = inflationOracle.getPriceIndexForTimestamp(
-            currentOracleUpdateTimestamp - TWENTY_YEARS_IN_SECONDS
+        UD60x18 priceIndexDelta = (ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(
+            TWENTY_YEARS_UD60x18
         );
-
-        uint256 priceIndexDelta = convert(
-            (ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(TWENTY_YEARS_UD60x18)
-        );
+        uint256 priceIndexDeltaUint256 = priceIndexDelta.unwrap() / (uUNIT / PRICE_INDEX_PRECISION);
 
         lastInternalPrice = getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
-        lastOracleInflationRate = Math.min(100, Math.max(0, priceIndexDelta));
+        lastOracleInflationRate = Math.min(100 * PRICE_INDEX_PRECISION, Math.max(0, priceIndexDeltaUint256));
         lastOracleUpdateTimestamp = currentOracleUpdateTimestamp;
     }
 
