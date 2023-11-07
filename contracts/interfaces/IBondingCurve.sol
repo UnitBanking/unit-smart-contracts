@@ -2,8 +2,12 @@
 
 pragma solidity 0.8.21;
 
-import { UD60x18 } from '@prb/math/src/UD60x18.sol';
-
 interface IBondingCurve {
-    function getInternalPrice() external view returns (UD60x18);
+    function updateInternals() external;
+
+    function getInternalPrice() external view returns (uint256);
+
+    function getUnitEthPrice() external view returns (uint256);
+
+    function mint(address receiver) external payable;
 }
