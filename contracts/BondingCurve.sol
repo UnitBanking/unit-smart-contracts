@@ -11,6 +11,7 @@ import './libraries/Math.sol';
 /*
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
+ - review `IBondingCurve` function visibility
  */
 
 contract BondingCurve is IBondingCurve {
@@ -40,7 +41,7 @@ contract BondingCurve is IBondingCurve {
      */
 
     constructor(IERC20 _unitToken, IInflationOracle _inflationOracle, IEthUsdOracle _ethUsdOracle) {
-        lastInternalPrice = UNIT;
+        lastInternalPrice = UNIT; // 1
 
         unitToken = _unitToken;
         inflationOracle = _inflationOracle;

@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.21;
 
-import './interfaces/IInflationOracle.sol';
+import '../interfaces/IInflationOracle.sol';
 
-contract InflationOracle is IInflationOracle {
-    uint256 private priceIndexNow = 121;
-    uint256 private priceIndexTwentyYearsAgo = 77;
+contract InflationOracleTest is IInflationOracle {
+    uint256 private priceIndexNow;
+    uint256 private priceIndexTwentyYearsAgo;
 
     function setLatestPriceIndex(uint256 priceIndex) external {
         priceIndexNow = priceIndex;
