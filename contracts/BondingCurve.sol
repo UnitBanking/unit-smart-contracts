@@ -8,6 +8,8 @@ import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
 
+import "forge-std/console.sol";
+
 /*
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
@@ -22,7 +24,9 @@ contract BondingCurve is IBondingCurve {
     uint256 private constant TWENTY_YEARS_IN_SECONDS = 20 * 365 days;
     UD60x18 private constant TWENTY_YEARS_UD60x18 = UD60x18.wrap(20 * uUNIT);
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
-    uint256 public constant BASE_SPREAD = 1;
+    uint256 public constant SPREAD_PRECISION = 10_000;
+    uint256 public constant BASE_SPREAD = 10; // 0.1%
+    uint256 public constant ETH_PRECISION = 1e18;
 
     /**
      * ================ STATE VARIABLES ================
@@ -54,6 +58,17 @@ contract BondingCurve is IBondingCurve {
      * ================ EXTERNAL & PUBLIC FUNCTIONS ================
      */
 
+    function mint(address receiver) external payable {
+        // P(t) * (1 + spread(t))
+        uint256 unitTokenAmount = msg.value * ETH_PRECISION / (getUnitEthPrice() * (SPREAD_PRECISION + getSpread()) / SPREAD_PRECISION );
+        unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?        
+    }
+
+    // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
+    function getInternalPrice() external view returns (uint256) {
+        return getInternalPriceForTimestamp(block.timestamp).unwrap();
+    }
+
     function updateInternals() public {
         uint256 currentOracleUpdateTimestamp = block.timestamp;
         uint256 currentPriceIndex = inflationOracle.getLatestPriceIndex();
@@ -83,11 +98,10 @@ contract BondingCurve is IBondingCurve {
         }
     }
 
-    function mint(address receiver) external payable {}
+    function getSpread() public pure returns (uint256) {
+        uint256 dynamicSpread; // TODO: This is TBC
 
-    // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
-    function getInternalPrice() external view returns (uint256) {
-        return getInternalPriceForTimestamp(block.timestamp).unwrap();
+        return BASE_SPREAD + dynamicSpread;
     }
 
     /**
@@ -102,11 +116,5 @@ contract BondingCurve is IBondingCurve {
                     convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18)
                 )
             );
-    }
-
-    function getSpread() internal pure returns (uint256) {
-        uint256 dynamicSpread; // TODO: This is TBC
-
-        return BASE_SPREAD + dynamicSpread;
     }
 }
