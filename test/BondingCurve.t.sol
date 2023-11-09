@@ -32,6 +32,10 @@ contract BondingCurveTestTest is Test {
         unitToken.setMinter(address(bondingCurve));
     }
 
+    /**
+     * ================ getInternalPriceForTimestamp() ================
+     */
+
     function test_getInternalPriceForTimestamp_10Days() public {
         // Arrange
         uint256 currentTimestamp = START_TIMESTAMP + 10 days;
@@ -105,6 +109,10 @@ contract BondingCurveTestTest is Test {
         assertEq(price, expectedPrice);
     }
 
+    /**
+     * ================ updateInternals() ================
+     */
+
     function test_updateInternals() public {
         // Arrange
         uint256 lastInternalPriceBefore = bondingCurve.getInternalPrice();
@@ -125,6 +133,10 @@ contract BondingCurveTestTest is Test {
         assertEq(bondingCurve.lastOracleInflationRate(), 2236);
         assertGt(lastOracleUpdateTimestampAfter, lastOracleUpdateTimestampBefore);
     }
+
+    /**
+     * ================ mint() ================
+     */
 
     function test_mint_SuccessfullyMintUnitToken() public {
         // Arrange
@@ -169,11 +181,31 @@ contract BondingCurveTestTest is Test {
 
         // Act && Assert
         vm.prank(user);
-        vm.expectRevert(AddressZero.selector);
+        vm.expectRevert(InvalidReceiver.selector);
         bondingCurve.mint{ value: etherValue }(address(0));
 
         assertEq(user.balance, userEthBalance);
     }
+
+    function test_mint_RevertOnRRBelowHighRR() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 etherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act && Assert
+        vm.prank(user);
+        vm.expectRevert(InvalidReceiver.selector);
+        bondingCurve.mint{ value: etherValue }(address(0));
+
+        assertEq(user.balance, userEthBalance);
+    }
+
+    /**
+     * ================ getReserveRatio() ================
+     */
 
     function test_getReserveRatio_ReturnsRR() public {
         uint256 rr = bondingCurve.getReserveRatio();

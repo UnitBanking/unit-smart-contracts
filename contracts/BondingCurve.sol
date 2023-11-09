@@ -63,7 +63,7 @@ contract BondingCurve is IBondingCurve {
      */
 
     function mint(address receiver) external payable {
-        if (receiver == address(0)) revert AddressZero(); // todo: remove, duplicate in `UnitToken.mint`
+        if (receiver == address(0)) revert InvalidReceiver(); // todo: remove, duplicate in `UnitToken.mint`
         // if (RR < HIGH_RR) 
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * ETH_PRECISION) /
