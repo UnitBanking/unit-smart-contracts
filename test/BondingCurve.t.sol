@@ -5,6 +5,7 @@ import { Test } from 'forge-std/Test.sol';
 import { BondingCurveTest } from '../contracts/test/BondingCurveTest.sol';
 import { InflationOracleTest } from '../contracts/test/InflationOracleTest.sol';
 import { EthUsdOracle } from '../contracts/EthUsdOracle.sol';
+import '../contracts/Errors.sol';
 import { ERC20 } from '../contracts/ERC20.sol';
 
 import { console2 } from 'forge-std/Test.sol';
@@ -125,7 +126,7 @@ contract BondingCurveTestTest is Test {
         assertGt(lastOracleUpdateTimestampAfter, lastOracleUpdateTimestampBefore);
     }
 
-    function test_Mint() public {
+    function test_mint_SuccessfullyMintUnitToken() public {
         // Arrange
         address user = vm.addr(2);
         uint256 etherValue = 1 ether;
@@ -140,5 +141,43 @@ contract BondingCurveTestTest is Test {
         // Assert
         assertEq(user.balance, userEthBalance - etherValue);
         assertGt(unitToken.balanceOf(user), 0);
+    }
+
+    function test_mint_SendZeroEth() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act
+        vm.prank(user);
+        bondingCurve.mint{ value: 0 }(user);
+
+        // Assert
+        assertEq(user.balance, userEthBalance);
+        assertEq(unitToken.balanceOf(user), 0);
+    }
+
+    function test_mint_RevertIfReceiverIsAddressZero() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 etherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act && Assert
+        vm.prank(user);
+        vm.expectRevert(AddressZero.selector);
+        bondingCurve.mint{ value: etherValue }(address(0));
+
+        assertEq(user.balance, userEthBalance);
+    }
+
+    function test_getReserveRatio_ReturnsRR() public {
+        uint256 rr = bondingCurve.getReserveRatio();
+
+        console2.log('RESERVE RATIO', rr);
     }
 }
