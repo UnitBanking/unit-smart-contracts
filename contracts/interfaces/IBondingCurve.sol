@@ -10,4 +10,8 @@ interface IBondingCurve {
     function getUnitEthPrice() external view returns (uint256);
 
     function mint(address receiver) external payable;
+
+    function burn() external;
+
+    function getReserveRatio() external view returns (uint256);
 }

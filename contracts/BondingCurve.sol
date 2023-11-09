@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.21;
 
+import './Errors.sol';
 import './interfaces/IBondingCurve.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
@@ -8,7 +9,7 @@ import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
 
-import "forge-std/console.sol";
+// import "forge-std/console.sol";
 
 /*
  TODOs:
@@ -27,6 +28,9 @@ contract BondingCurve is IBondingCurve {
     uint256 public constant SPREAD_PRECISION = 10_000;
     uint256 public constant BASE_SPREAD = 10; // 0.1%
     uint256 public constant ETH_PRECISION = 1e18;
+
+    // Reserve ratio
+    uint256 public constant HIGH_RR = 4;
 
     /**
      * ================ STATE VARIABLES ================
@@ -59,13 +63,18 @@ contract BondingCurve is IBondingCurve {
      */
 
     function mint(address receiver) external payable {
+        if (receiver == address(0)) revert AddressZero(); // todo: remove, duplicate in `UnitToken.mint`
+        // if (RR < HIGH_RR) 
         // P(t) * (1 + spread(t))
-        uint256 unitTokenAmount = msg.value * ETH_PRECISION / (getUnitEthPrice() * (SPREAD_PRECISION + getSpread()) / SPREAD_PRECISION );
-        unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?        
+        uint256 unitTokenAmount = (msg.value * ETH_PRECISION) /
+            ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+        unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
+    function burn() external {}
+
     // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
-    function getInternalPrice() external view returns (uint256) {
+    function getInternalPrice() public view returns (uint256) {
         return getInternalPriceForTimestamp(block.timestamp).unwrap();
     }
 
@@ -102,6 +111,18 @@ contract BondingCurve is IBondingCurve {
         uint256 dynamicSpread; // TODO: This is TBC
 
         return BASE_SPREAD + dynamicSpread;
+    }
+
+    function getReserveRatio() public view returns (uint256 reserveRatio) {
+        uint256 internalPrice = getInternalPrice();
+        uint256 unitTokenTotalSupply = unitToken.totalSupply();
+        if (internalPrice == 0 || unitTokenTotalSupply == 0) {
+            reserveRatio = 0;
+        } else {
+            reserveRatio =
+                (ethUsdOracle.getEthUsdPrice() * address(this).balance) /
+                (getInternalPrice() * unitToken.totalSupply());
+        }
     }
 
     /**
