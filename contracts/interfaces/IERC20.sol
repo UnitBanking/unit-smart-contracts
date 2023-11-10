@@ -12,6 +12,8 @@ interface IERC20 {
 
     function decimals() external view returns (uint8);
 
+    function minter() external view returns (address);
+
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address owner) external view returns (uint256);
@@ -23,4 +25,6 @@ interface IERC20 {
     function transfer(address to, uint256 value) external returns (bool);
 
     function transferFrom(address from, address to, uint256 value) external returns (bool);
+
+    function mint(address receiver, uint256 value) external;
 }

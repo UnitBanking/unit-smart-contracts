@@ -3,3 +3,4 @@ ds-test/=foundry/lib/forge-std/lib/ds-test/src/
 forge-std/=foundry/lib/forge-std/src/
 prb-math/=foundry/lib/prb-math/src/
 prb-test/=foundry/lib/prb-math/lib/prb-test/src/
+@prb/math/src/=foundry/lib/prb-math/src/
