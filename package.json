@@ -5,7 +5,9 @@
   "version": "0.1.0",
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test",
+    "hardhat:test": "hardhat test",
+    "build": "forge build",
+    "foundry:test": "forge test",
     "clean": "hardhat clean && rimraf ./build",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:fix": "yarn lint:sol:fix && yarn lint:ts:fix",
