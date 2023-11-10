@@ -1,0 +1,26 @@
+{
+  "sepolia": {
+    "Deployer": {
+      "address": "0xD926ad88231EBC9eb6A0BD25CD4dE908f0F37b9f",
+      "checksum": "6e7745be980a39a3a421fb2974ba270dd2ae54c6b399a5067366b50931901652"
+    },
+    "UnitToken": {
+      "address": "0x1fEFBcfAa6Fc780ddA9FA17C5F1d8E9676b7558A",
+      "checksum": "0901ad7fe23ecfbac6badf96467ccade5fa0b38276863244b1e77bcf7928ece7",
+      "proxy": "0x0136461064dA253bF39E48688D86B1Ac37F0E7d4",
+      "proxyChecksum": "83101a22e2e300a8fb1237ef939844e7423774a029b3a25a9a28b2d24993469b8"
+    }
+  },
+  "local": {
+    "Deployer": {
+      "address": "0xFf658343244c0475b9305859F1b7CDAB9784762f",
+      "checksum": "6e7745be980a39a3a421fb2974ba270dd2ae54c6b399a5067366b50931901652"
+    },
+    "UnitToken": {
+      "address": "0x1c1521cf734CD13B02e8150951c3bF2B438be780",
+      "checksum": "0901ad7fe213ecfbac6badf96467ccade5fa0b38276863244b1e77bcf7928ece7",
+      "proxy": "0x41e692b13dAcB7dAc3C9a1662e548FAB63076fDF",
+      "proxyChecksum": "8310a212e2e300a8fb1237ef939844e7423774a029b3a25a9a28b2d24993469b8"
+    }
+  }
+}

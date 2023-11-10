@@ -1,7 +1,11 @@
-node_modules/
-typechain/
-typechain-types/
-cache/
-.vscode/
-artifacts/
-out/
+node_modules
+.env
+
+# Hardhat output
+cache
+build
+out
+
+# IDE
+.idea
+.vscode
