@@ -9,13 +9,16 @@ import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
 
-// import "forge-std/console.sol";
+import "forge-std/console.sol";
 
 /*
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility
  */
+
+// setup initial RR - 5 wei ETH and 1 wei UNIT
+// new branch and PR
 
 contract BondingCurve is IBondingCurve {
     /**
@@ -27,10 +30,10 @@ contract BondingCurve is IBondingCurve {
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
     uint256 public constant SPREAD_PRECISION = 10_000;
     uint256 public constant BASE_SPREAD = 10; // 0.1%
-    uint256 public constant ETH_PRECISION = 1e18;
+    uint256 public constant PRICE_PRECISION = 1e18;
 
     // Reserve ratio
-    uint256 public constant HIGH_RR = 4;
+    uint256 public constant HIGH_RR = 4; // (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
 
     /**
      * ================ STATE VARIABLES ================
@@ -62,11 +65,14 @@ contract BondingCurve is IBondingCurve {
      * ================ EXTERNAL & PUBLIC FUNCTIONS ================
      */
 
+    receive() external payable {}
+
     function mint(address receiver) external payable {
         if (receiver == address(0)) revert InvalidReceiver(); // todo: remove, duplicate in `UnitToken.mint`
-        // if (RR < HIGH_RR) 
+        uint256 reserveRatio = getReserveRatio();
+        if (reserveRatio < HIGH_RR) revert MintDisabledDueToTooLowRR();
         // P(t) * (1 + spread(t))
-        uint256 unitTokenAmount = (msg.value * ETH_PRECISION) /
+        uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
         unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
@@ -99,20 +105,15 @@ contract BondingCurve is IBondingCurve {
         if (unitTotalSupply > 0) {
             return
                 Math.min(
-                    unwrap(getInternalPriceForTimestamp(block.timestamp)) / ethUsdOracle.getEthUsdPrice(),
-                    address(this).balance / unitToken.totalSupply()
+                    unwrap(getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION / ethUsdOracle.getEthUsdPrice(),
+                    address(this).balance * PRICE_PRECISION / unitToken.totalSupply()
                 );
         } else {
-            return unwrap(getInternalPriceForTimestamp(block.timestamp)) / ethUsdOracle.getEthUsdPrice();
+            return unwrap(getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION / ethUsdOracle.getEthUsdPrice();
         }
     }
 
-    function getSpread() public pure returns (uint256) {
-        uint256 dynamicSpread; // TODO: This is TBC
-
-        return BASE_SPREAD + dynamicSpread;
-    }
-
+    // RR(t) = (EP(t) * BalanceETH(t)) / (IP(t) * SupplyUnit(t))
     function getReserveRatio() public view returns (uint256 reserveRatio) {
         uint256 internalPrice = getInternalPrice();
         uint256 unitTokenTotalSupply = unitToken.totalSupply();
@@ -121,8 +122,14 @@ contract BondingCurve is IBondingCurve {
         } else {
             reserveRatio =
                 (ethUsdOracle.getEthUsdPrice() * address(this).balance) /
-                (getInternalPrice() * unitToken.totalSupply());
+                (internalPrice * unitTokenTotalSupply);
         }
+    }
+
+    function getSpread() public pure returns (uint256) {
+        uint256 dynamicSpread; // TODO: This is TBC
+
+        return BASE_SPREAD + dynamicSpread;
     }
 
     /**

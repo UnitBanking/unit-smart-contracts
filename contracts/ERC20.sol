@@ -49,6 +49,7 @@ contract ERC20 is IERC20 {
 
     function mint(address to, uint256 value) external {
         require(msg.sender == minter, 'Not a minter');
+        totalSupply = totalSupply + value;
         balanceOf[to] = balanceOf[to] + value;
     }
 }

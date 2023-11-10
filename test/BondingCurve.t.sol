@@ -15,12 +15,13 @@ contract BondingCurveTestTest is Test {
     EthUsdOracle public ethUsdOracle;
     ERC20 public unitToken;
     BondingCurveTest public bondingCurve;
+    address wallet = vm.addr(1);
 
     uint256 private constant ORACLE_UPDATE_INTERVAL = 30 days;
     uint256 private constant START_TIMESTAMP = 1699023595;
 
     function setUp() public {
-        address wallet = vm.addr(1);
+        vm.deal(wallet, 10 ether);
         vm.warp(START_TIMESTAMP); // set block timestamp
         inflationOracle = new InflationOracleTest();
         inflationOracle.setPriceIndexTwentyYearsAgo(77);
@@ -130,7 +131,7 @@ contract BondingCurveTestTest is Test {
         uint256 lastInternalPriceAfter = bondingCurve.getInternalPrice();
         assertEq(lastInternalPriceBefore, 1e18); // 1
         assertEq(lastInternalPriceAfter, 1001858437086397421); // 1.001858437086397421
-        assertEq(bondingCurve.lastOracleInflationRate(), 2236);
+        assertEq(bondingCurve.lastOracleInflationRate(), 2236); // 2.236%
         assertGt(lastOracleUpdateTimestampAfter, lastOracleUpdateTimestampBefore);
     }
 
@@ -145,14 +146,18 @@ contract BondingCurveTestTest is Test {
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
+        setUpReserveRatio();
+        uint256 bondingCurveBalanceBefore = address(bondingCurve).balance;
 
         // Act
         vm.prank(user);
         bondingCurve.mint{ value: etherValue }(user);
 
         // Assert
+        uint256 bondingCurveBalanceAfter = address(bondingCurve).balance;
         assertEq(user.balance, userEthBalance - etherValue);
-        assertGt(unitToken.balanceOf(user), 0);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, etherValue);
+        assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
     }
 
     function test_mint_SendZeroEth() public {
@@ -161,6 +166,7 @@ contract BondingCurveTestTest is Test {
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
+        setUpReserveRatio();
 
         // Act
         vm.prank(user);
@@ -187,7 +193,7 @@ contract BondingCurveTestTest is Test {
         assertEq(user.balance, userEthBalance);
     }
 
-    function test_mint_RevertOnRRBelowHighRR() public {
+    function test_mint_RevertWhenReserveRatioBelowHighRR() public {
         // Arrange
         address user = vm.addr(2);
         uint256 etherValue = 1 ether;
@@ -197,9 +203,8 @@ contract BondingCurveTestTest is Test {
 
         // Act && Assert
         vm.prank(user);
-        vm.expectRevert(InvalidReceiver.selector);
-        bondingCurve.mint{ value: etherValue }(address(0));
-
+        vm.expectRevert(MintDisabledDueToTooLowRR.selector);
+        bondingCurve.mint{ value: etherValue }(user);
         assertEq(user.balance, userEthBalance);
     }
 
@@ -208,8 +213,15 @@ contract BondingCurveTestTest is Test {
      */
 
     function test_getReserveRatio_ReturnsRR() public {
-        uint256 rr = bondingCurve.getReserveRatio();
+        uint256 reserveRatio = bondingCurve.getReserveRatio();
+        assertEq(reserveRatio, 0);
+    }
 
-        console2.log('RESERVE RATIO', rr);
+    function setUpReserveRatio() internal {
+        // setup RR
+        vm.prank(wallet);
+        payable(address(bondingCurve)).transfer(5 wei);
+        vm.prank(address(bondingCurve));
+        unitToken.mint(wallet, 1);
     }
 }
