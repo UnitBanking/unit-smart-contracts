@@ -15,5 +15,14 @@ export default {
         runs: 200
       }
     }
+  },
+  paths: {
+    sources: "./contracts",
+    tests: "./hardhat/test",
+    cache: "./hardhat/cache",
+    artifacts: "./hardhat/artifacts"
+  },
+  typechain: {
+    outDir: "hardhat/typechain-types"
   }
 }
