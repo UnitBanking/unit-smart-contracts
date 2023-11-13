@@ -11,8 +11,8 @@
     "clean": "hardhat clean && rimraf ./build",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:fix": "yarn lint:sol:fix && yarn lint:ts:fix",
-    "lint:sol": "yarn prettier './{test,contracts}/**/*.sol' --check",
-    "lint:sol:fix": "yarn prettier './{test,contracts}/**/*.sol' --write",
+    "lint:sol": "yarn prettier './{foundry,contracts}/!(lib)/*.sol' --check",
+    "lint:sol:fix": "yarn prettier './{foundry,contracts}/!(lib)/*.sol' --write",
     "lint:ts": "yarn prettier './{hardhat,foundry,}/{test,scripts}/**/*.{js,ts}' --check && yarn eslint './{hardhat,foundry,}/{test,scripts}/**/*.{js,ts}'",
     "lint:ts:fix": "yarn prettier './{hardhat,foundry,}/{test,scripts}/**/*.{js,ts}' --write && yarn eslint './{hardhat,foundry,}/{test,scripts}/**/*.{js,ts}' --fix",
     "deploy": "hardhat run hardhat/scripts/deploy.ts"
