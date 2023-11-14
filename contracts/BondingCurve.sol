@@ -75,11 +75,6 @@ contract BondingCurve is IBondingCurve {
 
     function burn() external {}
 
-    // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
-    function getInternalPrice() public view returns (uint256) {
-        return _getInternalPriceForTimestamp(block.timestamp).unwrap();
-    }
-
     function updateInternals() public {
         uint256 currentOracleUpdateTimestamp = block.timestamp;
         uint256 currentPriceIndex = inflationOracle.getLatestPriceIndex();
@@ -93,6 +88,11 @@ contract BondingCurve is IBondingCurve {
         lastInternalPrice = _getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
         lastOracleInflationRate = Math.min(100 * PRICE_INDEX_PRECISION, Math.max(0, priceIndexDeltaUint256));
         lastOracleUpdateTimestamp = currentOracleUpdateTimestamp;
+    }
+
+    // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
+    function getInternalPrice() public view returns (uint256) {
+        return _getInternalPriceForTimestamp(block.timestamp).unwrap();
     }
 
     // P(t) = min(IP(t)/EP(t), BalanceETH(t)/SupplyUnit(t))
@@ -125,19 +125,6 @@ contract BondingCurve is IBondingCurve {
             );
     }
 
-    function _getReserveRatio() internal view returns (uint256 reserveRatio) {
-        uint256 internalPrice = getInternalPrice();
-        uint256 unitTokenTotalSupply = unitToken.totalSupply();
-
-        if (internalPrice == 0 || unitTokenTotalSupply == 0) {
-            reserveRatio = 0;
-        } else {
-            reserveRatio =
-                (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) /
-                (internalPrice * unitTokenTotalSupply);
-        }
-    }
-
     function _getUnitEthPrice() internal view returns (uint256) {
         uint256 unitTotalSupply = unitToken.totalSupply();
         if (unitTotalSupply > 0) {
@@ -151,6 +138,19 @@ contract BondingCurve is IBondingCurve {
             return
                 (unwrap(_getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
                 ethUsdOracle.getEthUsdPrice();
+        }
+    }
+
+    function _getReserveRatio() internal view returns (uint256 reserveRatio) {
+        uint256 internalPrice = getInternalPrice();
+        uint256 unitTokenTotalSupply = unitToken.totalSupply();
+
+        if (internalPrice == 0 || unitTokenTotalSupply == 0) {
+            reserveRatio = 0;
+        } else {
+            reserveRatio =
+                (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) /
+                (internalPrice * unitTokenTotalSupply);
         }
     }
 }
