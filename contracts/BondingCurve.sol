@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import './Errors.sol';
 import './interfaces/IBondingCurve.sol';
-import './interfaces/IERC20.sol';
+import './abstracts/BaseToken.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
@@ -39,13 +39,13 @@ contract BondingCurve is IBondingCurve {
 
     IInflationOracle public inflationOracle;
     IEthUsdOracle public ethUsdOracle;
-    IERC20 public unitToken;
+    BaseToken public unitToken;
 
     /**
      * ================ CONSTRUCTOR ================
      */
 
-    constructor(IERC20 _unitToken, IInflationOracle _inflationOracle, IEthUsdOracle _ethUsdOracle) {
+    constructor(BaseToken _unitToken, IInflationOracle _inflationOracle, IEthUsdOracle _ethUsdOracle) {
         lastInternalPrice = UNIT; // 1
 
         unitToken = _unitToken;

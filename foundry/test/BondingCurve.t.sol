@@ -6,7 +6,7 @@ import { Test } from 'forge-std/Test.sol';
 import { BondingCurveTest } from '../../contracts/test/BondingCurveTest.sol';
 import { InflationOracleTest } from '../../contracts/test/InflationOracleTest.sol';
 import { EthUsdOracle } from '../../contracts/EthUsdOracle.sol';
-import { ERC20 } from '../../contracts/ERC20.sol';
+import { UnitToken } from '../../contracts/UnitToken.sol';
 import '../../contracts/Errors.sol';
 
 import { console } from 'forge-std/Test.sol';
@@ -14,7 +14,7 @@ import { console } from 'forge-std/Test.sol';
 contract BondingCurveTestTest is Test {
     InflationOracleTest public inflationOracle;
     EthUsdOracle public ethUsdOracle;
-    ERC20 public unitToken;
+    UnitToken public unitToken;
     BondingCurveTest public bondingCurve;
     address public wallet = vm.addr(1);
 
@@ -37,12 +37,15 @@ contract BondingCurveTestTest is Test {
         ethUsdOracle = new EthUsdOracle();
 
         // set up Unit token contract
-        unitToken = new ERC20(wallet);
+        unitToken = new UnitToken();
+        vm.startPrank(wallet);
+        unitToken.initialize();
+        vm.stopPrank();
 
         // set up BondingCurve contract
         bondingCurve = new BondingCurveTest(unitToken, inflationOracle, ethUsdOracle);
         vm.startPrank(wallet);
-        unitToken.setMinter(address(bondingCurve));
+        unitToken.setMintable(address(bondingCurve), true);
         payable(address(bondingCurve)).transfer(INITIAL_ETH_VALUE);
         vm.stopPrank();
         vm.prank(address(bondingCurve));
