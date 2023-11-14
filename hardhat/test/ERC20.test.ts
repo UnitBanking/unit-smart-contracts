@@ -20,13 +20,18 @@ describe('ER20', () => {
     const erc20 = await ethers.deployContract('ERC20', [wallet.address], {})
     const value = BigInt(10)
     const balanceBefore = await erc20.balanceOf(wallet.address)
+    const totalSupplyBefore = await erc20.totalSupply()
 
     // Act
     await erc20.mint(wallet.address, value)
 
     // Assert
     const balanceAfter = await erc20.balanceOf(wallet.address)
+
+    // Assert
+    const totalSupplyAfter = await erc20.totalSupply()
     expect(balanceAfter).to.equal(balanceBefore + value)
+    expect(totalSupplyAfter).to.equal(totalSupplyBefore + value)
   })
 
   it('burn', async () => {

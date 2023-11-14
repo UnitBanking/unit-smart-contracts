@@ -22,6 +22,7 @@ contract BondingCurveTestTest is Test {
     uint256 private constant START_TIMESTAMP = 1699023595;
     uint256 private constant INITIAL_ETH_VALUE = 5 wei;
     uint256 private constant INITIAL_UNIT_VALUE = 1 wei;
+    uint256 private constant HIGH_RR = 4;
 
     function setUp() public {
         // set up wallet balance
@@ -155,7 +156,7 @@ contract BondingCurveTestTest is Test {
      * ================ mint() ================
      */
 
-    function test_mint_SuccessfullyMintUnitToken() public {
+    function test_mint_SuccessfullyMintsUnitToken() public {
         // Arrange
         address user = vm.addr(2);
         uint256 etherValue = 1 ether;
@@ -181,14 +182,17 @@ contract BondingCurveTestTest is Test {
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
+        uint256 bondingCurveBalanceBefore = address(bondingCurve).balance;
 
         // Act
         vm.prank(user);
         bondingCurve.mint{ value: 0 }(user);
 
         // Assert
+        uint256 bondingCurveBalanceAfter = address(bondingCurve).balance;
         assertEq(user.balance, userEthBalance);
         assertEq(unitToken.balanceOf(user), 0);
+        assertEq(bondingCurveBalanceBefore, bondingCurveBalanceAfter);
     }
 
     function test_mint_RevertIfReceiverIsAddressZero() public {
@@ -203,8 +207,6 @@ contract BondingCurveTestTest is Test {
         vm.prank(user);
         vm.expectRevert(InvalidReceiver.selector);
         bondingCurve.mint{ value: etherValue }(address(0));
-
-        assertEq(user.balance, userEthBalance);
     }
 
     function test_mint_RevertWhenReserveRatioBelowHighRR() public {
@@ -221,7 +223,49 @@ contract BondingCurveTestTest is Test {
         vm.prank(user);
         vm.expectRevert(MintDisabledDueToTooLowRR.selector);
         bondingCurve.mint{ value: etherValue }(user);
-        assertEq(user.balance, userEthBalance);
+    }
+
+    function test_mint_SuccessfullyMintsWhenReserveRatioEqualsHighRR() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 etherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+        uint256 bondingCurveBalanceBefore = address(bondingCurve).balance;
+        assertEq(bondingCurve.getReserveRatio(), HIGH_RR);
+
+        // Act
+        vm.prank(user);
+        bondingCurve.mint{ value: etherValue }(user);
+
+        // Assert
+        uint256 bondingCurveBalanceAfter = address(bondingCurve).balance;
+        assertEq(user.balance, userEthBalance - etherValue);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, etherValue);
+        assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
+    }
+
+    function test_mint_SuccessfullyMintsWhenReserveRatioIsMuchHigherThanHighRR() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 etherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.deal(address(bondingCurve), type(uint256).max / ethUsdOracle.getEthUsdPrice());
+        vm.warp(START_TIMESTAMP + 10 days);
+        uint256 bondingCurveBalanceBefore = address(bondingCurve).balance;
+        assertEq(bondingCurve.getReserveRatio(), 115720447209488867682148501081349782583534698222344066017616);
+
+        // Act
+        vm.prank(user);
+        bondingCurve.mint{ value: etherValue }(user);
+
+        // Assert
+        uint256 bondingCurveBalanceAfter = address(bondingCurve).balance;
+        assertEq(user.balance, userEthBalance - etherValue);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, etherValue);
+        assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
     }
 
     /**

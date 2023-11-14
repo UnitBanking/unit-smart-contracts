@@ -14,6 +14,7 @@ import './libraries/Math.sol';
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility
+ - clarify initial RR setup
  */
 
 contract BondingCurve is IBondingCurve {
@@ -64,7 +65,7 @@ contract BondingCurve is IBondingCurve {
     function mint(address receiver) external payable {
         if (receiver == address(0)) revert InvalidReceiver(); // todo: remove, duplicate in `UnitToken.mint`
 
-        if (calculateReserveRatio() < HIGH_RR) revert MintDisabledDueToTooLowRR();
+        if (_getReserveRatio() < HIGH_RR) revert MintDisabledDueToTooLowRR();
 
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
@@ -76,7 +77,7 @@ contract BondingCurve is IBondingCurve {
 
     // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
     function getInternalPrice() public view returns (uint256) {
-        return getInternalPriceForTimestamp(block.timestamp).unwrap();
+        return _getInternalPriceForTimestamp(block.timestamp).unwrap();
     }
 
     function updateInternals() public {
@@ -89,31 +90,19 @@ contract BondingCurve is IBondingCurve {
         );
         uint256 priceIndexDeltaUint256 = priceIndexDelta.unwrap() / (uUNIT / PRICE_INDEX_PRECISION);
 
-        lastInternalPrice = getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
+        lastInternalPrice = _getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
         lastOracleInflationRate = Math.min(100 * PRICE_INDEX_PRECISION, Math.max(0, priceIndexDeltaUint256));
         lastOracleUpdateTimestamp = currentOracleUpdateTimestamp;
     }
 
     // P(t) = min(IP(t)/EP(t), BalanceETH(t)/SupplyUnit(t))
     function getUnitEthPrice() public view returns (uint256) {
-        uint256 unitTotalSupply = unitToken.totalSupply();
-        if (unitTotalSupply > 0) {
-            return
-                Math.min(
-                    (unwrap(getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
-                        ethUsdOracle.getEthUsdPrice(),
-                    (address(this).balance * PRICE_PRECISION) / unitToken.totalSupply()
-                );
-        } else {
-            return
-                (unwrap(getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
-                ethUsdOracle.getEthUsdPrice();
-        }
+        return _getUnitEthPrice();
     }
 
     // RR(t) = (EP(t) * BalanceETH(t)) / (IP(t) * SupplyUnit(t))
-    function getReserveRatio() public view returns (uint256 reserveRatio) {
-        reserveRatio = calculateReserveRatio();
+    function getReserveRatio() public view returns (uint256) {
+        return _getReserveRatio();
     }
 
     function getSpread() public pure returns (uint256) {
@@ -126,7 +115,7 @@ contract BondingCurve is IBondingCurve {
      * ================ INTERNAL FUNCTIONS ================
      */
 
-    function getInternalPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
+    function _getInternalPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
         return
             lastInternalPrice *
             exp(
@@ -136,7 +125,7 @@ contract BondingCurve is IBondingCurve {
             );
     }
 
-    function calculateReserveRatio() internal view returns (uint256 reserveRatio) {
+    function _getReserveRatio() internal view returns (uint256 reserveRatio) {
         uint256 internalPrice = getInternalPrice();
         uint256 unitTokenTotalSupply = unitToken.totalSupply();
 
@@ -146,6 +135,22 @@ contract BondingCurve is IBondingCurve {
             reserveRatio =
                 (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) /
                 (internalPrice * unitTokenTotalSupply);
+        }
+    }
+
+    function _getUnitEthPrice() internal view returns (uint256) {
+        uint256 unitTotalSupply = unitToken.totalSupply();
+        if (unitTotalSupply > 0) {
+            return
+                Math.min(
+                    (unwrap(_getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
+                        ethUsdOracle.getEthUsdPrice(),
+                    ((address(this).balance - msg.value) * PRICE_PRECISION) / unitToken.totalSupply()
+                );
+        } else {
+            return
+                (unwrap(_getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
+                ethUsdOracle.getEthUsdPrice();
         }
     }
 }

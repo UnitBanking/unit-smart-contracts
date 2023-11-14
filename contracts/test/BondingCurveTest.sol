@@ -16,6 +16,6 @@ contract BondingCurveTest is BondingCurve {
     ) BondingCurve(_unitToken, _inflationOracle, _ethUsdOracle) {}
 
     function testGetInternalPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
-        return unwrap(getInternalPriceForTimestamp(timestamp));
+        return unwrap(_getInternalPriceForTimestamp(timestamp));
     }
 }
