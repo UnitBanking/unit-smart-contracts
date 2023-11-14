@@ -228,9 +228,7 @@ contract BondingCurveTestTest is Test {
      * ================ burn() ================
      */
 
-    function test_burn_SuccessfullyBurnsUnitToken() public {
-      
-    }
+    function test_burn_SuccessfullyBurnsUnitToken() public {}
 
     /**
      * ================ getReserveRatio() ================

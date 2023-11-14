@@ -23,7 +23,7 @@ describe('ER20', () => {
 
     // Act
     await erc20.mint(wallet.address, value)
-    
+
     // Assert
     const balanceAfter = await erc20.balanceOf(wallet.address)
     expect(balanceAfter).to.equal(balanceBefore + value)
