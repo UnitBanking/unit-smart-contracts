@@ -132,7 +132,7 @@ contract BondingCurve is IBondingCurve {
                 Math.min(
                     (unwrap(_getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
                         ethUsdOracle.getEthUsdPrice(),
-                    ((address(this).balance - msg.value) * PRICE_PRECISION) / unitToken.totalSupply()
+                    ((address(this).balance - msg.value) * PRICE_PRECISION) / unitTotalSupply
                 );
         } else {
             return
@@ -145,9 +145,7 @@ contract BondingCurve is IBondingCurve {
         uint256 internalPrice = getInternalPrice();
         uint256 unitTokenTotalSupply = unitToken.totalSupply();
 
-        if (internalPrice == 0 || unitTokenTotalSupply == 0) {
-            reserveRatio = 0;
-        } else {
+        if (internalPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
                 (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) /
                 (internalPrice * unitTokenTotalSupply);
