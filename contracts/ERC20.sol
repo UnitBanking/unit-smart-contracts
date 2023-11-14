@@ -52,4 +52,9 @@ contract ERC20 is IERC20 {
         totalSupply = totalSupply + value;
         balanceOf[to] = balanceOf[to] + value;
     }
+
+    function burn(address from, uint256 value) external {
+        totalSupply = totalSupply - value;
+        balanceOf[from] = balanceOf[from] - value;
+    }
 }
