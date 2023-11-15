@@ -54,6 +54,9 @@ contract ERC20 is IERC20 {
     }
 
     function burn(address from, uint256 value) external {
+        if (from != msg.sender && allowance[from][msg.sender] != type(uint256).max) {
+            allowance[from][msg.sender] = allowance[from][msg.sender] - value;
+        }
         totalSupply = totalSupply - value;
         balanceOf[from] = balanceOf[from] - value;
     }

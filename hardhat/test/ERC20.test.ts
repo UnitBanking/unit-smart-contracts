@@ -50,4 +50,25 @@ describe('ER20', () => {
     const balanceAfter = await erc20.balanceOf(wallet.address)
     expect(balanceBefore - balanceAfter).to.eq(mintValue - burnValue)
   })
+
+  it('burn using allowance', async () => {
+    // Arrange
+    const [wallet, burner] = await ethers.getSigners()
+    const erc20 = await ethers.deployContract('ERC20', [wallet.address], {})
+    const mintValue = BigInt(10)
+    const burnValue = BigInt(5)
+    await erc20.mint(wallet.address, mintValue)
+    const balanceBefore = await erc20.balanceOf(wallet.address)
+    const approveValue = BigInt(100)
+
+    // Act
+    await erc20.approve(burner, approveValue)
+    await erc20.connect(burner).burn(wallet.address, burnValue)
+
+    // Assert
+    const balanceAfter = await erc20.balanceOf(wallet.address)
+    const remainingAllowance = await erc20.allowance(wallet, burner)
+    expect(balanceBefore - balanceAfter).to.eq(mintValue - burnValue)
+    expect(remainingAllowance).to.eq(approveValue - burnValue)
+  })
 })
