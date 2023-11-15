@@ -73,7 +73,12 @@ contract BondingCurve is IBondingCurve {
         unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
-    function burn() external {}
+    function burn(uint256 value) external {
+        unitToken.burn(msg.sender, value);
+        uint256 withdrawEthAmount = ((value) *
+            ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
+        payable(msg.sender).transfer(withdrawEthAmount);
+    }
 
     function updateInternals() public {
         uint256 currentOracleUpdateTimestamp = block.timestamp;

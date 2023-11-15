@@ -9,7 +9,7 @@ interface IBondingCurve {
 
     function mint(address receiver) external payable;
 
-    function burn() external;
+    function burn(uint256 value) external;
 
     function updateInternals() external;
 

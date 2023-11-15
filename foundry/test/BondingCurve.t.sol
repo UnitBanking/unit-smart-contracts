@@ -272,7 +272,30 @@ contract BondingCurveTestTest is Test {
      * ================ burn() ================
      */
 
-    function test_burn_SuccessfullyBurnsUnitToken() public {}
+    function test_burn_SuccessfullyBurnsUnitToken() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMint(etherValue);
+        uint256 unitTokenBalanceBefore = unitToken.balanceOf(user);
+        uint256 userEthBalanceBefore = user.balance;
+        uint256 bondingCurveEthBalanceBefore = address(bondingCurve).balance;
+        uint256 burnAmount = 499191452233793422; // 998382904467586844/2
+        uint256 ethWithdrawnAmount = 499000999000999000;
+        vm.prank(user);
+        unitToken.approve(address(bondingCurve), 998382904467586844);
+
+        // Act
+        vm.prank(user);
+        bondingCurve.burn(burnAmount);
+
+        // Assert
+        uint256 unitTokenBalanceAfter = unitToken.balanceOf(user);
+        uint256 userEthBalanceAfter = user.balance;
+        uint256 bondingCurveEthBalanceAfter = address(bondingCurve).balance;
+        assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore - burnAmount);
+        assertEq(userEthBalanceAfter - userEthBalanceBefore, ethWithdrawnAmount);
+        assertEq(bondingCurveEthBalanceBefore - bondingCurveEthBalanceAfter, ethWithdrawnAmount);
+    }
 
     /**
      * ================ getReserveRatio() ================
@@ -281,5 +304,23 @@ contract BondingCurveTestTest is Test {
     function test_getReserveRatio_ReturnsRR() public {
         uint256 reserveRatio = bondingCurve.getReserveRatio();
         assertEq(reserveRatio, INITIAL_ETH_VALUE / INITIAL_UNIT_VALUE);
+    }
+
+    /**
+     * ================ mint fixture ================
+     */
+
+    function _createUserAndMint(uint256 etherValue) private returns (address user) {
+        // Arrange
+        user = vm.addr(2);
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act
+        vm.prank(user);
+        bondingCurve.mint{ value: etherValue }(user);
+
+        return user;
     }
 }
