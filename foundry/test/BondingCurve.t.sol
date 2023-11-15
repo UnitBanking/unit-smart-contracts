@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import { Test } from 'forge-std/Test.sol';
+import { Test, stdError } from 'forge-std/Test.sol';
 import { BondingCurveTest } from '../../contracts/test/BondingCurveTest.sol';
 import { InflationOracleTest } from '../../contracts/test/InflationOracleTest.sol';
 import { EthUsdOracle } from '../../contracts/EthUsdOracle.sol';
@@ -176,6 +176,35 @@ contract BondingCurveTestTest is Test {
         assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
     }
 
+    function test_mint_SuccessfullyMintsUnitTokenFor2Users() public {
+        // Arrange
+        address user1 = vm.addr(2);
+        address user2 = vm.addr(3);
+        uint256 user1EtherValue = 1 ether;
+        uint256 user2EtherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user1, userEthBalance);
+        vm.deal(user2, userEthBalance);
+        vm.prank(wallet);
+        payable(address(bondingCurve)).transfer(5 ether); // increases RR
+        vm.warp(START_TIMESTAMP + 10 days);
+        uint256 bondingCurveBalanceBefore = address(bondingCurve).balance;
+
+        // Act
+        vm.prank(user1);
+        bondingCurve.mint{ value: user1EtherValue }(user1);
+        vm.prank(user2);
+        bondingCurve.mint{ value: user2EtherValue }(user2);
+
+        // Assert
+        uint256 bondingCurveBalanceAfter = address(bondingCurve).balance;
+        assertEq(user1.balance, userEthBalance - user1EtherValue);
+        assertEq(user2.balance, userEthBalance - user2EtherValue);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, user1EtherValue + user2EtherValue);
+        assertEq(unitToken.balanceOf(user1), 998382904467586844); //0.998382904467586844 UNIT
+        assertEq(unitToken.balanceOf(user2), 998382904467586844); //0.998382904467586844 UNIT
+    }
+
     function test_mint_SendZeroEth() public {
         // Arrange
         address user = vm.addr(2);
@@ -295,6 +324,58 @@ contract BondingCurveTestTest is Test {
         assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore - burnAmount);
         assertEq(userEthBalanceAfter - userEthBalanceBefore, ethWithdrawnAmount);
         assertEq(bondingCurveEthBalanceBefore - bondingCurveEthBalanceAfter, ethWithdrawnAmount);
+    }
+
+    function test_burn_Burns0UnitToken() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMint(etherValue);
+        uint256 unitTokenBalanceBefore = unitToken.balanceOf(user);
+        uint256 userEthBalanceBefore = user.balance;
+        uint256 bondingCurveEthBalanceBefore = address(bondingCurve).balance;
+
+        // Act
+        vm.prank(user);
+        bondingCurve.burn(0);
+
+        // Assert
+        uint256 unitTokenBalanceAfter = unitToken.balanceOf(user);
+        uint256 userEthBalanceAfter = user.balance;
+        uint256 bondingCurveEthBalanceAfter = address(bondingCurve).balance;
+        assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore);
+        assertEq(userEthBalanceBefore, userEthBalanceAfter);
+        assertEq(bondingCurveEthBalanceBefore, bondingCurveEthBalanceAfter);
+    }
+
+    function test_burn_RevertsIfUserTriesToBurnMoreThanUnitBalance() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMint(etherValue);
+        uint256 additionalUnitAmount = 1;
+        uint256 burnAmount = unitToken.balanceOf(user) + additionalUnitAmount;
+        vm.prank(user);
+        unitToken.approve(address(bondingCurve), burnAmount);
+        vm.prank(address(bondingCurve));
+        unitToken.mint(wallet, additionalUnitAmount);
+
+        // Act & Assert
+        vm.prank(user);
+        vm.expectRevert(stdError.arithmeticError);
+        bondingCurve.burn(burnAmount);
+    }
+
+    function test_burn_RevertsIfUserTriesToBurnMoreThanUnitTotalSupply() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMint(etherValue);
+        uint256 burnAmount = unitToken.totalSupply() + 1;
+        vm.prank(user);
+        unitToken.approve(address(bondingCurve), burnAmount);
+
+        // Act & Assert
+        vm.prank(user);
+        vm.expectRevert(stdError.arithmeticError);
+        bondingCurve.burn(burnAmount);
     }
 
     /**

@@ -15,6 +15,8 @@ import './libraries/Math.sol';
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility
  - clarify initial RR setup
+ - verify `burn()` interface
+ - update `transfer()` in `burn()` function
  */
 
 contract BondingCurve is IBondingCurve {
