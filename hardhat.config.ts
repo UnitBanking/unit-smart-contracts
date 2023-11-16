@@ -33,14 +33,15 @@ const config: HardhatUserConfig = {
     }
   },
   paths: {
-    sources: "./contracts",
-    tests: "./hardhat/test",
-    cache: "./hardhat/cache",
-    artifacts: "./hardhat/build/artifacts"
+    sources: './contracts',
+    tests: './hardhat/test',
+    cache: './hardhat/cache',
+    artifacts: './hardhat/build/artifacts',
   },
   typechain: {
-    outDir: "hardhat/build/types"
-  }
+    outDir: './hardhat/build/types',
+    target: 'ethers-v6',
+  },
 }
 
 export default config
