@@ -36,11 +36,8 @@ contract MineToken is BaseToken, IVotes {
         super.initialize();
     }
 
-    function mint(address account, uint256 amount) external override {
-        if (account == address(0)) {
-            revert ERC20InvalidReceiver(address(0));
-        }
-        _update(address(0), account, amount);
+    function mint(address account, uint256 amount) public override {
+        super.mint(account, amount);
         if (totalSupply > MAX_SUPPLY) {
             revert ExceedMaxSupply();
         }

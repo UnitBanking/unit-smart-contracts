@@ -26,16 +26,22 @@ abstract contract BaseToken is Ownable, ERC20, Mintable, Burnable, Proxiable {
         _setBurnable(burner, burnable);
     }
 
-    function mint(address account, uint256 amount) external virtual override {
+    function mint(address account, uint256 amount) public virtual override {
         if (account == address(0)) {
             revert ERC20InvalidReceiver(address(0));
+        }
+        if (!isMintable[msg.sender]) {
+            revert MintableUnauthorizedAccount(msg.sender);
         }
         _update(address(0), account, amount);
     }
 
-    function burn(address account, uint256 amount) external virtual override {
+    function burn(address account, uint256 amount) public virtual override {
         if (account == address(0)) {
             revert ERC20InvalidSender(address(0));
+        }
+        if (!isBurnable[msg.sender]) {
+            revert BurnableUnauthorizedAccount(msg.sender);
         }
         _update(account, address(0), amount);
     }

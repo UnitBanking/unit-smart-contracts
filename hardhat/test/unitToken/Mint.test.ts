@@ -7,11 +7,21 @@ describe('permission mint', () => {
   it('owner can mint', async () => {
     const { unit, owner } = await loadFixture(deployUnitFixture)
     expect(await unit.isMintable(owner.getAddress())).to.be.true
+
+    const totalSupplyBefore = await unit.totalSupply()
+    const amount = 100n
+    await unit.mint(owner.address, amount)
+    const totalSupplyAfter = await unit.totalSupply()
+    expect(totalSupplyAfter).to.equal(totalSupplyBefore + amount)
   })
 
   it('other address can not mint', async () => {
-    const { unit, other } = await loadFixture(deployUnitFixture)
+    const { unit, owner, other } = await loadFixture(deployUnitFixture)
     expect(await unit.isMintable(other.getAddress())).to.be.false
+
+    await expect(unit.connect(other).mint(owner.address, 100n))
+      .to.be.revertedWithCustomError(unit, 'MintableUnauthorizedAccount')
+      .withArgs(other.address)
   })
 
   it('set mintable', async () => {

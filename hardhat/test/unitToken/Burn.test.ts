@@ -7,11 +7,21 @@ describe('permission burn', () => {
   it('owner can burn', async () => {
     const { unit, owner } = await loadFixture(deployUnitFixture)
     expect(await unit.isBurnable(owner.address)).to.be.true
+
+    const totalSupplyBefore = await unit.totalSupply()
+    const amount = 100n
+    await unit.burn(owner.address, amount)
+    const totalSupplyAfter = await unit.totalSupply()
+    expect(totalSupplyAfter).to.equal(totalSupplyBefore - amount)
   })
 
   it('other address can not burn', async () => {
-    const { unit, other } = await loadFixture(deployUnitFixture)
+    const { unit, owner, other } = await loadFixture(deployUnitFixture)
     expect(await unit.isBurnable(other.getAddress())).to.be.false
+
+    await expect(unit.connect(other).burn(owner.address, 100n))
+      .to.be.revertedWithCustomError(unit, 'BurnableUnauthorizedAccount')
+      .withArgs(other.address)
   })
 
   it('set burnable', async () => {
