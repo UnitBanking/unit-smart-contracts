@@ -3,6 +3,7 @@
 pragma solidity 0.8.21;
 
 interface IVotes {
+    error DelegateToDefaultDelegatee();
     error InvalidDelegateSignature(address signature);
     error InvalidDelegateNonce(uint256 nonce);
     error DelegateExpired(uint256 expiry);

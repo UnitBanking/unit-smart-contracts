@@ -37,6 +37,9 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function mint(address account, uint256 amount) public override {
+        if(delegates[account] == address(0)) {
+            _delegate(account, defaultDelegatee);
+        }
         super.mint(account, amount);
         if (totalSupply > MAX_SUPPLY) {
             revert ExceedMaxSupply();
@@ -44,29 +47,28 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function setDefaultDelegatee(address delegatee) external onlyOwner {
-        address oldDefaultDelegatee = defaultDelegatee;
-        defaultDelegatee = delegatee;
-        uint32 nCheckpoints = numCheckpoints[oldDefaultDelegatee];
-        uint256 currentVotes = nCheckpoints > 0 ? checkpoints[oldDefaultDelegatee][nCheckpoints - 1].votes : 0;
-        _moveDelegates(oldDefaultDelegatee, defaultDelegatee, currentVotes);
+        uint32 nCheckpoints = numCheckpoints[defaultDelegatee];
+        uint256 currentVotes = nCheckpoints > 0 ? checkpoints[defaultDelegatee][nCheckpoints - 1].votes : 0;
+        _moveDelegates(defaultDelegatee, delegatee, currentVotes);
+        _setDefaultDelegatee(delegatee);
     }
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
-        if (from != address(0)) {
-            from = delegates[from] == address(0) ? defaultDelegatee : delegates[from];
-        }
-        if (to != address(0)) {
-            to = delegates[to] == address(0) ? defaultDelegatee : delegates[to];
-        }
-        _moveDelegates(from, to, value);
+        _moveDelegates(delegates[from], delegates[to], value);
     }
 
     function delegate(address delegatee) external {
+        if(delegatee == defaultDelegatee) {
+            revert DelegateToDefaultDelegatee();
+        }
         return _delegate(msg.sender, delegatee);
     }
 
     function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {
+        if (block.timestamp >= expiry) {
+            revert DelegateExpired(expiry);
+        }
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), block.chainid, address(this))
         );
@@ -76,11 +78,8 @@ contract MineToken is BaseToken, IVotes {
         if (signatory == address(0)) {
             revert InvalidDelegateSignature(signatory);
         }
-        if (nonce != nonces[signatory]++) {
+        if (nonce != nonces[signatory]++){
             revert InvalidDelegateNonce(nonce);
-        }
-        if (block.timestamp > expiry) {
-            revert DelegateExpired(expiry);
         }
         return _delegate(signatory, delegatee);
     }

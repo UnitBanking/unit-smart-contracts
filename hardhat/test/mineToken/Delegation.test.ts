@@ -1,10 +1,17 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from '../fixtures/deployMineFixture'
 import { expect } from 'chai'
-import { ZeroAddress } from 'ethers'
+import { randomBytes } from 'ethers'
 import { ethers } from 'hardhat'
 
 describe('MineToken delegations', () => {
+  const DelegationType = {
+    Delegation: [
+      { name: 'delegatee', type: 'address' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'expiry', type: 'uint256' },
+    ],
+  }
   it('should delegate vote', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
@@ -14,11 +21,20 @@ describe('MineToken delegations', () => {
   it('delegate should emit event', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     const votes = await mine.balanceOf(owner.address)
+    const defaultDelegatee = await mine.defaultDelegatee()
     await expect(mine.delegate(other.address))
       .to.emit(mine, 'DelegateChanged')
-      .withArgs(owner.address, ZeroAddress, other.address)
+      .withArgs(owner.address, defaultDelegatee, other.address)
       .to.emit(mine, 'DelegateVotesChanged')
       .withArgs(other.address, 0, votes)
+  })
+
+  it('should not be able to delegate to zero address', async () => {
+    const { mine } = await loadFixture(deployMineFixture)
+    await expect(mine.delegate(await mine.defaultDelegatee())).to.be.revertedWithCustomError(
+      mine,
+      'DelegateToDefaultDelegatee',
+    )
   })
 
   it('initial votes is zero', async () => {
@@ -67,6 +83,18 @@ describe('MineToken delegations', () => {
     expect(await mine.getPriorVotes(other.address, blockNumber)).to.equal(0)
   })
 
+  it('change default delegation, and verify current votes and prior votes', async () => {
+    const { mine, other, owner } = await loadFixture(deployMineFixture)
+    const defaultDelegatee = await mine.defaultDelegatee()
+    expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(await mine.balanceOf(owner.address))
+    const blockNumber = await ethers.provider.getBlockNumber()
+    await ethers.provider.send('evm_mine')
+    await mine.setDefaultDelegatee(other.address)
+    expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(0)
+    expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))
+    expect(await mine.getPriorVotes(defaultDelegatee, blockNumber)).to.equal(await mine.balanceOf(owner.address))
+  })
+
   it('update votes after mint', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
@@ -94,35 +122,71 @@ describe('MineToken delegations', () => {
     expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))
   })
 
-  it('delegate via signature', async () => {
+  it('delegate via signature expired', async () => {
+    const { mine, other } = await loadFixture(deployMineFixture)
+    await expect(
+      mine.delegateBySig(other.address, 1, 1, 1, randomBytes(32), randomBytes(32)),
+    ).to.be.revertedWithCustomError(mine, 'DelegateExpired')
+  })
+
+  it('delegate via invalid signature', async () => {
+    const { mine, other } = await loadFixture(deployMineFixture)
+    await expect(
+      mine.delegateBySig(other.address, 1, Date.now() + 1000, 1, randomBytes(32), randomBytes(32)),
+    ).to.be.revertedWithCustomError(mine, 'InvalidDelegateSignature')
+  })
+
+  it('delegate via invalid nonce', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
-    const nonce = await mine.nonces(owner.address)
-    const expiration = Date.now() + 100000
-    const delegateSignature = await owner.signTypedData(
+    const expiry = Date.now() + 100000
+
+    const name = await mine.name()
+    const address = await mine.getAddress()
+    const chainId = (await ethers.provider.getNetwork()).chainId
+
+    const rawSignature = await owner.signTypedData(
       {
-        name: 'MineToken',
-        version: '1',
-        chainId: 31337,
-        verifyingContract: await mine.getAddress(),
+        name,
+        chainId,
+        verifyingContract: address,
       },
-      {
-        Delegate: [
-          { name: 'delegatee', type: 'address' },
-          { name: 'nonce', type: 'uint256' },
-          { name: 'expiry', type: 'uint256' },
-        ],
-      },
+      DelegationType,
       {
         delegatee: other.address,
-        nonce,
-        expiry: expiration,
+        nonce: 0,
+        expiry,
       },
     )
-    // get v and r of delegateSignature
-    const signature = delegateSignature.substring(2)
-    const r = '0x' + signature.substring(0, 64)
-    const s = '0x' + signature.substring(64, 128)
-    const v = parseInt(signature.substring(128, 130), 16)
+    const signature = splitSignature(rawSignature)
+    await mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s)
+    await expect(
+      mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s),
+    ).to.be.revertedWithCustomError(mine, 'InvalidDelegateNonce')
+  })
+
+  it('delegate via signature', async () => {
+    const { mine, other, owner } = await loadFixture(deployMineFixture)
+    const expiry = Date.now() + 100000
+    const name = await mine.name()
+    const address = await mine.getAddress()
+    const chainId = (await ethers.provider.getNetwork()).chainId
+
+    const rawSignature = await owner.signTypedData(
+      {
+        name,
+        chainId,
+        verifyingContract: address,
+      },
+      DelegationType,
+      {
+        delegatee: other.address,
+        nonce: 0,
+        expiry,
+      },
+    )
+    const signature = splitSignature(rawSignature)
+    await mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s)
+    expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))
   })
 
   it('throw block number is too high error', async () => {
@@ -133,3 +197,17 @@ describe('MineToken delegations', () => {
     )
   })
 })
+
+function splitSignature(signature) {
+  if (signature.length !== 132) {
+    throw new Error('Invalid signature length')
+  }
+
+  const r = '0x' + signature.slice(2, 66)
+  const s = '0x' + signature.slice(66, 130)
+  let v = parseInt('0x' + signature.slice(130, 132), 16)
+
+  if (v < 27) v += 27
+
+  return { r, s, v }
+}
