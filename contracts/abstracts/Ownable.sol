@@ -4,7 +4,8 @@ pragma solidity 0.8.21;
 
 abstract contract Ownable {
     event OwnerSet(address indexed owner);
-    error OwnerDuplicatedOperation();
+    error OwnableInvalidOwnerAddress(address account);
+    error OwnableDuplicatedOperation();
     error OwnableUnauthorizedAccount(address account);
 
     address public owner;
@@ -21,8 +22,11 @@ abstract contract Ownable {
     }
 
     function _setOwner(address _owner) internal {
+        if (_owner == address(0)) {
+            revert OwnableInvalidOwnerAddress(address(0));
+        }
         if (owner == _owner) {
-            revert OwnerDuplicatedOperation();
+            revert OwnableDuplicatedOperation();
         }
         owner = _owner;
         emit OwnerSet(_owner);

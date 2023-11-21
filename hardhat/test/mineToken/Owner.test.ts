@@ -1,43 +1,42 @@
 import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from '../fixtures/deployMineFixture'
+import { ethers } from 'ethers'
 
-// create test cases for ownerable
 describe('ownerable', () => {
-  it('owner can transfer ownership', async () => {
+  it('can set owner', async () => {
     const { mine, other } = await loadFixture(deployMineFixture)
-    await mine.setOwner(other.getAddress())
-    expect(await mine.owner()).to.equal(await other.getAddress())
+    await mine.setOwner(other.address)
+    expect(await mine.owner()).to.equal(other.address)
   })
 
-  it('other address can not transfer ownership', async () => {
+  it('only allows owner to transfer ownership', async () => {
     const { mine, other } = await loadFixture(deployMineFixture)
-    await expect(mine.connect(other).setOwner(other.getAddress())).to.be.revertedWithCustomError(
+    await expect(mine.connect(other).setOwner(other.address)).to.be.revertedWithCustomError(
       mine,
       'OwnableUnauthorizedAccount',
     )
   })
 
-  it('set owner', async () => {
+  it('reverts when set owner with same address', async () => {
     const { mine, other } = await loadFixture(deployMineFixture)
-    await mine.setOwner(other.getAddress())
-    expect(await mine.owner()).to.equal(await other.getAddress())
+    await mine.setOwner(other.address)
+
+    await expect(mine.connect(other).setOwner(other.address)).to.be.revertedWithCustomError(
+      mine,
+      'OwnableDuplicatedOperation',
+    )
   })
 
-  it('set same address owner', async () => {
-    const { mine, other } = await loadFixture(deployMineFixture)
-    await mine.setOwner(other.getAddress())
-
-    // revert with error OwnerableDuplicatedOperation
-    await expect(mine.connect(other).setOwner(other.getAddress())).to.be.revertedWithCustomError(
-      mine,
-      'OwnerDuplicatedOperation',
-    )
+  it('reverts when set owner to zero address', async () => {
+    const { mine } = await loadFixture(deployMineFixture)
+    await expect(mine.setOwner(ethers.ZeroAddress))
+      .to.be.revertedWithCustomError(mine, 'OwnableInvalidOwnerAddress')
+      .withArgs(ethers.ZeroAddress)
   })
 
   it('should emit event when set owner', async () => {
     const { mine, other } = await loadFixture(deployMineFixture)
-    const otherAddress = await other.getAddress()
-    await expect(mine.setOwner(other.getAddress())).to.emit(mine, 'OwnerSet').withArgs(otherAddress)
+    await expect(mine.setOwner(other.address)).to.emit(mine, 'OwnerSet').withArgs(other.address)
   })
 })
