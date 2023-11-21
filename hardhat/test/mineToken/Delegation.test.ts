@@ -4,7 +4,7 @@ import { expect } from 'chai'
 import { ZeroAddress } from 'ethers'
 import { ethers } from 'hardhat'
 
-describe('Delegation vote', () => {
+describe('MineToken delegations', () => {
   it('should delegate vote', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
@@ -31,12 +31,12 @@ describe('Delegation vote', () => {
     const defaultDelegatee = await mine.defaultDelegatee()
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(await mine.balanceOf(owner.address))
 
-    await mine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.mint(BigInt(100000) * BigInt(10) ** BigInt(18))
 
     const expectedVotes = (await mine.balanceOf(owner.address)) + (await mine.balanceOf(other.address))
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotes)
 
-    await mine.burn(owner.address, await mine.balanceOf(owner.address))
+    await mine.burn(await mine.balanceOf(owner.address))
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(await mine.balanceOf(other.address))
   })
 
@@ -75,7 +75,7 @@ describe('Delegation vote', () => {
     await ethers.provider.send('evm_mine')
     await ethers.provider.send('evm_mine')
     await ethers.provider.send('evm_mine')
-    await mine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.mint(BigInt(100000) * BigInt(10) ** BigInt(18))
     const secondBalance = await mine.balanceOf(owner.address)
     const secondBlockNumber = await ethers.provider.getBlockNumber()
 
@@ -87,7 +87,8 @@ describe('Delegation vote', () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
 
-    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.setMintable(other.address, true)
+    await mine.connect(other).mint(BigInt(100000) * BigInt(10) ** BigInt(18))
     await mine.connect(other).transfer(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
 
     expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))

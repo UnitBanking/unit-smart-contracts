@@ -6,7 +6,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { FakeAddress } from './utils'
 import { ProxiableContract__factory } from '../build/types'
 
-describe('proxy', () => {
+describe('Proxy', () => {
   it('can output implementation address', async () => {
     const { contractAddress, proxy } = await loadFixture(proxyFixture)
     const implementationAddress = await proxy.implementation()

@@ -16,5 +16,5 @@ abstract contract Burnable {
         emit BurnableSet(burner, burnable);
     }
 
-    function burn(address account, uint256 amount) external virtual {}
+    function _burn(address account, uint256 amount) internal virtual;
 }
