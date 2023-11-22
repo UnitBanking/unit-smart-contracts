@@ -4,14 +4,16 @@ pragma solidity 0.8.21;
 
 abstract contract Mintable {
     event MintableSet(address indexed minter, bool mintable);
-    error MintableInvalidMinterAddress(address account);
+
+    error MintableInvalidMinterAddress();
     error MintableDuplicatedOperation();
     error MintableUnauthorizedAccount(address account);
+
     mapping(address => bool) public isMintable;
 
     function _setMintable(address minter, bool mintable) internal {
         if (minter == address(0)) {
-            revert MintableInvalidMinterAddress(address(0));
+            revert MintableInvalidMinterAddress();
         }
         if (isMintable[minter] == mintable) {
             revert MintableDuplicatedOperation();
@@ -20,5 +22,9 @@ abstract contract Mintable {
         emit MintableSet(minter, mintable);
     }
 
-    function _mint(address account, uint256 amount) internal virtual;
+    function mint(address, uint256) public virtual {
+        if (!isMintable[msg.sender]) {
+            revert MintableUnauthorizedAccount(msg.sender);
+        }
+    }
 }

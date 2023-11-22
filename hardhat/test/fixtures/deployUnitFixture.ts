@@ -21,6 +21,6 @@ export async function deployUnitFixture(): Promise<UnitFixtureReturnType> {
   const proxyAddress = await proxy.getAddress()
   const proxyUnit = UnitToken__factory.connect(proxyAddress, owner)
 
-  await proxyUnit.mint(BigInt(100000) * BigInt(10) ** BigInt(18))
+  await proxyUnit.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
   return { unit: proxyUnit, owner, other, another }
 }

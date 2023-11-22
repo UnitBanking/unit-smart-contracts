@@ -11,7 +11,7 @@ describe('BaseToken mint', () => {
     const totalSupplyBefore = await base.totalSupply()
     const mineBlanceBefore = await base.balanceOf(owner.address)
     const amount = 100n
-    await base.mint(amount)
+    await base.mint(owner.address, amount)
     const totalSupplyAfter = await base.totalSupply()
     const mineBlanceAfter = await base.balanceOf(owner.address)
     expect(totalSupplyAfter).to.equal(totalSupplyBefore + amount)
@@ -21,7 +21,7 @@ describe('BaseToken mint', () => {
   it('reverts when mint with other address', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
     expect(await base.isMintable(other.address)).to.be.false
-    await expect(base.connect(other).mint(100n))
+    await expect(base.connect(other).mint(other.address, 100n))
       .to.be.revertedWithCustomError(base, 'MintableUnauthorizedAccount')
       .withArgs(other.address)
   })
@@ -39,9 +39,10 @@ describe('BaseToken mint', () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
     await base.setMintable(other.address, true)
 
-    await expect(base.setMintable(ethers.ZeroAddress, true))
-      .to.be.revertedWithCustomError(base, 'MintableInvalidMinterAddress')
-      .withArgs(ethers.ZeroAddress)
+    await expect(base.setMintable(ethers.ZeroAddress, true)).to.be.revertedWithCustomError(
+      base,
+      'MintableInvalidMinterAddress',
+    )
   })
 
   it('reverts when set mintable with same address', async () => {

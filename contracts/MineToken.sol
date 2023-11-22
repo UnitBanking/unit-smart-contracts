@@ -36,8 +36,8 @@ contract MineToken is BaseToken, IVotes {
         super.initialize();
     }
 
-    function mint(uint256 amount) external override {
-        _mint(msg.sender, amount);
+    function mint(address account, uint256 amount) public override {
+        super.mint(account, amount);
         if (totalSupply > MAX_SUPPLY) {
             revert ExceedMaxSupply();
         }

@@ -20,7 +20,7 @@ abstract contract ERC20 is IERC20 {
     }
 
     function approve(address spender, uint256 value) external override returns (bool) {
-        _approve(msg.sender, spender, value);
+        _approve(msg.sender, spender, value, true);
         return true;
     }
 
@@ -33,10 +33,6 @@ abstract contract ERC20 is IERC20 {
         _spendAllowance(from, msg.sender, value);
         _transfer(from, to, value);
         return true;
-    }
-
-    function _approve(address owner, address spender, uint256 value) internal {
-        _approve(owner, spender, value, true);
     }
 
     function _approve(address owner, address spender, uint256 value, bool emitEvent) internal {

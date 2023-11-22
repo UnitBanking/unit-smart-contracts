@@ -34,6 +34,60 @@ describe('BaseToken burn', () => {
     await expect(base.connect(other).burn(100n)).to.not.be.revertedWithCustomError(base, 'BurnableUnauthorizedAccount')
   })
 
+  it('can burn from others', async () => {
+    const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
+    await base.mint(other.address, 100)
+    await base.connect(other).approve(owner.address, 100)
+
+    const amount = 50n
+    const totalSupplyBefore = await base.totalSupply()
+    const balanceBefore = await base.balanceOf(other.address)
+
+    await base.burnFrom(other.address, amount)
+
+    const totalSupplyAfter = await base.totalSupply()
+    const balanceAfter = await base.balanceOf(other.address)
+    expect(balanceAfter).to.equal(balanceBefore - amount)
+    expect(totalSupplyAfter).to.equal(totalSupplyBefore - amount)
+  })
+
+  it('reverts when burn from zero address', async () => {
+    const { base } = await loadFixture(deployBaseTokenFixture)
+    await expect(base.burnFrom(ethers.ZeroAddress, 100n))
+      .to.be.revertedWithCustomError(base, 'ERC20InvalidSender')
+      .withArgs(ethers.ZeroAddress)
+  })
+
+  it('reverts when burn from others without enough allownace', async () => {
+    const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
+    await base.mint(other.address, 100)
+
+    await expect(base.burnFrom(other.address, 50))
+      .to.be.revertedWithCustomError(base, 'ERC20InsufficientAllowance')
+      .withArgs(owner.address, 0, 50)
+  })
+
+  it('reverts when burnFrom with other address and zero address is not set burnable', async () => {
+    const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
+    await base.approve(other.address, 100)
+    expect(await base.isBurnable(other.address)).to.be.false
+    await expect(base.connect(other).burnFrom(owner.address, 100n))
+      .to.be.revertedWithCustomError(base, 'BurnableUnauthorizedAccount')
+      .withArgs(other.address)
+  })
+
+  it('does not revert when burnFrom with other address and zero address is set to burnable', async () => {
+    const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
+    await base.approve(other.address, 100)
+    await base.setBurnable(ethers.ZeroAddress, true)
+    expect(await base.isBurnable(other.address)).to.be.false
+
+    await expect(base.connect(other).burnFrom(owner.address, 100n)).to.not.be.revertedWithCustomError(
+      base,
+      'BurnableUnauthorizedAccount',
+    )
+  })
+
   it('set burnable', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
     await base.setBurnable(other.address, true)
