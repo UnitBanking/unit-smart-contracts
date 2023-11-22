@@ -4,6 +4,7 @@ pragma solidity 0.8.21;
 
 abstract contract Ownable {
     event OwnerSet(address indexed owner);
+
     error OwnableInvalidOwnerAddress(address account);
     error OwnableDuplicatedOperation();
     error OwnableUnauthorizedAccount(address account);

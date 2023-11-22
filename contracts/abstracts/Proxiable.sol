@@ -9,9 +9,9 @@ abstract contract Proxiable is IProxiable {
 
     function initialize() public virtual override {
         if (initialized) {
-            revert ProxiableAlreadyDelegated();
+            revert ProxiableAlreadyInitialized();
         }
         initialized = true;
-        emit DelegatedBy(msg.sender);
+        emit InitializedBy(msg.sender);
     }
 }

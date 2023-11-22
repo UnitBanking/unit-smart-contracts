@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import '../abstracts/Proxiable.sol';
 
-contract ProxiableContractUpgraded is Proxiable {
+contract ProxiableUpgradedTest is Proxiable {
     function initialize() public override {
         super.initialize();
     }

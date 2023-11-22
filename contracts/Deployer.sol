@@ -4,6 +4,7 @@ pragma solidity 0.8.21;
 
 contract Deployer {
     event Deployed(address _address);
+    
     error DeployerEmptyBytecode();
     error DeployerFailedDeployment(address _address);
 
