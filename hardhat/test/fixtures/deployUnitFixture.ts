@@ -20,6 +20,8 @@ export async function deployUnitFixture(): Promise<UnitFixtureReturnType> {
   await proxy.upgradeToAndCall(unitAddress, initialize)
   const proxyAddress = await proxy.getAddress()
   const proxyUnit = UnitToken__factory.connect(proxyAddress, owner)
+  await proxyUnit.setMinter(owner.address, true)
+  await proxyUnit.setBurner(owner.address, true)
 
   await proxyUnit.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
   return { unit: proxyUnit, owner, other, another }

@@ -13,6 +13,8 @@ export async function deployBaseTokenFixture(): Promise<BaseTokenTestFixtureRetu
   const [owner, other, another] = await ethers.getSigners()
   const base = await ethers.deployContract('BaseTokenTest', [], { signer: owner })
   await base.initialize()
+  await base.setMinter(owner.address, true)
+  await base.setBurner(owner.address, true)
   await base.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
   return { base, owner, other, another }
 }

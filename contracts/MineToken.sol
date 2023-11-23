@@ -30,9 +30,15 @@ contract MineToken is BaseToken, IVotes {
     constructor() BaseToken() {}
 
     function initialize() public override {
-        name = 'Mine Token';
-        symbol = 'MINE';
         super.initialize();
+    }
+
+    function name() public pure override returns (string memory) {
+        return 'Mine Token';
+    }
+
+    function symbol() public pure override returns (string memory) {
+        return 'MINE';
     }
 
     function mint(address account, uint256 amount) public override {
@@ -69,7 +75,7 @@ contract MineToken is BaseToken, IVotes {
             revert DelegateExpired(expiry);
         }
         bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), block.chainid, address(this))
+            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
         );
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));

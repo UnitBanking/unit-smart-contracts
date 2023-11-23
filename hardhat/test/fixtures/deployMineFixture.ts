@@ -20,6 +20,8 @@ export async function deployMineFixture(): Promise<MineFixtureReturnType> {
   await proxy.upgradeToAndCall(mineAddress, initialize)
   const proxyAddress = await proxy.getAddress()
   const proxyMine = MineToken__factory.connect(proxyAddress, owner)
+  await proxyMine.setMinter(owner.address, true)
+  await proxyMine.setBurner(owner.address, true)
   await proxyMine.setDefaultDelegatee('0x0000000000000000000000000000000000000001')
 
   await proxyMine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))

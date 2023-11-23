@@ -8,8 +8,14 @@ contract UnitToken is BaseToken {
     constructor() BaseToken() {}
 
     function initialize() public override {
-        name = 'Unit Token';
-        symbol = 'UNIT';
         super.initialize();
+    }
+
+    function name() public pure override returns (string memory) {
+        return 'Unit Token';
+    }
+
+    function symbol() public pure override returns (string memory) {
+        return 'UNIT';
     }
 }

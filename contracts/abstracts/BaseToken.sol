@@ -13,8 +13,6 @@ abstract contract BaseToken is Ownable, ERC20, Mintable, Burnable, Proxiable {
 
     function initialize() public virtual override {
         _setOwner(msg.sender);
-        _setMinter(msg.sender, true);
-        _setBurner(msg.sender, true);
         super.initialize();
     }
 
