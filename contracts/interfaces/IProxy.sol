@@ -2,18 +2,20 @@
 
 pragma solidity 0.8.21;
 
-interface IUpgradable {
+interface IProxy {
     event Upgraded(address indexed implementation);
     event AdminChanged(address previousAdmin, address newAdmin);
 
-    error UpgradableInvalidImplementation(address implementation);
-    error UpgradableInvalidAdmin(address admin);
-    error UpgradableUnauthorized();
-    error UpgradableDuplicatedOperation();
-    error UpgradableNonPayable();
-    error UpgradableFailedInnerCall();
+    error ProxyInvalidImplementation(address implementation);
+    error ProxyInvalidAdmin(address admin);
+    error ProxyUnauthorized();
+    error ProxyDuplicatedOperation();
+    error ProxyNonPayable();
+    error ProxyFailedInnerCall();
 
     function implementation() external view returns (address);
+
+    function admin() external view returns (address);
 
     function upgradeTo(address newImplementation) external;
 

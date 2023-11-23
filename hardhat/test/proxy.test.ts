@@ -50,51 +50,42 @@ describe('Proxy', () => {
 
   it('reverts when upgrade if not admin', async () => {
     const { proxy, other } = await loadFixture(proxyFixture)
-    await expect(proxy.connect(other).upgradeTo(FakeAddress)).to.revertedWithCustomError(
-      proxy,
-      'UpgradableUnauthorized',
-    )
+    await expect(proxy.connect(other).upgradeTo(FakeAddress)).to.revertedWithCustomError(proxy, 'ProxyUnauthorized')
   })
 
   it('reverts when upgrade if address is zero', async () => {
     const { proxy } = await loadFixture(proxyFixture)
     await expect(proxy.upgradeTo(e.ZeroAddress))
-      .to.revertedWithCustomError(proxy, 'UpgradableInvalidImplementation')
+      .to.revertedWithCustomError(proxy, 'ProxyInvalidImplementation')
       .withArgs(e.ZeroAddress)
   })
 
   it('reverts when upgrade to same address', async () => {
     const { proxy, contractAddress } = await loadFixture(proxyFixture)
-    await expect(proxy.upgradeTo(contractAddress)).to.revertedWithCustomError(proxy, 'UpgradableDuplicatedOperation')
+    await expect(proxy.upgradeTo(contractAddress)).to.revertedWithCustomError(proxy, 'ProxyDuplicatedOperation')
   })
 
   it('can change admin', async () => {
     const { proxy, other } = await loadFixture(proxyFixture)
     await proxy.changeAdmin(other.address)
-    await expect(proxy.connect(other).upgradeTo(FakeAddress)).to.not.revertedWithCustomError(
-      proxy,
-      'UpgradableUnauthorized',
-    )
+    await expect(proxy.connect(other).upgradeTo(FakeAddress)).to.not.revertedWithCustomError(proxy, 'ProxyUnauthorized')
   })
 
   it('reverts when changeAdmin if not admin', async () => {
     const { proxy, other } = await loadFixture(proxyFixture)
-    await expect(proxy.connect(other).changeAdmin(other.address)).to.revertedWithCustomError(
-      proxy,
-      'UpgradableUnauthorized',
-    )
+    await expect(proxy.connect(other).changeAdmin(other.address)).to.revertedWithCustomError(proxy, 'ProxyUnauthorized')
   })
 
   it('reverts when changeAdmin if address is zero', async () => {
     const { proxy } = await loadFixture(proxyFixture)
     await expect(proxy.changeAdmin(e.ZeroAddress))
-      .to.revertedWithCustomError(proxy, 'UpgradableInvalidAdmin')
+      .to.revertedWithCustomError(proxy, 'ProxyInvalidAdmin')
       .withArgs(e.ZeroAddress)
   })
 
   it('reverts when changeAdmin to same address', async () => {
     const { proxy, owner } = await loadFixture(proxyFixture)
-    await expect(proxy.changeAdmin(owner.address)).to.revertedWithCustomError(proxy, 'UpgradableDuplicatedOperation')
+    await expect(proxy.changeAdmin(owner.address)).to.revertedWithCustomError(proxy, 'ProxyDuplicatedOperation')
   })
 
   it('reverts when initialize implementation again after upgrade', async () => {
