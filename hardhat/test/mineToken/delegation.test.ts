@@ -115,7 +115,7 @@ describe('MineToken delegations', () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
 
-    await mine.setMintable(other.address, true)
+    await mine.setMinter(other.address, true)
     await mine.connect(other).mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
     await mine.connect(other).transfer(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
 
@@ -198,7 +198,7 @@ describe('MineToken delegations', () => {
   })
 })
 
-function splitSignature(signature) {
+function splitSignature(signature: string) {
   if (signature.length !== 132) {
     throw new Error('Invalid signature length')
   }

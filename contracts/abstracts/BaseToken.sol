@@ -13,17 +13,17 @@ abstract contract BaseToken is Ownable, ERC20, Mintable, Burnable, Proxiable {
 
     function initialize() public virtual override {
         _setOwner(msg.sender);
-        _setMintable(msg.sender, true);
-        _setBurnable(msg.sender, true);
+        _setMinter(msg.sender, true);
+        _setBurner(msg.sender, true);
         super.initialize();
     }
 
-    function setMintable(address minter, bool mintable) external onlyOwner {
-        _setMintable(minter, mintable);
+    function setMinter(address minter, bool canMint) external onlyOwner {
+        _setMinter(minter, canMint);
     }
 
-    function setBurnable(address burner, bool burnable) external onlyOwner {
-        _setBurnable(burner, burnable);
+    function setBurner(address burner, bool canBurn) external onlyOwner {
+        _setBurner(burner, canBurn);
     }
 
     function mint(address account, uint256 amount) public virtual override {

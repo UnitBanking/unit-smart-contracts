@@ -6,7 +6,7 @@ import { deployBaseTokenFixture } from '../fixtures/deployBaseTokenTestFixture'
 describe('BaseToken burn', () => {
   it('owner can burn', async () => {
     const { base, owner } = await loadFixture(deployBaseTokenFixture)
-    expect(await base.isBurnable(owner.address)).to.be.true
+    expect(await base.isBurner(owner.address)).to.be.true
 
     const totalSupplyBefore = await base.totalSupply()
     const mineBlanceBefore = await base.balanceOf(owner.address)
@@ -20,18 +20,18 @@ describe('BaseToken burn', () => {
 
   it('reverts when burn with other address and zero address is not set burnable', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
-    expect(await base.isBurnable(other.address)).to.be.false
+    expect(await base.isBurner(other.address)).to.be.false
     await expect(base.connect(other).burn(100n))
-      .to.be.revertedWithCustomError(base, 'BurnableUnauthorizedAccount')
+      .to.be.revertedWithCustomError(base, 'BurnableUnauthorizedBurner')
       .withArgs(other.address)
   })
 
   it('does not revert when burn with other address and zero address is set to burnable', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
-    await base.setBurnable(ethers.ZeroAddress, true)
-    expect(await base.isBurnable(other.address)).to.be.false
+    await base.setBurner(ethers.ZeroAddress, true)
+    expect(await base.isBurner(other.address)).to.be.false
 
-    await expect(base.connect(other).burn(100n)).to.not.be.revertedWithCustomError(base, 'BurnableUnauthorizedAccount')
+    await expect(base.connect(other).burn(100n)).to.not.be.revertedWithCustomError(base, 'BurnableUnauthorizedBurner')
   })
 
   it('can burn from others', async () => {
@@ -70,46 +70,43 @@ describe('BaseToken burn', () => {
   it('reverts when burnFrom with other address and zero address is not set burnable', async () => {
     const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
     await base.approve(other.address, 100)
-    expect(await base.isBurnable(other.address)).to.be.false
+    expect(await base.isBurner(other.address)).to.be.false
     await expect(base.connect(other).burnFrom(owner.address, 100n))
-      .to.be.revertedWithCustomError(base, 'BurnableUnauthorizedAccount')
+      .to.be.revertedWithCustomError(base, 'BurnableUnauthorizedBurner')
       .withArgs(other.address)
   })
 
   it('does not revert when burnFrom with other address and zero address is set to burnable', async () => {
     const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
     await base.approve(other.address, 100)
-    await base.setBurnable(ethers.ZeroAddress, true)
-    expect(await base.isBurnable(other.address)).to.be.false
+    await base.setBurner(ethers.ZeroAddress, true)
+    expect(await base.isBurner(other.address)).to.be.false
 
     await expect(base.connect(other).burnFrom(owner.address, 100n)).to.not.be.revertedWithCustomError(
       base,
-      'BurnableUnauthorizedAccount',
+      'BurnableUnauthorizedBurner',
     )
   })
 
   it('set burnable', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
-    await base.setBurnable(other.address, true)
-    expect(await base.isBurnable(other.address)).to.be.true
+    await base.setBurner(other.address, true)
+    expect(await base.isBurner(other.address)).to.be.true
 
-    await base.setBurnable(other.address, false)
-    expect(await base.isBurnable(other.address)).to.be.false
+    await base.setBurner(other.address, false)
+    expect(await base.isBurner(other.address)).to.be.false
   })
 
   it('reverts when set burnable with same address', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
-    await base.setBurnable(other.address, true)
+    await base.setBurner(other.address, true)
 
-    await expect(base.setBurnable(other.address, true)).to.be.revertedWithCustomError(
-      base,
-      'BurnableDuplicatedOperation',
-    )
+    await expect(base.setBurner(other.address, true)).to.be.revertedWithCustomError(base, 'BurnableSameValueAlreadySet')
   })
 
   it('should emit event when set burnable', async () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
-    await expect(base.setBurnable(other.address, true)).to.emit(base, 'BurnableSet').withArgs(other.address, true)
-    await expect(base.setBurnable(other.address, false)).to.emit(base, 'BurnableSet').withArgs(other.address, false)
+    await expect(base.setBurner(other.address, true)).to.emit(base, 'BurnerSet').withArgs(other.address, true)
+    await expect(base.setBurner(other.address, false)).to.emit(base, 'BurnerSet').withArgs(other.address, false)
   })
 })

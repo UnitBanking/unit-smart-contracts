@@ -3,25 +3,25 @@
 pragma solidity 0.8.21;
 
 abstract contract Burnable {
-    event BurnableSet(address indexed burner, bool burnable);
+    event BurnerSet(address indexed burner, bool canBurn);
 
-    error BurnableDuplicatedOperation();
-    error BurnableUnauthorizedAccount(address account);
+    error BurnableSameValueAlreadySet();
+    error BurnableUnauthorizedBurner(address account);
 
-    mapping(address => bool) public isBurnable;
+    mapping(address => bool) public isBurner;
 
-    function _setBurnable(address burner, bool burnable) internal {
-        if (isBurnable[burner] == burnable) {
-            revert BurnableDuplicatedOperation();
+    function _setBurner(address burner, bool canBurn) internal {
+        if (isBurner[burner] == canBurn) {
+            revert BurnableSameValueAlreadySet();
         }
-        isBurnable[burner] = burnable;
-        emit BurnableSet(burner, burnable);
+        isBurner[burner] = canBurn;
+        emit BurnerSet(burner, canBurn);
     }
 
     function _burn(address, uint256) internal virtual {
         // everyone can burn when address(0) is burnable
-        if (!isBurnable[address(0)] && !isBurnable[msg.sender]) {
-            revert BurnableUnauthorizedAccount(msg.sender);
+        if (!isBurner[address(0)] && !isBurner[msg.sender]) {
+            revert BurnableUnauthorizedBurner(msg.sender);
         }
     }
 }
