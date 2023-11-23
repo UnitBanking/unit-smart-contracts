@@ -18,8 +18,8 @@ abstract contract Burnable {
         emit BurnerSet(burner, canBurn);
     }
 
-    function _burn(address, uint256) internal virtual {
-        // everyone can burn when address(0) is burnable
+    function burn(uint256) public virtual {
+        // everyone can burn when address(0) is burner
         if (!isBurner[address(0)] && !isBurner[msg.sender]) {
             revert BurnableUnauthorizedBurner(msg.sender);
         }
