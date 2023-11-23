@@ -7,7 +7,6 @@ import '../interfaces/IERC20.sol';
 abstract contract ERC20 is IERC20 {
     string public override name;
     string public override symbol;
-    uint8 public override decimals;
     uint256 public override totalSupply;
 
     mapping(address => uint256) public override balanceOf;
@@ -16,7 +15,10 @@ abstract contract ERC20 is IERC20 {
     constructor() {
         name = 'ERC20 Token';
         symbol = 'ERC20';
-        decimals = 18;
+    }
+
+    function decimals() public view virtual override returns (uint8) {
+        return 18;
     }
 
     function approve(address spender, uint256 value) external override returns (bool) {

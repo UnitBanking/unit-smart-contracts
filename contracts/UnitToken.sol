@@ -10,7 +10,6 @@ contract UnitToken is BaseToken {
     function initialize() public override {
         name = 'Unit Token';
         symbol = 'UNIT';
-        decimals = 18;
         super.initialize();
     }
 }

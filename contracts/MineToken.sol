@@ -32,7 +32,6 @@ contract MineToken is BaseToken, IVotes {
     function initialize() public override {
         name = 'Mine Token';
         symbol = 'MINE';
-        decimals = 18;
         super.initialize();
     }
 
