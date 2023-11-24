@@ -6,6 +6,7 @@ abstract contract Mintable {
     event MinterSet(address indexed minter, bool canMint);
 
     error MintableInvalidMinter(address minter);
+    error MintableInvalidReceiver(address receiver);
     error MintableSameValueAlreadySet();
     error MintableUnauthorizedMinter(address minter);
 
@@ -22,7 +23,10 @@ abstract contract Mintable {
         emit MinterSet(minter, canMint);
     }
 
-    function mint(address, uint256) public virtual {
+    function mint(address receiver, uint256) public virtual {
+        if (receiver == address(0)) {
+            revert MintableInvalidReceiver(address(0));
+        }
         if (!isMinter[msg.sender]) {
             revert MintableUnauthorizedMinter(msg.sender);
         }
