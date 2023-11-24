@@ -7,7 +7,7 @@ import { BondingCurveTest } from '../../contracts/test/BondingCurveTest.sol';
 import { InflationOracleTest } from '../../contracts/test/InflationOracleTest.sol';
 import { EthUsdOracle } from '../../contracts/EthUsdOracle.sol';
 import { ERC20 } from '../../contracts/ERC20.sol';
-import '../../contracts/Errors.sol';
+import { IBondingCurve } from '../../contracts/interfaces/IBondingCurve.sol';
 
 import { console } from 'forge-std/Test.sol';
 
@@ -234,7 +234,7 @@ contract BondingCurveTestTest is Test {
 
         // Act && Assert
         vm.prank(user);
-        vm.expectRevert(InvalidReceiver.selector);
+        vm.expectRevert(abi.encodeWithSelector(IBondingCurve.BondingCurveInvalidReceiver.selector, address(0)));
         bondingCurve.mint{ value: etherValue }(address(0));
     }
 
@@ -250,7 +250,7 @@ contract BondingCurveTestTest is Test {
 
         // Act && Assert
         vm.prank(user);
-        vm.expectRevert(MintDisabledDueToTooLowRR.selector);
+        vm.expectRevert(IBondingCurve.BondingCurveMintDisabledDueToTooLowRR.selector);
         bondingCurve.mint{ value: etherValue }(user);
     }
 

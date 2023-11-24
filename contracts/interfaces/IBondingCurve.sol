@@ -4,6 +4,12 @@ pragma solidity 0.8.21;
 
 interface IBondingCurve {
     /**
+     * ================ ERRORS ================
+     */
+    error BondingCurveInvalidReceiver(address receiver);
+    error BondingCurveMintDisabledDueToTooLowRR();
+
+    /**
      * ================ CORE FUNCTIONALITY ================
      */
 

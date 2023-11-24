@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.21;
 
-import './Errors.sol';
 import './interfaces/IBondingCurve.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
@@ -65,9 +64,9 @@ contract BondingCurve is IBondingCurve {
     receive() external payable {}
 
     function mint(address receiver) external payable {
-        if (receiver == address(0)) revert InvalidReceiver(); // todo: remove, duplicate in `UnitToken.mint`
+        if (receiver == address(0)) revert BondingCurveInvalidReceiver(address(0)); // todo: remove, duplicate in `UnitToken.mint`
 
-        if (_getReserveRatio() < HIGH_RR) revert MintDisabledDueToTooLowRR();
+        if (_getReserveRatio() < HIGH_RR) revert BondingCurveMintDisabledDueToTooLowRR();
 
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
