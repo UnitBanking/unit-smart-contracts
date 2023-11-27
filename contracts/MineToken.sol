@@ -131,13 +131,13 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function _delegate(address delegator, address delegatee) internal {
-        address currentDelegate = delegates[delegator];
+        address oldDelegatee = delegates[delegator];
         uint256 delegatorBalance = balanceOf[delegator];
         delegates[delegator] = delegatee;
 
-        emit DelegateSet(delegator, currentDelegate, delegatee);
+        emit DelegateSet(delegator, oldDelegatee, delegatee);
 
-        _updateVotes(currentDelegate, delegatee, uint96(delegatorBalance));
+        _updateVotes(oldDelegatee, delegatee, uint96(delegatorBalance));
     }
 
 
