@@ -17,7 +17,7 @@ interface IVotes {
 
     function getPriorVotes(address account, uint256 blockNumber) external view returns (uint96);
 
-    function delegates(address account) external view returns (address);
+    function delegatees(address account) external view returns (address);
 
     function delegate(address delegatee) external;
 

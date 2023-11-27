@@ -9,7 +9,7 @@ contract MineToken is BaseToken, IVotes {
     error MineTokenExceedMaxSupply();
 
     address public defaultDelegatee;
-    mapping(address => address) public delegates;
+    mapping(address => address) public delegatees;
 
     struct Checkpoint {
         uint32 fromBlock;
@@ -42,7 +42,7 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function mint(address receiver, uint256 amount) public override {
-        if(delegates[receiver] == address(0)) {
+        if(delegatees[receiver] == address(0)) {
             _delegate(receiver, defaultDelegatee);
         }
         super.mint(receiver, amount);
@@ -61,7 +61,11 @@ contract MineToken is BaseToken, IVotes {
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
-        _updateVotes(delegates[from], delegates[to], uint96(value));
+        if(delegatees[to] == address(0) && to !=  address(0)) {
+            delegatees[to] = defaultDelegatee;
+            emit DelegateSet(to, address(0), defaultDelegatee);
+        }
+        _updateVotes(delegatees[from], delegatees[to], uint96(value));
     }
 
     function delegate(address delegatee) external {
@@ -131,9 +135,9 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function _delegate(address delegator, address delegatee) internal {
-        address oldDelegatee = delegates[delegator];
+        address oldDelegatee = delegatees[delegator];
         uint256 delegatorBalance = balanceOf[delegator];
-        delegates[delegator] = delegatee;
+        delegatees[delegator] = delegatee;
 
         emit DelegateSet(delegator, oldDelegatee, delegatee);
 

@@ -15,7 +15,32 @@ describe('MineToken delegations', () => {
   it('should delegate vote', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
-    expect(await mine.delegates(owner.address)).to.equal(other.address)
+    expect(await mine.delegatees(owner.address)).to.equal(other.address)
+  })
+
+  it('mint should set default delegatee if no delegatee before', async () => {
+    const { mine, other } = await loadFixture(deployMineFixture)
+    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    const defaultDelegatee = await mine.defaultDelegatee()
+    expect(await mine.delegatees(other.address)).to.equal(defaultDelegatee)
+    const expectedVotesOfDefaultDelegatee =
+      (await mine.balanceOf(other.address)) + (await mine.balanceOf(other.address))
+    expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotesOfDefaultDelegatee)
+  })
+
+  it('transfer to new address should make that address delegatee as default delegatee', async () => {
+    const { mine, other, another, owner } = await loadFixture(deployMineFixture)
+    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    const defaultDelegatee = await mine.defaultDelegatee()
+    expect(await mine.delegatees(other.address)).to.equal(defaultDelegatee)
+    const expectedVotesOfDefaultDelegatee =
+      (await mine.balanceOf(owner.address)) + (await mine.balanceOf(other.address))
+    expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotesOfDefaultDelegatee)
+
+    await mine.connect(other).transfer(another.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    expect(await mine.balanceOf(another.address)).to.equal(BigInt(100000) * BigInt(10) ** BigInt(18))
+    expect(await mine.delegatees(another.address)).to.equal(defaultDelegatee)
+    expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotesOfDefaultDelegatee)
   })
 
   it('delegate should emit event', async () => {
@@ -47,7 +72,7 @@ describe('MineToken delegations', () => {
     const defaultDelegatee = await mine.defaultDelegatee()
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(await mine.balanceOf(owner.address))
 
-    await mine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
 
     const expectedVotes = (await mine.balanceOf(owner.address)) + (await mine.balanceOf(other.address))
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotes)
