@@ -10,9 +10,10 @@ describe('BondingCurve', () => {
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
+    const mineToken = await ethers.deployContract('ERC20', [wallet], {})
 
     // Act
-    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, inflationOracle, ethUsdOracle], {})
+    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, mineToken, inflationOracle, ethUsdOracle], {})
 
     // Assert
     const address = await bondingCurve.getAddress()
@@ -28,7 +29,8 @@ describe('BondingCurve', () => {
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
-    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, inflationOracle, ethUsdOracle], {})
+    const mineToken = await ethers.deployContract('ERC20', [wallet], {})
+    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, mineToken, inflationOracle, ethUsdOracle], {})
 
     const lastOracleUpdateTimestampBefore = await bondingCurve.lastOracleUpdateTimestamp()
 
@@ -48,7 +50,8 @@ describe('BondingCurve', () => {
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
-    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, inflationOracle, ethUsdOracle], {})
+    const mineToken = await ethers.deployContract('ERC20', [wallet], {})
+    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, mineToken, inflationOracle, ethUsdOracle], {})
 
     // Act
     const internalPrice = await bondingCurve.getInternalPrice()
@@ -65,7 +68,8 @@ describe('BondingCurve', () => {
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
-    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, inflationOracle, ethUsdOracle], {})
+    const mineToken = await ethers.deployContract('ERC20', [wallet], {})
+    const bondingCurve = await ethers.deployContract('BondingCurve', [unitToken, mineToken, inflationOracle, ethUsdOracle], {})
 
     // Act
     const unitEthPrice = await bondingCurve.getUnitEthPrice()
