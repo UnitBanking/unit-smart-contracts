@@ -34,7 +34,7 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function name() public pure override returns (string memory) {
-        return 'Mine Token';
+        return 'Mine';
     }
 
     function symbol() public pure override returns (string memory) {
