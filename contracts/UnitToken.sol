@@ -12,7 +12,7 @@ contract UnitToken is BaseToken {
     }
 
     function name() public pure override returns (string memory) {
-        return 'Unit Token';
+        return 'Unit';
     }
 
     function symbol() public pure override returns (string memory) {

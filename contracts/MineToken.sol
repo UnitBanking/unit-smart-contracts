@@ -6,7 +6,7 @@ import './abstracts/BaseToken.sol';
 import './interfaces/IVote.sol';
 
 contract MineToken is BaseToken, IVotes {
-    error ExceedMaxSupply();
+    error MineTokenExceedMaxSupply();
 
     address public defaultDelegatee;
     mapping(address => address) public delegates;
@@ -47,7 +47,7 @@ contract MineToken is BaseToken, IVotes {
         }
         super.mint(account, amount);
         if (totalSupply > MAX_SUPPLY) {
-            revert ExceedMaxSupply();
+            revert MineTokenExceedMaxSupply();
         }
     }
 

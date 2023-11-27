@@ -8,7 +8,7 @@ describe('MineToken bascis', () => {
     const name = await mine.name()
     const symbol = await mine.symbol()
     const decimals = await mine.decimals()
-    expect(name).to.equal('Mine Token')
+    expect(name).to.equal('Mine')
     expect(symbol).to.equal('MINE')
     expect(decimals).to.equal(18)
   })
