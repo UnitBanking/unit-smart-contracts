@@ -12,8 +12,8 @@ contract MineToken is BaseToken, IVotes {
     mapping(address => address) public delegates;
 
     struct Checkpoint {
-        uint256 fromBlock;
-        uint256 votes;
+        uint32 fromBlock;
+        uint96 votes;
     }
 
     mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
@@ -53,14 +53,14 @@ contract MineToken is BaseToken, IVotes {
 
     function setDefaultDelegatee(address delegatee) external onlyOwner {
         uint32 nCheckpoints = numCheckpoints[defaultDelegatee];
-        uint256 currentVotes = nCheckpoints > 0 ? checkpoints[defaultDelegatee][nCheckpoints - 1].votes : 0;
+        uint96 currentVotes = nCheckpoints > 0 ? checkpoints[defaultDelegatee][nCheckpoints - 1].votes : 0;
         _moveDelegates(defaultDelegatee, delegatee, currentVotes);
         _setDefaultDelegatee(delegatee);
     }
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
-        _moveDelegates(delegates[from], delegates[to], value);
+        _moveDelegates(delegates[from], delegates[to], uint96(value));
     }
 
     function delegate(address delegatee) external {
@@ -89,12 +89,12 @@ contract MineToken is BaseToken, IVotes {
         return _delegate(signatory, delegatee);
     }
 
-    function getCurrentVotes(address account) external view returns (uint256) {
+    function getCurrentVotes(address account) external view returns (uint96) {
         uint32 nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    function getPriorVotes(address account, uint256 blockNumber) public view returns (uint256) {
+    function getPriorVotes(address account, uint256 blockNumber) public view returns (uint96) {
         if (blockNumber > block.number) {
             revert BlockNumberTooHigh(blockNumber);
         }
@@ -136,7 +136,7 @@ contract MineToken is BaseToken, IVotes {
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
 
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance);
+        _moveDelegates(currentDelegate, delegatee, uint96(delegatorBalance));
     }
 
     function _setDefaultDelegatee(address _defaultDelegatee) internal {
@@ -144,29 +144,29 @@ contract MineToken is BaseToken, IVotes {
         defaultDelegatee = _defaultDelegatee;
     }
 
-    function _moveDelegates(address from, address to, uint256 amount) internal {
+    function _moveDelegates(address from, address to, uint96 amount) internal {
         if (from != to && amount > 0) {
             if (from != address(0)) {
                 uint32 fromRepNum = numCheckpoints[from];
-                uint256 fromRepOld = fromRepNum > 0 ? checkpoints[from][fromRepNum - 1].votes : 0;
-                uint256 fromRepNew = fromRepOld - amount;
+                uint96 fromRepOld = fromRepNum > 0 ? checkpoints[from][fromRepNum - 1].votes : 0;
+                uint96 fromRepNew = fromRepOld - amount;
                 _writeCheckpoint(from, fromRepNum, fromRepOld, fromRepNew);
             }
 
             if (to != address(0)) {
                 uint32 toRepNum = numCheckpoints[to];
-                uint256 toRepOld = toRepNum > 0 ? checkpoints[to][toRepNum - 1].votes : 0;
-                uint256 toRepNew = toRepOld + amount;
+                uint96 toRepOld = toRepNum > 0 ? checkpoints[to][toRepNum - 1].votes : 0;
+                uint96 toRepNew = toRepOld + amount;
                 _writeCheckpoint(to, toRepNum, toRepOld, toRepNew);
             }
         }
     }
 
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
+    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
         } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(block.number, newVotes);
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(uint32(block.number), newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
