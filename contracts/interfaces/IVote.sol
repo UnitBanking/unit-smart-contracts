@@ -3,15 +3,15 @@
 pragma solidity 0.8.21;
 
 interface IVotes {
-    error DelegateToDefaultDelegatee();
-    error InvalidDelegateSignature(address signature);
-    error InvalidDelegateNonce(uint256 nonce);
-    error DelegateExpired(uint256 expiry);
-    error BlockNumberTooHigh(uint256 blockNumber);
+    error VotesDelegateToDefaultDelegatee();
+    error VotesInvalidDelegateSignature(address signature);
+    error VotesInvalidDelegateNonce(uint256 nonce);
+    error VotesDelegationSignatureExpired(uint256 expiry);
+    error VotesBlockNumberTooHigh(uint256 blockNumber);
 
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-    event DelegateVotesChanged(address indexed delegate, uint96 previousBalance, uint96 newBalance);
-    event DefaultDelegateChanged(address indexed oldDefaultDelegate, address indexed newDefaultDelegate);
+    event DelegateSet(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+    event DelegateVotesSet(address indexed delegate, uint96 previousBalance, uint96 newBalance);
+    event DefaultDelegateeSet(address indexed oldDefaultDelegate, address indexed newDefaultDelegate);
 
     function getCurrentVotes(address account) external view returns (uint96);
 

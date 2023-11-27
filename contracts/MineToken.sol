@@ -41,11 +41,11 @@ contract MineToken is BaseToken, IVotes {
         return 'MINE';
     }
 
-    function mint(address account, uint256 amount) public override {
-        if(delegates[account] == address(0)) {
-            _delegate(account, defaultDelegatee);
+    function mint(address receiver, uint256 amount) public override {
+        if(delegates[receiver] == address(0)) {
+            _delegate(receiver, defaultDelegatee);
         }
-        super.mint(account, amount);
+        super.mint(receiver, amount);
         if (totalSupply > MAX_SUPPLY) {
             revert MineTokenExceedMaxSupply();
         }
@@ -54,25 +54,26 @@ contract MineToken is BaseToken, IVotes {
     function setDefaultDelegatee(address delegatee) external onlyOwner {
         uint32 nCheckpoints = numCheckpoints[defaultDelegatee];
         uint96 currentVotes = nCheckpoints > 0 ? checkpoints[defaultDelegatee][nCheckpoints - 1].votes : 0;
-        _moveDelegates(defaultDelegatee, delegatee, currentVotes);
-        _setDefaultDelegatee(delegatee);
+        _updateVotes(defaultDelegatee, delegatee, currentVotes);
+        emit DefaultDelegateeSet(defaultDelegatee, delegatee);
+        defaultDelegatee = delegatee;
     }
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
-        _moveDelegates(delegates[from], delegates[to], uint96(value));
+        _updateVotes(delegates[from], delegates[to], uint96(value));
     }
 
     function delegate(address delegatee) external {
         if(delegatee == defaultDelegatee) {
-            revert DelegateToDefaultDelegatee();
+            revert VotesDelegateToDefaultDelegatee();
         }
         return _delegate(msg.sender, delegatee);
     }
 
     function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {
-        if (block.timestamp >= expiry) {
-            revert DelegateExpired(expiry);
+        if (block.timestamp > expiry) {
+            revert VotesDelegationSignatureExpired(expiry);
         }
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
@@ -81,10 +82,10 @@ contract MineToken is BaseToken, IVotes {
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
         if (signatory == address(0)) {
-            revert InvalidDelegateSignature(signatory);
+            revert VotesInvalidDelegateSignature(signatory);
         }
         if (nonce != nonces[signatory]++){
-            revert InvalidDelegateNonce(nonce);
+            revert VotesInvalidDelegateNonce(nonce);
         }
         return _delegate(signatory, delegatee);
     }
@@ -95,8 +96,8 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function getPriorVotes(address account, uint256 blockNumber) public view returns (uint96) {
-        if (blockNumber > block.number) {
-            revert BlockNumberTooHigh(blockNumber);
+        if (blockNumber >= block.number) {
+            revert VotesBlockNumberTooHigh(blockNumber);
         }
 
         uint32 nCheckpoints = numCheckpoints[account];
@@ -134,30 +135,26 @@ contract MineToken is BaseToken, IVotes {
         uint256 delegatorBalance = balanceOf[delegator];
         delegates[delegator] = delegatee;
 
-        emit DelegateChanged(delegator, currentDelegate, delegatee);
+        emit DelegateSet(delegator, currentDelegate, delegatee);
 
-        _moveDelegates(currentDelegate, delegatee, uint96(delegatorBalance));
+        _updateVotes(currentDelegate, delegatee, uint96(delegatorBalance));
     }
 
-    function _setDefaultDelegatee(address _defaultDelegatee) internal {
-        emit DefaultDelegateChanged(defaultDelegatee, _defaultDelegatee);
-        defaultDelegatee = _defaultDelegatee;
-    }
 
-    function _moveDelegates(address from, address to, uint96 amount) internal {
+    function _updateVotes(address from, address to, uint96 amount) internal {
         if (from != to && amount > 0) {
             if (from != address(0)) {
-                uint32 fromRepNum = numCheckpoints[from];
-                uint96 fromRepOld = fromRepNum > 0 ? checkpoints[from][fromRepNum - 1].votes : 0;
-                uint96 fromRepNew = fromRepOld - amount;
-                _writeCheckpoint(from, fromRepNum, fromRepOld, fromRepNew);
+                uint32 nCheckpoints = numCheckpoints[from];
+                uint96 oldVotes = nCheckpoints > 0 ? checkpoints[from][nCheckpoints - 1].votes : 0;
+                uint96 newVotes = oldVotes - amount;
+                _writeCheckpoint(from, nCheckpoints, oldVotes, newVotes);
             }
 
             if (to != address(0)) {
-                uint32 toRepNum = numCheckpoints[to];
-                uint96 toRepOld = toRepNum > 0 ? checkpoints[to][toRepNum - 1].votes : 0;
-                uint96 toRepNew = toRepOld + amount;
-                _writeCheckpoint(to, toRepNum, toRepOld, toRepNew);
+                uint32 nCheckpoints = numCheckpoints[to];
+                uint96 oldVotes = nCheckpoints > 0 ? checkpoints[to][nCheckpoints - 1].votes : 0;
+                uint96 newVotes = oldVotes + amount;
+                _writeCheckpoint(to, nCheckpoints, oldVotes, newVotes);
             }
         }
     }
@@ -170,6 +167,6 @@ contract MineToken is BaseToken, IVotes {
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
-        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+        emit DelegateVotesSet(delegatee, oldVotes, newVotes);
     }
 }

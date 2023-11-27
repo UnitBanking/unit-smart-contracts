@@ -23,9 +23,9 @@ describe('MineToken delegations', () => {
     const votes = await mine.balanceOf(owner.address)
     const defaultDelegatee = await mine.defaultDelegatee()
     await expect(mine.delegate(other.address))
-      .to.emit(mine, 'DelegateChanged')
+      .to.emit(mine, 'DelegateSet')
       .withArgs(owner.address, defaultDelegatee, other.address)
-      .to.emit(mine, 'DelegateVotesChanged')
+      .to.emit(mine, 'DelegateVotesSet')
       .withArgs(other.address, 0, votes)
   })
 
@@ -33,7 +33,7 @@ describe('MineToken delegations', () => {
     const { mine } = await loadFixture(deployMineFixture)
     await expect(mine.delegate(await mine.defaultDelegatee())).to.be.revertedWithCustomError(
       mine,
-      'DelegateToDefaultDelegatee',
+      'VotesDelegateToDefaultDelegatee',
     )
   })
 
@@ -80,7 +80,7 @@ describe('MineToken delegations', () => {
   it('get prior votes no delegation', async () => {
     const { mine, other } = await loadFixture(deployMineFixture)
     const blockNumber = await ethers.provider.getBlockNumber()
-    expect(await mine.getPriorVotes(other.address, blockNumber)).to.equal(0)
+    expect(await mine.getPriorVotes(other.address, blockNumber - 1)).to.equal(0)
   })
 
   it('change default delegation, and verify current votes and prior votes', async () => {
@@ -105,10 +105,9 @@ describe('MineToken delegations', () => {
     await ethers.provider.send('evm_mine')
     await mine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
     const secondBalance = await mine.balanceOf(owner.address)
-    const secondBlockNumber = await ethers.provider.getBlockNumber()
 
     expect(await mine.getPriorVotes(other.address, firstBlockNumber)).to.equal(firstBalance)
-    expect(await mine.getPriorVotes(other.address, secondBlockNumber)).to.equal(secondBalance)
+    expect(await mine.getCurrentVotes(other.address)).to.equal(secondBalance)
   })
 
   it('update votes after transfer of token', async () => {
@@ -126,14 +125,14 @@ describe('MineToken delegations', () => {
     const { mine, other } = await loadFixture(deployMineFixture)
     await expect(
       mine.delegateBySig(other.address, 1, 1, 1, randomBytes(32), randomBytes(32)),
-    ).to.be.revertedWithCustomError(mine, 'DelegateExpired')
+    ).to.be.revertedWithCustomError(mine, 'VotesDelegationSignatureExpired')
   })
 
   it('delegate via invalid signature', async () => {
     const { mine, other } = await loadFixture(deployMineFixture)
     await expect(
       mine.delegateBySig(other.address, 1, Date.now() + 1000, 1, randomBytes(32), randomBytes(32)),
-    ).to.be.revertedWithCustomError(mine, 'InvalidDelegateSignature')
+    ).to.be.revertedWithCustomError(mine, 'VotesInvalidDelegateSignature')
   })
 
   it('delegate via invalid nonce', async () => {
@@ -161,7 +160,7 @@ describe('MineToken delegations', () => {
     await mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s)
     await expect(
       mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s),
-    ).to.be.revertedWithCustomError(mine, 'InvalidDelegateNonce')
+    ).to.be.revertedWithCustomError(mine, 'VotesInvalidDelegateNonce')
   })
 
   it('delegate via signature', async () => {
@@ -193,7 +192,7 @@ describe('MineToken delegations', () => {
     const { mine, other } = await loadFixture(deployMineFixture)
     await expect(mine.getPriorVotes(other.address, 1111111111111)).to.be.revertedWithCustomError(
       mine,
-      'BlockNumberTooHigh',
+      'VotesBlockNumberTooHigh',
     )
   })
 })
