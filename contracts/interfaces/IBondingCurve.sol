@@ -15,7 +15,9 @@ interface IBondingCurve {
 
     function mint(address receiver) external payable;
 
-    function burn(uint256 value) external;
+    function burn(uint256 unitTokenAmount) external;
+
+    function redeem(uint256 mineTokenAmount) external;
 
     function updateInternals() external;
 
@@ -28,4 +30,6 @@ interface IBondingCurve {
     function getUnitEthPrice() external view returns (uint256);
 
     function getReserveRatio() external view returns (uint256);
+
+    function getExcessEthReserve() external view returns (uint256);
 }

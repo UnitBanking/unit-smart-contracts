@@ -8,14 +8,15 @@ import '../interfaces/IEthUsdOracle.sol';
 import '../BondingCurve.sol';
 import { unwrap } from '@prb/math/src/UD60x18.sol';
 
-contract BondingCurveTest is BondingCurve {
+contract BondingCurveHarness is BondingCurve {
     constructor(
-        IERC20 _unitToken,
+        address _unitToken,
+        address _mineToken,
         IInflationOracle _inflationOracle,
         IEthUsdOracle _ethUsdOracle
-    ) BondingCurve(_unitToken, _inflationOracle, _ethUsdOracle) {}
+    ) BondingCurve(_unitToken, _mineToken, _inflationOracle, _ethUsdOracle) {}
 
-    function testGetInternalPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
+    function exposed_GetInternalPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
         return unwrap(_getInternalPriceForTimestamp(timestamp));
     }
 }

@@ -16,6 +16,7 @@ import './libraries/Math.sol';
  - clarify initial RR setup
  - verify `burn()` interface
  - update `transfer()` in `burn()` function
+ - DISCOUNT - do we need a function (getter/setter)
  */
 
 contract BondingCurve is IBondingCurve {
@@ -30,6 +31,8 @@ contract BondingCurve is IBondingCurve {
     uint256 public constant BASE_SPREAD = 10; // 0.1%
     uint256 public constant PRICE_PRECISION = 1e18;
     uint256 public constant HIGH_RR = 4; // (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
+    uint256 public constant DISCOUNT = 5_000; // 0.5 or 50%
+    uint256 public constant DISCOUNT_PRECISION = 10_000;
 
     /**
      * ================ STATE VARIABLES ================
@@ -41,16 +44,23 @@ contract BondingCurve is IBondingCurve {
 
     IInflationOracle public inflationOracle;
     IEthUsdOracle public ethUsdOracle;
-    IERC20 public unitToken;
+    address public unitToken;
+    address public mineToken;
 
     /**
      * ================ CONSTRUCTOR ================
      */
 
-    constructor(IERC20 _unitToken, IInflationOracle _inflationOracle, IEthUsdOracle _ethUsdOracle) {
+    constructor(
+        address _unitToken,
+        address _mineToken,
+        IInflationOracle _inflationOracle,
+        IEthUsdOracle _ethUsdOracle
+    ) {
         lastInternalPrice = UNIT; // 1
 
         unitToken = _unitToken;
+        mineToken = _mineToken;
         inflationOracle = _inflationOracle;
         ethUsdOracle = _ethUsdOracle;
 
@@ -71,14 +81,26 @@ contract BondingCurve is IBondingCurve {
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
-        unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        IERC20(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
-    function burn(uint256 value) external {
-        unitToken.burn(msg.sender, value);
-        uint256 withdrawEthAmount = ((value) *
+    function burn(uint256 unitTokenAmount) external {
+        IERC20(unitToken).burn(msg.sender, unitTokenAmount);
+        uint256 withdrawEthAmount = ((unitTokenAmount) *
             ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
         payable(msg.sender).transfer(withdrawEthAmount);
+    }
+
+    function redeem(uint256 mineTokenAmount) external {
+        uint256 excessEth = getExcessEthReserve();
+        uint256 totalEthAmount = (((excessEth * mineTokenAmount) / IERC20(mineToken).totalSupply()) * (100 - 1)) / 100;
+
+        uint256 userEthAmount = (totalEthAmount * (DISCOUNT_PRECISION - DISCOUNT)) / DISCOUNT_PRECISION;
+        uint256 burnEthAmount = totalEthAmount - userEthAmount;
+
+        IERC20(mineToken).burn(msg.sender, mineTokenAmount);
+        payable(msg.sender).transfer(userEthAmount);
+        payable(address(0)).transfer(burnEthAmount);
     }
 
     function updateInternals() public {
@@ -117,6 +139,15 @@ contract BondingCurve is IBondingCurve {
         return BASE_SPREAD + dynamicSpread;
     }
 
+    function getExcessEthReserve() public view returns (uint256 excessEth) {
+        excessEth = Math.max(
+            0,
+            address(this).balance -
+                (IERC20(unitToken).totalSupply() * getInternalPrice()) /
+                ethUsdOracle.getEthUsdPrice()
+        );
+    }
+
     /**
      * ================ INTERNAL FUNCTIONS ================
      */
@@ -132,7 +163,7 @@ contract BondingCurve is IBondingCurve {
     }
 
     function _getUnitEthPrice() internal view returns (uint256) {
-        uint256 unitTotalSupply = unitToken.totalSupply();
+        uint256 unitTotalSupply = IERC20(unitToken).totalSupply();
         if (unitTotalSupply > 0) {
             return
                 Math.min(
@@ -149,7 +180,7 @@ contract BondingCurve is IBondingCurve {
 
     function _getReserveRatio() internal view returns (uint256 reserveRatio) {
         uint256 internalPrice = getInternalPrice();
-        uint256 unitTokenTotalSupply = unitToken.totalSupply();
+        uint256 unitTokenTotalSupply = IERC20(unitToken).totalSupply();
 
         if (internalPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =

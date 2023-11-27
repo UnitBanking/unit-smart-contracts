@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import { Test, stdError } from 'forge-std/Test.sol';
-import { BondingCurveTest } from '../../contracts/test/BondingCurveTest.sol';
+import { BondingCurveHarness } from '../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleTest } from '../../contracts/test/InflationOracleTest.sol';
 import { EthUsdOracle } from '../../contracts/EthUsdOracle.sol';
 import { ERC20 } from '../../contracts/ERC20.sol';
@@ -11,11 +11,12 @@ import { IBondingCurve } from '../../contracts/interfaces/IBondingCurve.sol';
 
 import { console } from 'forge-std/Test.sol';
 
-contract BondingCurveTestTest is Test {
+contract BondingCurveHarnessTest is Test {
     InflationOracleTest public inflationOracle;
     EthUsdOracle public ethUsdOracle;
     ERC20 public unitToken;
-    BondingCurveTest public bondingCurve;
+    ERC20 public mineToken;
+    BondingCurveHarness public bondingCurve;
     address public wallet = vm.addr(1);
 
     uint256 private constant ORACLE_UPDATE_INTERVAL = 30 days;
@@ -39,9 +40,10 @@ contract BondingCurveTestTest is Test {
 
         // set up Unit token contract
         unitToken = new ERC20(wallet);
+        mineToken = new ERC20(wallet);
 
         // set up BondingCurve contract
-        bondingCurve = new BondingCurveTest(unitToken, inflationOracle, ethUsdOracle);
+        bondingCurve = new BondingCurveHarness(address(unitToken), address(mineToken), inflationOracle, ethUsdOracle);
         vm.startPrank(wallet);
         unitToken.setMinter(address(bondingCurve));
         payable(address(bondingCurve)).transfer(INITIAL_ETH_VALUE);
@@ -60,7 +62,7 @@ contract BondingCurveTestTest is Test {
         vm.warp(currentTimestamp);
 
         // Act
-        uint256 price = bondingCurve.testGetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1000619095670254662; // 1.000619095670254662
@@ -73,7 +75,7 @@ contract BondingCurveTestTest is Test {
         vm.warp(currentTimestamp);
 
         // Act
-        uint256 price = bondingCurve.testGetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1001858437086397421; // 1.001858437086397421
@@ -91,7 +93,7 @@ contract BondingCurveTestTest is Test {
         vm.warp(currentTimestamp + 1 days);
 
         // Act
-        uint256 price = bondingCurve.testGetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         // IP(t’)               * exp(r(t’) * (t-t’))
@@ -111,7 +113,7 @@ contract BondingCurveTestTest is Test {
         vm.warp(currentTimestamp + 1 seconds);
 
         // Act
-        uint256 price = bondingCurve.testGetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1001858437796746057; // 1.001858437796746057
@@ -120,7 +122,7 @@ contract BondingCurveTestTest is Test {
 
     function test_getInternalPriceForTimestamp_0Days() public {
         // Arrange & Act
-        uint256 price = bondingCurve.testGetInternalPriceForTimestamp(START_TIMESTAMP);
+        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(START_TIMESTAMP);
 
         // Assert
         uint256 expectedPrice = 1e18;
@@ -383,8 +385,26 @@ contract BondingCurveTestTest is Test {
      */
 
     function test_getReserveRatio_ReturnsRR() public {
+        // Arrange & Act
         uint256 reserveRatio = bondingCurve.getReserveRatio();
+
+        // Assert
         assertEq(reserveRatio, INITIAL_ETH_VALUE / INITIAL_UNIT_VALUE);
+    }
+
+    /**
+     * ================ getExcessEthReserve() ================
+     */
+
+    function test_getExcessEthReserve_ReturnsEE() public {
+        // Arrange
+        _createUserAndMint(1 ether);
+
+        // Act
+        uint256 excessEth = bondingCurve.getExcessEthReserve();
+
+        // Assert
+        assertEq(excessEth, 999000999001004);
     }
 
     /**
