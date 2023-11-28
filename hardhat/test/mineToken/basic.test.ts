@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from '../fixtures/deployMineFixture'
 
-describe('MineToken bascis', () => {
+describe('MineToken basics', () => {
   it('has token info', async () => {
     const { mine } = await loadFixture(deployMineFixture)
     const name = await mine.name()

@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from '../fixtures/deployMineFixture'
 
-describe('mineToken mint', () => {
+describe('MineToken mint', () => {
   it('can be minted', async () => {
     const { mine, owner } = await loadFixture(deployMineFixture)
     const balanceBefore = await mine.balanceOf(owner.address)

@@ -5,13 +5,13 @@ pragma solidity 0.8.21;
 import './interfaces/IProxy.sol';
 
 contract Proxy is IProxy {
-    constructor(address admin_) {
-        _changeAdmin(admin_);
+    constructor(address __admin) {
+        _changeAdmin(__admin);
     }
 
     modifier onlyAdmin() {
         if (msg.sender != _admin()) {
-            revert ProxyUnauthorized();
+            revert ProxyUnauthorizedAdmin();
         }
         _;
     }
@@ -24,16 +24,16 @@ contract Proxy is IProxy {
         return _admin();
     }
 
-    function upgradeTo(address implementation_) external onlyAdmin {
-        _upgradeToAndCall(implementation_, new bytes(0));
+    function upgradeTo(address __implementation) external onlyAdmin {
+        _upgradeToAndCall(__implementation, new bytes(0));
     }
 
-    function upgradeToAndCall(address implementation_, bytes memory data) external payable onlyAdmin {
-        _upgradeToAndCall(implementation_, data);
+    function upgradeToAndCall(address __implementation, bytes memory data) external payable onlyAdmin {
+        _upgradeToAndCall(__implementation, data);
     }
 
-    function changeAdmin(address admin_) external onlyAdmin {
-        _changeAdmin(admin_);
+    function changeAdmin(address __admin) external onlyAdmin {
+        _changeAdmin(__admin);
     }
 
     /**
@@ -45,24 +45,24 @@ contract Proxy is IProxy {
     /**
      * @dev Returns the current implementation address.
      */
-    function _implementation() internal view returns (address implementation_) {
+    function _implementation() internal view returns (address __implementation) {
         assembly {
-            implementation_ := sload(IMPLEMENTATION_SLOT)
+            __implementation := sload(IMPLEMENTATION_SLOT)
         }
     }
 
     /**
      * @dev Stores a new address in the EIP1967 implementation slot.
      */
-    function _setImplementation(address implementation_) internal {
-        if (implementation_.code.length == 0) {
-            revert ProxyInvalidImplementation(implementation_);
+    function _setImplementation(address __implementation) internal {
+        if (__implementation.code.length == 0) {
+            revert ProxyInvalidImplementation(__implementation);
         }
-        if (implementation_ == _implementation()) {
-            revert ProxyDuplicatedOperation();
+        if (__implementation == _implementation()) {
+            revert ProxySameValueAlreadySet();
         }
         assembly {
-            sstore(IMPLEMENTATION_SLOT, implementation_)
+            sstore(IMPLEMENTATION_SLOT, __implementation)
         }
     }
 
@@ -71,12 +71,12 @@ contract Proxy is IProxy {
      * This function is payable only if the setup call is performed, otherwise `msg.value` is rejected
      * to avoid stuck value in the contract.
      */
-    function _upgradeToAndCall(address implementation_, bytes memory data) internal {
-        _setImplementation(implementation_);
-        emit Upgraded(implementation_);
+    function _upgradeToAndCall(address __implementation, bytes memory data) internal {
+        _setImplementation(__implementation);
+        emit Upgraded(__implementation);
 
         if (data.length > 0) {
-            (bool success, bytes memory returndata) = implementation_.delegatecall(data);
+            (bool success, bytes memory returndata) = __implementation.delegatecall(data);
             if (!success) {
                 if (returndata.length > 0) {
                     // The easiest way to bubble the revert reason is using memory via assembly
@@ -106,27 +106,27 @@ contract Proxy is IProxy {
      * the https://eth.wiki/json-rpc/API#eth_getstorageat[`eth_getStorageAt`] RPC call.
      * `0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`
      */
-    function _admin() internal view returns (address admin_) {
+    function _admin() internal view returns (address __admin) {
         assembly {
-            admin_ := sload(ADMIN_SLOT)
+            __admin := sload(ADMIN_SLOT)
         }
     }
 
     /**
      * @dev Changes the admin of the proxy. Stores a new address in the EIP1967 admin slot.
      */
-    function _changeAdmin(address admin_) internal {
-        if (admin_ == address(0)) {
+    function _changeAdmin(address __admin) internal {
+        if (__admin == address(0)) {
             revert ProxyInvalidAdmin(address(0));
         }
-        if (admin_ == _admin()) {
-            revert ProxyDuplicatedOperation();
+        if (__admin == _admin()) {
+            revert ProxySameValueAlreadySet();
         }
         assembly {
-            sstore(ADMIN_SLOT, admin_)
+            sstore(ADMIN_SLOT, __admin)
         }
 
-        emit AdminChanged(_admin(), admin_);
+        emit AdminChanged(_admin(), __admin);
     }
 
     /**
@@ -144,7 +144,7 @@ contract Proxy is IProxy {
      *
      * This function does not return to its internal call site, it will return directly to the external caller.
      */
-    function _fallback(address implementation_) internal {
+    function _fallback(address __implementation) internal {
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -153,7 +153,7 @@ contract Proxy is IProxy {
 
             // Call the _implementation.
             // out and outsize are 0 because we don't know the size yet.
-            let result := delegatecall(gas(), implementation_, 0, calldatasize(), 0, 0)
+            let result := delegatecall(gas(), __implementation, 0, calldatasize(), 0, 0)
 
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())

@@ -8,8 +8,8 @@ interface IProxy {
 
     error ProxyInvalidImplementation(address implementation);
     error ProxyInvalidAdmin(address admin);
-    error ProxyUnauthorized();
-    error ProxyDuplicatedOperation();
+    error ProxyUnauthorizedAdmin();
+    error ProxySameValueAlreadySet();
     error ProxyNonPayable();
     error ProxyFailedInnerCall();
 

@@ -6,7 +6,7 @@ abstract contract Burnable {
     event BurnerSet(address indexed burner, bool canBurn);
 
     error BurnableSameValueAlreadySet();
-    error BurnableUnauthorizedBurner(address account);
+    error BurnableUnauthorizedBurner(address burner);
 
     mapping(address => bool) public isBurner;
 
