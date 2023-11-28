@@ -17,6 +17,7 @@ import './libraries/Math.sol';
  - verify `burn()` interface
  - update `transfer()` in `burn()` function
  - DISCOUNT - do we need a function (getter/setter)
+ - should oracles be possible to update?
  */
 
 contract BondingCurve is IBondingCurve {
@@ -51,6 +52,14 @@ contract BondingCurve is IBondingCurve {
      * ================ CONSTRUCTOR ================
      */
 
+    /**
+     * @notice Constructs a new BondingCurve contract.
+     * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {ethUsdOracle}.
+     * @param _unitToken UNIT token address.
+     * @param _mineToken MINE token address.
+     * @param _inflationOracle Inflation oracle.
+     * @param _ethUsdOracle ETH-USD price oracle.
+     */
     constructor(
         address _unitToken,
         address _mineToken,
@@ -73,6 +82,9 @@ contract BondingCurve is IBondingCurve {
 
     receive() external payable {}
 
+    /**
+     * @dev See {IBondingCurve-mint}.
+     */
     function mint(address receiver) external payable {
         if (receiver == address(0)) revert BondingCurveInvalidReceiver(address(0)); // todo: remove, duplicate in `UnitToken.mint`
 
@@ -84,6 +96,9 @@ contract BondingCurve is IBondingCurve {
         IERC20(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
+    /**
+     * @dev See {IBondingCurve-burn}.
+     */
     function burn(uint256 unitTokenAmount) external {
         IERC20(unitToken).burn(msg.sender, unitTokenAmount);
         uint256 withdrawEthAmount = ((unitTokenAmount) *
@@ -91,6 +106,9 @@ contract BondingCurve is IBondingCurve {
         payable(msg.sender).transfer(withdrawEthAmount);
     }
 
+    /**
+     * @dev See {IBondingCurve-redeem}.
+     */
     function redeem(uint256 mineTokenAmount) external {
         uint256 excessEth = getExcessEthReserve();
         uint256 totalEthAmount = (((excessEth * mineTokenAmount) / IERC20(mineToken).totalSupply()) * (100 - 1)) / 100;
