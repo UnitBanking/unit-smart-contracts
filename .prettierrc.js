@@ -3,6 +3,7 @@ const config = {
   singleQuote: true,
   printWidth: 120,
   bracketSpacing: true,
+  trailingComma: "es5",
   plugins: [require.resolve('prettier-plugin-solidity')],
   overrides: [
     {
