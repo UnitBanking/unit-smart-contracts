@@ -11,6 +11,10 @@ contract Deployer is Ownable, Pausable {
     error DeployerEmptyBytecode();
     error DeployerFailedDeployment();
 
+    constructor() {
+        _setOwner(msg.sender);
+    }
+
     function deploy(bytes memory bytecode, uint256 salt) external whenNotPaused returns (address _address) {
         if (bytecode.length == 0) {
             revert DeployerEmptyBytecode();

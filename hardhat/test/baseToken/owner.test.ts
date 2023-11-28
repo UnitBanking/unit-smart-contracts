@@ -14,7 +14,7 @@ describe('BaseToken ownerable', () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
     await expect(base.connect(other).setOwner(other.address)).to.be.revertedWithCustomError(
       base,
-      'OwnableUnauthorizedAccount',
+      'OwnableUnauthorizedOwner',
     )
   })
 
@@ -24,14 +24,14 @@ describe('BaseToken ownerable', () => {
 
     await expect(base.connect(other).setOwner(other.address)).to.be.revertedWithCustomError(
       base,
-      'OwnableDuplicatedOperation',
+      'OwnableSameValueAlreadySet',
     )
   })
 
   it('reverts when set owner to zero address', async () => {
     const { base } = await loadFixture(deployBaseTokenFixture)
     await expect(base.setOwner(ethers.ZeroAddress))
-      .to.be.revertedWithCustomError(base, 'OwnableInvalidOwnerAddress')
+      .to.be.revertedWithCustomError(base, 'OwnableInvalidOwner')
       .withArgs(ethers.ZeroAddress)
   })
 
