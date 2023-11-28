@@ -3,15 +3,9 @@ import { deployMineFixture } from '../fixtures/deployMineFixture'
 import { expect } from 'chai'
 import { randomBytes } from 'ethers'
 import { ethers } from 'hardhat'
+import { delegateBySig, getDelegateBySigOptions } from '../utils'
 
 describe('MineToken delegations', () => {
-  const DelegationType = {
-    Delegation: [
-      { name: 'delegatee', type: 'address' },
-      { name: 'nonce', type: 'uint256' },
-      { name: 'expiry', type: 'uint256' },
-    ],
-  }
   it('should delegate vote', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
@@ -162,54 +156,17 @@ describe('MineToken delegations', () => {
 
   it('delegate via invalid nonce', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
-    const expiry = Date.now() + 100000
-
-    const name = await mine.name()
-    const address = await mine.getAddress()
-    const chainId = (await ethers.provider.getNetwork()).chainId
-
-    const rawSignature = await owner.signTypedData(
-      {
-        name,
-        chainId,
-        verifyingContract: address,
-      },
-      DelegationType,
-      {
-        delegatee: other.address,
-        nonce: 0,
-        expiry,
-      },
+    const { expiry, v, r, s } = await getDelegateBySigOptions(0, owner, other.address, mine)
+    await mine.delegateBySig(other.address, 0, expiry, v, r, s)
+    await expect(mine.delegateBySig(other.address, 0, expiry, v, r, s)).to.be.revertedWithCustomError(
+      mine,
+      'VotesInvalidDelegateNonce',
     )
-    const signature = splitSignature(rawSignature)
-    await mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s)
-    await expect(
-      mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s),
-    ).to.be.revertedWithCustomError(mine, 'VotesInvalidDelegateNonce')
   })
 
   it('delegate via signature', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
-    const expiry = Date.now() + 100000
-    const name = await mine.name()
-    const address = await mine.getAddress()
-    const chainId = (await ethers.provider.getNetwork()).chainId
-
-    const rawSignature = await owner.signTypedData(
-      {
-        name,
-        chainId,
-        verifyingContract: address,
-      },
-      DelegationType,
-      {
-        delegatee: other.address,
-        nonce: 0,
-        expiry,
-      },
-    )
-    const signature = splitSignature(rawSignature)
-    await mine.delegateBySig(other.address, 0, expiry, signature.v, signature.r, signature.s)
+    await delegateBySig(0, owner, other.address, mine)
     expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))
   })
 
@@ -221,17 +178,3 @@ describe('MineToken delegations', () => {
     )
   })
 })
-
-function splitSignature(signature: string) {
-  if (signature.length !== 132) {
-    throw new Error('Invalid signature length')
-  }
-
-  const r = '0x' + signature.slice(2, 66)
-  const s = '0x' + signature.slice(66, 130)
-  let v = parseInt('0x' + signature.slice(130, 132), 16)
-
-  if (v < 27) v += 27
-
-  return { r, s, v }
-}

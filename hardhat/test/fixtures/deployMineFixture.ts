@@ -1,9 +1,10 @@
 import { ethers } from 'hardhat'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { type MineToken, MineToken__factory } from '../../build/types'
+import { type MineToken, MineToken__factory, type Proxy } from '../../build/types'
 
 interface MineFixtureReturnType {
   mine: MineToken
+  proxy: Proxy
   owner: HardhatEthersSigner
   other: HardhatEthersSigner
   another: HardhatEthersSigner
@@ -25,5 +26,5 @@ export async function deployMineFixture(): Promise<MineFixtureReturnType> {
   await proxyMine.setDefaultDelegatee('0x0000000000000000000000000000000000000001')
 
   await proxyMine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
-  return { mine: proxyMine, owner, other, another }
+  return { mine: proxyMine, proxy, owner, other, another }
 }

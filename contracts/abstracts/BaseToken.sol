@@ -8,7 +8,7 @@ import './Burnable.sol';
 import './Ownable.sol';
 import './Proxiable.sol';
 
-abstract contract BaseToken is Ownable, ERC20, Mintable, Burnable, Proxiable {
+abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable {
     constructor() ERC20() {}
 
     function initialize() public virtual override {
