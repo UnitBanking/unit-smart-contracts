@@ -7,8 +7,8 @@ import '../interfaces/IERC20.sol';
 abstract contract ERC20 is IERC20 {
     uint256 public override totalSupply;
 
-    mapping(address => uint256) public override balanceOf;
-    mapping(address => mapping(address => uint256)) public override allowance;
+    mapping(address owner => uint256 balance) public override balanceOf;
+    mapping(address owner => mapping(address spender => uint256 allowance)) public override allowance;
 
     constructor() {}
 

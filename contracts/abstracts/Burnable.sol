@@ -8,7 +8,7 @@ abstract contract Burnable {
     error BurnableSameValueAlreadySet();
     error BurnableUnauthorizedBurner(address burner);
 
-    mapping(address => bool) public isBurner;
+    mapping(address burner => bool canBurn) public isBurner;
 
     function _setBurner(address burner, bool canBurn) internal {
         if (isBurner[burner] == canBurn) {
@@ -18,7 +18,7 @@ abstract contract Burnable {
         emit BurnerSet(burner, canBurn);
     }
 
-    function burn(uint256) public virtual {
+    function burn(uint256 /* amount */) public virtual {
         // everyone can burn when address(0) is burner
         if (!isBurner[address(0)] && !isBurner[msg.sender]) {
             revert BurnableUnauthorizedBurner(msg.sender);

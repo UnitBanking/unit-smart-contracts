@@ -9,15 +9,15 @@ contract MineToken is BaseToken, IVotes {
     error MineTokenExceedMaxSupply();
 
     address public defaultDelegatee;
-    mapping(address => address) public delegatees;
+    mapping(address delegator => address delegatee) public delegatees;
 
     struct Checkpoint {
         uint32 fromBlock;
         uint96 votes;
     }
 
-    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
-    mapping(address => uint32) public numCheckpoints;
+    mapping(address delegatee => mapping(uint32 index => Checkpoint checkpoint)) public checkpoints;
+    mapping(address delegatee => uint32 count) public numCheckpoints;
 
     uint256 public constant MAX_SUPPLY = 1022700000 * 10 ** 18;
     bytes32 public constant DOMAIN_TYPEHASH =
@@ -25,7 +25,7 @@ contract MineToken is BaseToken, IVotes {
     bytes32 public constant DELEGATION_TYPEHASH =
         keccak256('Delegation(address delegatee,uint256 nonce,uint256 expiry)');
 
-    mapping(address => uint256) public nonces;
+    mapping(address delegator => uint256 nextNonce) public nonces;
 
     constructor() BaseToken() {}
 

@@ -10,7 +10,7 @@ abstract contract Mintable {
     error MintableSameValueAlreadySet();
     error MintableUnauthorizedMinter(address minter);
 
-    mapping(address => bool) public isMinter;
+    mapping(address minter => bool canMint) public isMinter;
 
     function _setMinter(address minter, bool canMint) internal {
         if (minter == address(0)) {
@@ -23,7 +23,7 @@ abstract contract Mintable {
         emit MinterSet(minter, canMint);
     }
 
-    function mint(address receiver, uint256) public virtual {
+    function mint(address receiver, uint256 /* amount */) public virtual {
         if (receiver == address(0)) {
             revert MintableInvalidReceiver(address(0));
         }
