@@ -3,5 +3,5 @@
 pragma solidity 0.8.21;
 
 interface IEthUsdOracle {
-    function getEthUsdPrice() external pure returns (uint256);
+    function getEthUsdPrice() external view returns (uint256);
 }

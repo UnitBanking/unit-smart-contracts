@@ -8,7 +8,7 @@ describe('BondingCurve', () => {
     const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
-    const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
+    const ethUsdOracle = await ethers.deployContract('EthUsdOracleMock', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
     const mineToken = await ethers.deployContract('ERC20', [wallet], {})
 
@@ -31,7 +31,7 @@ describe('BondingCurve', () => {
     const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
-    const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
+    const ethUsdOracle = await ethers.deployContract('EthUsdOracleMock', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
     const mineToken = await ethers.deployContract('ERC20', [wallet], {})
     const bondingCurve = await ethers.deployContract(
@@ -56,7 +56,7 @@ describe('BondingCurve', () => {
     const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
-    const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
+    const ethUsdOracle = await ethers.deployContract('EthUsdOracleMock', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
     const mineToken = await ethers.deployContract('ERC20', [wallet], {})
     const bondingCurve = await ethers.deployContract(
@@ -78,7 +78,7 @@ describe('BondingCurve', () => {
     const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
-    const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
+    const ethUsdOracle = await ethers.deployContract('EthUsdOracleMock', [], {})
     const unitToken = await ethers.deployContract('ERC20', [wallet], {})
     const mineToken = await ethers.deployContract('ERC20', [wallet], {})
     const bondingCurve = await ethers.deployContract(

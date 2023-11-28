@@ -83,7 +83,7 @@ contract BondingCurve is IBondingCurve {
     receive() external payable {}
 
     /**
-     * @dev See {IBondingCurve-mint}.
+     * @inheritdoc IBondingCurve
      */
     function mint(address receiver) external payable {
         if (receiver == address(0)) revert BondingCurveInvalidReceiver(address(0)); // todo: remove, duplicate in `UnitToken.mint`
@@ -97,7 +97,7 @@ contract BondingCurve is IBondingCurve {
     }
 
     /**
-     * @dev See {IBondingCurve-burn}.
+     * @inheritdoc IBondingCurve
      */
     function burn(uint256 unitTokenAmount) external {
         IERC20(unitToken).burn(msg.sender, unitTokenAmount);
@@ -107,18 +107,22 @@ contract BondingCurve is IBondingCurve {
     }
 
     /**
-     * @dev See {IBondingCurve-redeem}.
+     * @inheritdoc IBondingCurve
      */
     function redeem(uint256 mineTokenAmount) external {
         uint256 excessEth = getExcessEthReserve();
-        uint256 totalEthAmount = (((excessEth * mineTokenAmount) / IERC20(mineToken).totalSupply()) * (100 - 1)) / 100;
 
-        uint256 userEthAmount = (totalEthAmount * (DISCOUNT_PRECISION - DISCOUNT)) / DISCOUNT_PRECISION;
-        uint256 burnEthAmount = totalEthAmount - userEthAmount;
+        if (excessEth > 0) {
+            uint256 totalEthAmount = (((excessEth * mineTokenAmount) / IERC20(mineToken).totalSupply()) * (100 - 1)) /
+                100;
 
-        IERC20(mineToken).burn(msg.sender, mineTokenAmount);
-        payable(msg.sender).transfer(userEthAmount);
-        payable(address(0)).transfer(burnEthAmount);
+            uint256 userEthAmount = (totalEthAmount * (DISCOUNT_PRECISION - DISCOUNT)) / DISCOUNT_PRECISION;
+            uint256 burnEthAmount = totalEthAmount - userEthAmount;
+
+            IERC20(mineToken).burn(msg.sender, mineTokenAmount);
+            payable(msg.sender).transfer(userEthAmount);
+            payable(address(0)).transfer(burnEthAmount);
+        }
     }
 
     function updateInternals() public {
@@ -158,12 +162,13 @@ contract BondingCurve is IBondingCurve {
     }
 
     function getExcessEthReserve() public view returns (uint256 excessEth) {
-        excessEth = Math.max(
-            0,
-            address(this).balance -
-                (IERC20(unitToken).totalSupply() * getInternalPrice()) /
-                ethUsdOracle.getEthUsdPrice()
-        );
+        uint256 unitEthValue = (IERC20(unitToken).totalSupply() * getInternalPrice()) / ethUsdOracle.getEthUsdPrice();
+
+        if (address(this).balance < unitEthValue) {
+            return 0;
+        } else {
+            return address(this).balance - unitEthValue;
+        }
     }
 
     /**

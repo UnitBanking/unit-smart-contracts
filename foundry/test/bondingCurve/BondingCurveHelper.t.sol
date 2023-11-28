@@ -5,9 +5,8 @@ pragma solidity 0.8.21;
 import { Test, stdError } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
-import { EthUsdOracle } from '../../../contracts/EthUsdOracle.sol';
+import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
 import { ERC20 } from '../../../contracts/ERC20.sol';
-import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 
 abstract contract BondingCurveHelper is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
@@ -17,7 +16,7 @@ abstract contract BondingCurveHelper is Test {
     uint256 internal constant HIGH_RR = 4;
 
     InflationOracleHarness public inflationOracle;
-    EthUsdOracle public ethUsdOracle;
+    EthUsdOracleMock public ethUsdOracle;
     ERC20 public unitToken;
     ERC20 public mineToken;
 
@@ -36,7 +35,7 @@ abstract contract BondingCurveHelper is Test {
         inflationOracle = new InflationOracleHarness();
         inflationOracle.setPriceIndexTwentyYearsAgo(77);
         inflationOracle.setLatestPriceIndex(121);
-        ethUsdOracle = new EthUsdOracle();
+        ethUsdOracle = new EthUsdOracleMock();
 
         // set up Unit token contract
         unitToken = new ERC20(wallet);
