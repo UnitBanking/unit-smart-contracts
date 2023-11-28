@@ -16,7 +16,7 @@ contract BondingCurveHarness is BondingCurve {
         IEthUsdOracle _ethUsdOracle
     ) BondingCurve(_unitToken, _mineToken, _inflationOracle, _ethUsdOracle) {}
 
-    function exposed_GetInternalPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
+    function exposed_getInternalPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
         return unwrap(_getInternalPriceForTimestamp(timestamp));
     }
 }

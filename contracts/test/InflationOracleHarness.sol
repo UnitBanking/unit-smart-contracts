@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import '../interfaces/IInflationOracle.sol';
 
-contract InflationOracleTest is IInflationOracle {
+contract InflationOracleHarness is IInflationOracle {
     uint256 private priceIndexNow;
     uint256 private priceIndexTwentyYearsAgo;
 

@@ -2,13 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import { Test, stdError } from 'forge-std/Test.sol';
 import { BondingCurveHelper } from './BondingCurveHelper.t.sol';
-import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
-import { InflationOracleTest } from '../../../contracts/test/InflationOracleTest.sol';
-import { EthUsdOracle } from '../../../contracts/EthUsdOracle.sol';
-import { ERC20 } from '../../../contracts/ERC20.sol';
-import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 
 contract BondingCurveHarnessTest is BondingCurveHelper {
     /**
@@ -21,7 +15,7 @@ contract BondingCurveHarnessTest is BondingCurveHelper {
         vm.warp(currentTimestamp);
 
         // Act
-        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1000619095670254662; // 1.000619095670254662
@@ -34,7 +28,7 @@ contract BondingCurveHarnessTest is BondingCurveHelper {
         vm.warp(currentTimestamp);
 
         // Act
-        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1001858437086397421; // 1.001858437086397421
@@ -52,7 +46,7 @@ contract BondingCurveHarnessTest is BondingCurveHelper {
         vm.warp(currentTimestamp + 1 days);
 
         // Act
-        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         // IP(t’)               * exp(r(t’) * (t-t’))
@@ -72,7 +66,7 @@ contract BondingCurveHarnessTest is BondingCurveHelper {
         vm.warp(currentTimestamp + 1 seconds);
 
         // Act
-        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1001858437796746057; // 1.001858437796746057
@@ -81,7 +75,7 @@ contract BondingCurveHarnessTest is BondingCurveHelper {
 
     function test_getInternalPriceForTimestamp_0Days() public {
         // Arrange & Act
-        uint256 price = bondingCurve.exposed_GetInternalPriceForTimestamp(START_TIMESTAMP);
+        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(START_TIMESTAMP);
 
         // Assert
         uint256 expectedPrice = 1e18;

@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import { Test, stdError } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
-import { InflationOracleTest } from '../../../contracts/test/InflationOracleTest.sol';
+import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
 import { EthUsdOracle } from '../../../contracts/EthUsdOracle.sol';
 import { ERC20 } from '../../../contracts/ERC20.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
@@ -16,7 +16,7 @@ abstract contract BondingCurveHelper is Test {
     uint256 internal constant INITIAL_UNIT_VALUE = 1 wei;
     uint256 internal constant HIGH_RR = 4;
 
-    InflationOracleTest public inflationOracle;
+    InflationOracleHarness public inflationOracle;
     EthUsdOracle public ethUsdOracle;
     ERC20 public unitToken;
     ERC20 public mineToken;
@@ -33,7 +33,7 @@ abstract contract BondingCurveHelper is Test {
         vm.warp(START_TIMESTAMP);
 
         // set up oracle contracts
-        inflationOracle = new InflationOracleTest();
+        inflationOracle = new InflationOracleHarness();
         inflationOracle.setPriceIndexTwentyYearsAgo(77);
         inflationOracle.setLatestPriceIndex(121);
         ethUsdOracle = new EthUsdOracle();

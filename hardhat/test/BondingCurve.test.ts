@@ -5,7 +5,7 @@ describe('BondingCurve', () => {
   it('deploy', async () => {
     // Arrange
     const [wallet] = await ethers.getSigners()
-    const inflationOracle = await ethers.deployContract('InflationOracleTest', [], {})
+    const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
@@ -28,7 +28,7 @@ describe('BondingCurve', () => {
   it('update internals', async () => {
     // Arrange
     const [wallet] = await ethers.getSigners()
-    const inflationOracle = await ethers.deployContract('InflationOracleTest', [], {})
+    const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
@@ -53,7 +53,7 @@ describe('BondingCurve', () => {
   it('get internal price', async () => {
     // Arrange
     const [wallet] = await ethers.getSigners()
-    const inflationOracle = await ethers.deployContract('InflationOracleTest', [], {})
+    const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
@@ -75,7 +75,7 @@ describe('BondingCurve', () => {
   it('get Unit/ETH price', async () => {
     // Arrange
     const [wallet] = await ethers.getSigners()
-    const inflationOracle = await ethers.deployContract('InflationOracleTest', [], {})
+    const inflationOracle = await ethers.deployContract('InflationOracleHarness', [], {})
     await inflationOracle.setPriceIndexTwentyYearsAgo(77)
     await inflationOracle.setLatestPriceIndex(121)
     const ethUsdOracle = await ethers.deployContract('EthUsdOracle', [], {})
