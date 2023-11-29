@@ -49,7 +49,7 @@ contract MineToken is BaseToken, IVotes {
 
     function setDefaultDelegatee(address delegatee) external onlyOwner {
         uint32 nCheckpoints = numCheckpoints[defaultDelegatee];
-        uint96 currentVotes = nCheckpoints > 0 ? checkpoints[defaultDelegatee][nCheckpoints - 1].votes : 0;
+        uint256 currentVotes = nCheckpoints > 0 ? checkpoints[defaultDelegatee][nCheckpoints - 1].votes : 0;
         _updateVotes(defaultDelegatee, delegatee, currentVotes);
         emit DefaultDelegateeSet(defaultDelegatee, delegatee);
         defaultDelegatee = delegatee;
@@ -61,7 +61,7 @@ contract MineToken is BaseToken, IVotes {
             delegatees[to] = defaultDelegatee;
             emit DelegateSet(to, address(0), defaultDelegatee);
         }
-        _updateVotes(delegatees[from], delegatees[to], uint96(value));
+        _updateVotes(delegatees[from], delegatees[to], value);
     }
 
     function delegate(address delegatee) external {
@@ -137,33 +137,33 @@ contract MineToken is BaseToken, IVotes {
 
         emit DelegateSet(delegator, oldDelegatee, delegatee);
 
-        _updateVotes(oldDelegatee, delegatee, uint96(delegatorBalance));
+        _updateVotes(oldDelegatee, delegatee, delegatorBalance);
     }
 
 
-    function _updateVotes(address from, address to, uint96 amount) internal {
+    function _updateVotes(address from, address to, uint256 amount) internal {
         if (from != to && amount > 0) {
             if (from != address(0)) {
                 uint32 nCheckpoints = numCheckpoints[from];
-                uint96 oldVotes = nCheckpoints > 0 ? checkpoints[from][nCheckpoints - 1].votes : 0;
-                uint96 newVotes = oldVotes - amount;
+                uint256 oldVotes = nCheckpoints > 0 ? checkpoints[from][nCheckpoints - 1].votes : 0;
+                uint256 newVotes = oldVotes - amount;
                 _writeCheckpoint(from, nCheckpoints, oldVotes, newVotes);
             }
 
             if (to != address(0)) {
                 uint32 nCheckpoints = numCheckpoints[to];
-                uint96 oldVotes = nCheckpoints > 0 ? checkpoints[to][nCheckpoints - 1].votes : 0;
-                uint96 newVotes = oldVotes + amount;
+                uint256 oldVotes = nCheckpoints > 0 ? checkpoints[to][nCheckpoints - 1].votes : 0;
+                uint256 newVotes = oldVotes + amount;
                 _writeCheckpoint(to, nCheckpoints, oldVotes, newVotes);
             }
         }
     }
 
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
+    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
-            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
+            checkpoints[delegatee][nCheckpoints - 1].votes = uint96(newVotes);
         } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(uint32(block.number), newVotes);
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(uint32(block.number), uint96(newVotes));
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 

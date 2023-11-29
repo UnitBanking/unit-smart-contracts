@@ -10,7 +10,7 @@ interface IVotes {
     error VotesBlockNumberTooHigh(uint256 blockNumber);
 
     event DelegateSet(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-    event DelegateVotesSet(address indexed delegate, uint96 previousBalance, uint96 newBalance);
+    event DelegateVotesSet(address indexed delegate, uint256 previousBalance, uint256 newBalance);
     event DefaultDelegateeSet(address indexed oldDefaultDelegate, address indexed newDefaultDelegate);
 
     function getCurrentVotes(address account) external view returns (uint96);
