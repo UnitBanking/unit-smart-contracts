@@ -20,12 +20,8 @@ contract MineToken is BaseToken, IVotes {
     mapping(address delegatee => uint32 count) public numCheckpoints;
 
     uint256 public constant MAX_SUPPLY = 1022700000 * 10 ** 18;
-    bytes32 public constant DOMAIN_TYPEHASH =
-        keccak256('EIP712Domain(string name,uint256 chainId,address verifyingContract)');
     bytes32 public constant DELEGATION_TYPEHASH =
         keccak256('Delegation(address delegatee,uint256 nonce,uint256 expiry)');
-
-    mapping(address delegator => uint256 nextNonce) public nonces;
 
     constructor() BaseToken() {}
 

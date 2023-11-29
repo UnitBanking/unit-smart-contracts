@@ -17,13 +17,13 @@ enum BASETOKEN_SLOTS {
   allowance,
   isMinter,
   isBurner,
+  nonces,
 }
 enum MINETOKEN_SLOTS {
-  defaultDelegatee = 6,
+  defaultDelegatee = 7,
   delegatees,
   checkpoints,
   numCheckpoints,
-  nonces,
 }
 
 describe('Storage', () => {
@@ -155,11 +155,11 @@ describe('Storage', () => {
       expect(await mine.numCheckpoints(other.address)).to.equal(result[0])
     })
 
-    it(`slot ${getSlotInfo(MINETOKEN_SLOTS.nonces)}`, async () => {
+    it(`slot ${getSlotInfo(BASETOKEN_SLOTS.nonces)}`, async () => {
       const { mine, proxyAddress, provider, coder, owner, other, another } = await getMineTokenProxyStorageFixtures()
       await delegateBySig(0, owner, other.address, mine)
       await delegateBySig(1, owner, another.address, mine)
-      const storageKey = getMappingStorageKey(owner.address, MINETOKEN_SLOTS.nonces)
+      const storageKey = getMappingStorageKey(owner.address, BASETOKEN_SLOTS.nonces)
       const storage = await provider.getStorage(proxyAddress, storageKey)
       const result = coder.decode(['uint256'], storage)
       expect(await mine.nonces(owner.address)).to.equal(result[0])

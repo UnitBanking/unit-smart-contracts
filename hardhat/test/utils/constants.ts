@@ -7,3 +7,13 @@ export const DelegationSignType = {
     { name: 'expiry', type: 'uint256' },
   ],
 }
+
+export const PermitSignType = {
+  Permit: [
+    { name: 'owner', type: 'address' },
+    { name: 'spender', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'expiry', type: 'uint256' },
+  ],
+}
