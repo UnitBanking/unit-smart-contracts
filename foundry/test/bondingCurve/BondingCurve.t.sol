@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.21;
 
-import { BondingCurveHelper } from './BondingCurveHelper.t.sol';
+import { BondingCurveTestBase } from './BondingCurveHelper.t.sol';
 
-contract BondingCurveHarnessTest is BondingCurveHelper {
+contract BondingCurveHarnessTest is BondingCurveTestBase {
     /**
      * ================ getInternalPriceForTimestamp() ================
      */

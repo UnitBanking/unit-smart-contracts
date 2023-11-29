@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.21;
 
-import { BondingCurveHelper } from './BondingCurveHelper.t.sol';
+import { BondingCurveTestBase } from './BondingCurveHelper.t.sol';
 
-contract BondingCurveRedeemTest is BondingCurveHelper {
+contract BondingCurveRedeemTest is BondingCurveTestBase {
     function test_redeem_SuccessfullyRedeemsEth() public {
         // Arrange
         address user = _createUserAndMintUnit(1 ether);

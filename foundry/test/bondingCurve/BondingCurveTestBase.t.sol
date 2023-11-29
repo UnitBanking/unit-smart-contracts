@@ -8,7 +8,7 @@ import { InflationOracleHarness } from '../../../contracts/test/InflationOracleH
 import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
 import { ERC20 } from '../../../contracts/ERC20.sol';
 
-abstract contract BondingCurveHelper is Test {
+abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
     uint256 internal constant START_TIMESTAMP = 1699023595;
     uint256 internal constant INITIAL_ETH_VALUE = 5 wei;

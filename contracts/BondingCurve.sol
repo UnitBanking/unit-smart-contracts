@@ -12,12 +12,12 @@ import './libraries/Math.sol';
 /*
  TODOs:
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
- - review `IBondingCurve` function visibility
- - clarify initial RR setup
- - verify `burn()` interface
- - update `transfer()` in `burn()` function
- - DISCOUNT - do we need a function (getter/setter)
- - should oracles be possible to update?
+ - review `IBondingCurve` function visibility (possibly convert all to public for improved testability)
+ - revisit `burn()` interface upon code integration
+ - replace all `transfer()` calls
+ - TBC: make REDEMPTION_DISCOUNT mutable
+ - TBC: make oracles mutable
+ - Make proxyable after code integration
  */
 
 contract BondingCurve is IBondingCurve {
@@ -28,12 +28,15 @@ contract BondingCurve is IBondingCurve {
     uint256 private constant TWENTY_YEARS_IN_SECONDS = 20 * 365 days;
     UD60x18 private constant TWENTY_YEARS_UD60x18 = UD60x18.wrap(20 * uUNIT);
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
-    uint256 public constant SPREAD_PRECISION = 10_000;
+
     uint256 public constant BASE_SPREAD = 10; // 0.1%
+    uint256 public constant SPREAD_PRECISION = 10_000;
+
     uint256 public constant PRICE_PRECISION = 1e18;
-    uint256 public constant HIGH_RR = 4; // (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
-    uint256 public constant DISCOUNT = 5_000; // 0.5 or 50%
-    uint256 public constant DISCOUNT_PRECISION = 10_000;
+    uint256 public constant HIGH_RR = 4; // High reserve ratio (RR). (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
+
+    uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
+    uint256 public constant REDEMPTION_DISCOUNT_PRECISION = 10_000;
 
     /**
      * ================ STATE VARIABLES ================
@@ -116,7 +119,8 @@ contract BondingCurve is IBondingCurve {
             uint256 totalEthAmount = (((excessEth * mineTokenAmount) / IERC20(mineToken).totalSupply()) * (100 - 1)) /
                 100;
 
-            uint256 userEthAmount = (totalEthAmount * (DISCOUNT_PRECISION - DISCOUNT)) / DISCOUNT_PRECISION;
+            uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
+                REDEMPTION_DISCOUNT_PRECISION;
             uint256 burnEthAmount = totalEthAmount - userEthAmount;
 
             IERC20(mineToken).burn(msg.sender, mineTokenAmount);
@@ -125,6 +129,9 @@ contract BondingCurve is IBondingCurve {
         }
     }
 
+    /**
+     * @dev Updates internal variables based on data from the inflation oracle. The function is expected to be called once a month.
+     */
     function updateInternals() public {
         uint256 currentOracleUpdateTimestamp = block.timestamp;
         uint256 currentPriceIndex = inflationOracle.getLatestPriceIndex();

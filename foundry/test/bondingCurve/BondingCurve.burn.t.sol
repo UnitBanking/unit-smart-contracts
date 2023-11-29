@@ -3,9 +3,9 @@
 pragma solidity 0.8.21;
 
 import { stdError } from 'forge-std/Test.sol';
-import { BondingCurveHelper } from './BondingCurveHelper.t.sol';
+import { BondingCurveTestBase } from './BondingCurveHelper.t.sol';
 
-contract BondingCurveBurnTest is BondingCurveHelper {
+contract BondingCurveBurnTest is BondingCurveTestBase {
     function test_burn_SuccessfullyBurnsUnitToken() public {
         // Arrange
         uint256 etherValue = 1 ether;

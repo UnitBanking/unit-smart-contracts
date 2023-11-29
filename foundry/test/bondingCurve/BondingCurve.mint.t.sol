@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.21;
 
-import { BondingCurveHelper } from './BondingCurveHelper.t.sol';
+import { BondingCurveTestBase } from './BondingCurveHelper.t.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 
-contract BondingCurveMintTest is BondingCurveHelper {
+contract BondingCurveMintTest is BondingCurveTestBase {
     function test_mint_SuccessfullyMintsUnitToken() public {
         // Arrange
         address user = vm.addr(2);
