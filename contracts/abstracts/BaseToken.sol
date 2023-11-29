@@ -67,6 +67,6 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         if (nonce != nonces[signatory]++) {
             revert ERC20InvalidPermitNonce(nonce);
         }
-        _approve(owner, spender, value, true);
+        _approve(signatory, spender, value, true);
     }
 }
