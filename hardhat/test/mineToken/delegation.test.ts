@@ -6,6 +6,8 @@ import { ethers } from 'hardhat'
 import { delegateBySig, getDelegateBySigOptions } from '../utils'
 
 describe('MineToken delegations', () => {
+  const unitAmount = BigInt(100000) * BigInt(10) ** BigInt(18)
+
   it('should delegate vote', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
     await mine.delegate(other.address)
@@ -13,26 +15,28 @@ describe('MineToken delegations', () => {
   })
 
   it('mint should set default delegatee if no delegatee before', async () => {
-    const { mine, other } = await loadFixture(deployMineFixture)
-    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    const { mine, other, owner } = await loadFixture(deployMineFixture)
+    await mine.mint(other.address, unitAmount)
     const defaultDelegatee = await mine.defaultDelegatee()
     expect(await mine.delegatees(other.address)).to.equal(defaultDelegatee)
     const expectedVotesOfDefaultDelegatee =
-      (await mine.balanceOf(other.address)) + (await mine.balanceOf(other.address))
+      (await mine.balanceOf(owner.address)) + (await mine.balanceOf(other.address))
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotesOfDefaultDelegatee)
   })
 
   it('transfer to new address should make that address delegatee as default delegatee', async () => {
     const { mine, other, another, owner } = await loadFixture(deployMineFixture)
-    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.mint(other.address, unitAmount)
     const defaultDelegatee = await mine.defaultDelegatee()
     expect(await mine.delegatees(other.address)).to.equal(defaultDelegatee)
     const expectedVotesOfDefaultDelegatee =
       (await mine.balanceOf(owner.address)) + (await mine.balanceOf(other.address))
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotesOfDefaultDelegatee)
 
-    await mine.connect(other).transfer(another.address, BigInt(100000) * BigInt(10) ** BigInt(18))
-    expect(await mine.balanceOf(another.address)).to.equal(BigInt(100000) * BigInt(10) ** BigInt(18))
+    const otherMineBalanceBefore = await mine.balanceOf(other.address)
+    await mine.connect(other).transfer(another.address, unitAmount)
+    expect(await mine.balanceOf(other.address)).to.equal(otherMineBalanceBefore - unitAmount)
+    expect(await mine.balanceOf(another.address)).to.equal(unitAmount)
     expect(await mine.delegatees(another.address)).to.equal(defaultDelegatee)
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotesOfDefaultDelegatee)
   })
@@ -66,7 +70,7 @@ describe('MineToken delegations', () => {
     const defaultDelegatee = await mine.defaultDelegatee()
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(await mine.balanceOf(owner.address))
 
-    await mine.mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.mint(other.address, unitAmount)
 
     const expectedVotes = (await mine.balanceOf(owner.address)) + (await mine.balanceOf(other.address))
     expect(await mine.getCurrentVotes(defaultDelegatee)).to.equal(expectedVotes)
@@ -122,7 +126,7 @@ describe('MineToken delegations', () => {
     await ethers.provider.send('evm_mine')
     await ethers.provider.send('evm_mine')
     await ethers.provider.send('evm_mine')
-    await mine.mint(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.mint(owner.address, unitAmount)
     const secondBalance = await mine.balanceOf(owner.address)
 
     expect(await mine.getPriorVotes(other.address, firstBlockNumber)).to.equal(firstBalance)
@@ -134,8 +138,8 @@ describe('MineToken delegations', () => {
     await mine.delegate(other.address)
 
     await mine.setMinter(other.address, true)
-    await mine.connect(other).mint(other.address, BigInt(100000) * BigInt(10) ** BigInt(18))
-    await mine.connect(other).transfer(owner.address, BigInt(100000) * BigInt(10) ** BigInt(18))
+    await mine.connect(other).mint(other.address, unitAmount)
+    await mine.connect(other).transfer(owner.address, unitAmount)
 
     expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))
   })
