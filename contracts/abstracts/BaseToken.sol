@@ -13,7 +13,7 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
     bytes32 public constant DOMAIN_TYPEHASH =
         keccak256('EIP712Domain(string name,uint256 chainId,address verifyingContract)');
     bytes32 public constant PERMIT_TYPEHASH =
-        keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
+        keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 expiry)');
 
     mapping(address account => uint256 nextNonce) public nonces;
 
