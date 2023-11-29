@@ -3,8 +3,8 @@ import { ethers } from 'hardhat'
 import { DelegationSignType, PermitSignType, splitSignature } from '.'
 import { type IERC20, type IERC20Permit, type IVotes } from '../../build/types'
 
-export async function delegateBySig(nonce: number, signer: e.Signer, delegatee: string, contract: IVotes & IERC20) {
-  const { expiry, v, r, s } = await getDelegateBySigOptions(nonce, signer, delegatee, contract)
+export async function delegateBySig(delegatee: string, nonce: number, signer: e.Signer, contract: IVotes & IERC20) {
+  const { expiry, v, r, s } = await getDelegateBySigOptions(delegatee, nonce, signer, contract)
   await contract.delegateBySig(delegatee, nonce, expiry, v, r, s)
 }
 
@@ -21,9 +21,9 @@ export async function permitBySig(
 }
 
 export async function getDelegateBySigOptions(
+  delegatee: string,
   nonce: number,
   signer: e.Signer,
-  delegatee: string,
   contract: IVotes & IERC20,
 ) {
   const expiry = Date.now() + 100000

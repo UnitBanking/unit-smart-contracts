@@ -160,7 +160,7 @@ describe('MineToken delegations', () => {
 
   it('delegate via invalid nonce', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
-    const { expiry, v, r, s } = await getDelegateBySigOptions(0, owner, other.address, mine)
+    const { expiry, v, r, s } = await getDelegateBySigOptions(other.address, 0, owner, mine)
     await mine.delegateBySig(other.address, 0, expiry, v, r, s)
     await expect(mine.delegateBySig(other.address, 0, expiry, v, r, s)).to.be.revertedWithCustomError(
       mine,
@@ -170,7 +170,7 @@ describe('MineToken delegations', () => {
 
   it('delegate via signature', async () => {
     const { mine, other, owner } = await loadFixture(deployMineFixture)
-    await delegateBySig(0, owner, other.address, mine)
+    await delegateBySig(other.address, 0, owner, mine)
     expect(await mine.getCurrentVotes(other.address)).to.equal(await mine.balanceOf(owner.address))
   })
 

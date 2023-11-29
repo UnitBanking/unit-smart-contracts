@@ -4,7 +4,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from './fixtures/deployMineFixture'
 import { deployBaseTokenWithProxyFixture } from './fixtures/deployBaseTokenTestFixture'
 import { getMappingStorageKey } from './utils/getMappingStorageKey'
-import { delegateBySig } from './utils'
+import { delegateBySig, permitBySig } from './utils'
 
 const SLOT_BYTES = 32
 const ADDRESS_BYTES = 20
@@ -105,6 +105,16 @@ describe('Storage', () => {
       const result = coder.decode(['bool'], storage)
       expect(await base.isBurner(owner.address)).to.equal(result[0])
     })
+
+    it(`slot ${getSlotInfo(BASETOKEN_SLOTS.nonces)}`, async () => {
+      const { base, proxyAddress, provider, coder, owner, other, another } = await getBaseTokenProxyStorageFixtures()
+      await permitBySig(owner.address, other.address, 100, 0, owner, base)
+      await permitBySig(owner.address, another.address, 100, 1, owner, base)
+      const storageKey = getMappingStorageKey(owner.address, BASETOKEN_SLOTS.nonces)
+      const storage = await provider.getStorage(proxyAddress, storageKey)
+      const result = coder.decode(['uint256'], storage)
+      expect(await base.nonces(owner.address)).to.equal(result[0])
+    })
   })
   describe('as MineToken, it has correct storage orders besides ones in BaseToken', () => {
     it(`slot ${getSlotInfo(MINETOKEN_SLOTS.defaultDelegatee)}`, async () => {
@@ -154,25 +164,15 @@ describe('Storage', () => {
       const result = coder.decode(['uint32'], storage)
       expect(await mine.numCheckpoints(other.address)).to.equal(result[0])
     })
-
-    it(`slot ${getSlotInfo(BASETOKEN_SLOTS.nonces)}`, async () => {
-      const { mine, proxyAddress, provider, coder, owner, other, another } = await getMineTokenProxyStorageFixtures()
-      await delegateBySig(0, owner, other.address, mine)
-      await delegateBySig(1, owner, another.address, mine)
-      const storageKey = getMappingStorageKey(owner.address, BASETOKEN_SLOTS.nonces)
-      const storage = await provider.getStorage(proxyAddress, storageKey)
-      const result = coder.decode(['uint256'], storage)
-      expect(await mine.nonces(owner.address)).to.equal(result[0])
-    })
   })
 })
 
 async function getBaseTokenProxyStorageFixtures() {
-  const { base, proxy, owner, other } = await loadFixture(deployBaseTokenWithProxyFixture)
+  const { base, proxy, owner, other, another } = await loadFixture(deployBaseTokenWithProxyFixture)
   const proxyAddress = await proxy.getAddress()
   const provider = owner.provider
   const coder = ethers.AbiCoder.defaultAbiCoder()
-  return { base, proxy, owner, other, proxyAddress, provider, coder }
+  return { base, proxy, owner, other, another, proxyAddress, provider, coder }
 }
 
 async function getMineTokenProxyStorageFixtures() {
