@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import { stdError } from 'forge-std/Test.sol';
-import { BondingCurveTestBase } from './BondingCurveHelper.t.sol';
+import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
 
 contract BondingCurveBurnTest is BondingCurveTestBase {
     function test_burn_SuccessfullyBurnsUnitToken() public {
