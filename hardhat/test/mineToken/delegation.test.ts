@@ -52,12 +52,14 @@ describe('MineToken delegations', () => {
       .withArgs(other.address, 0, votes)
   })
 
-  it('should not be able to delegate to zero address', async () => {
-    const { mine } = await loadFixture(deployMineFixture)
-    await expect(mine.delegate(await mine.defaultDelegatee())).to.be.revertedWithCustomError(
-      mine,
-      'VotesDelegateToDefaultDelegatee',
-    )
+  it('should be able to delegate to default delegatee as well', async () => {
+    const { mine, owner, other } = await loadFixture(deployMineFixture)
+    const defaultDelegatee = await mine.defaultDelegatee()
+    expect(await mine.delegatees(owner.address)).to.equal(defaultDelegatee)
+    await mine.delegate(other.address)
+    expect(await mine.delegatees(owner.address)).to.equal(other.address)
+    await mine.delegate(defaultDelegatee)
+    expect(await mine.delegatees(owner.address)).to.equal(defaultDelegatee)
   })
 
   it('initial votes is zero', async () => {

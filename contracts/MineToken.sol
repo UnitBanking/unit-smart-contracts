@@ -65,9 +65,6 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function delegate(address delegatee) external {
-        if(delegatee == defaultDelegatee) {
-            revert VotesDelegateToDefaultDelegatee();
-        }
         return _delegate(msg.sender, delegatee);
     }
 
