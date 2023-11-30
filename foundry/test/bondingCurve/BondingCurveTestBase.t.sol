@@ -71,4 +71,12 @@ abstract contract BondingCurveTestBase is Test {
         vm.prank(wallet);
         mineToken.mint(receiver, value);
     }
+
+    function _createUserAndMintUnitAndMineTokens(
+        uint256 etherValue,
+        uint256 mineTokenAmount
+    ) internal returns (address user) {
+        user = _createUserAndMintUnit(etherValue);
+        _mintMineToken(user, mineTokenAmount);
+    }
 }

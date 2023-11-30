@@ -6,7 +6,15 @@ interface IBondingCurve {
     /**
      * ================ ERRORS ================
      */
+
+    /**
+     * @dev The receiver of UNIT token is invalid.
+     */
     error BondingCurveInvalidReceiver(address receiver);
+
+    /**
+     * @dev Cannot mint due to too low reserve ratio.
+     */
     error BondingCurveMintDisabledDueToTooLowRR();
 
     /**
