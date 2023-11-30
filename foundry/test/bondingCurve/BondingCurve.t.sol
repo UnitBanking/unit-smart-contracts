@@ -126,11 +126,29 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_getExcessEthReserve_ReturnsEE() public {
         // Arrange
         _createUserAndMintUnit(1 ether);
+        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurve.getInternalPrice()) /
+            ethUsdOracle.getEthUsdPrice();
 
         // Act
         uint256 excessEth = bondingCurve.getExcessEthReserve();
 
         // Assert
         assertEq(excessEth, 999000999001004);
+        assertGe(address(bondingCurve).balance, unitEthValue);
+    }
+
+    function test_getExcessEthReserve_ReturnsZero() public {
+        // Arrange
+        _createUserAndMintUnit(1 ether);
+        ethUsdOracle.setEthUsdPrice(1e16);
+        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurve.getInternalPrice()) /
+            ethUsdOracle.getEthUsdPrice();
+
+        // Act
+        uint256 excessEth = bondingCurve.getExcessEthReserve();
+
+        // Assert
+        assertEq(excessEth, 0);
+        assertLt(address(bondingCurve).balance, unitEthValue);
     }
 }

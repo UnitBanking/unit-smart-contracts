@@ -174,7 +174,10 @@ contract BondingCurve is IBondingCurve {
         if (address(this).balance < unitEthValue) {
             return 0;
         } else {
-            return address(this).balance - unitEthValue;
+            unchecked {
+                // Overflow not possible: address(this).balance >= unitEthValue.
+                return address(this).balance - unitEthValue;
+            }
         }
     }
 
