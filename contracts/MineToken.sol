@@ -157,7 +157,7 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
-        // will be back for the logic of the check in the future
+        // Check is not needed because total supply ensures we can always downcast
         // if(newVotes > type(uint96).max) {
         //    revert VotesValueTooLarge(newVotes);
         // }
