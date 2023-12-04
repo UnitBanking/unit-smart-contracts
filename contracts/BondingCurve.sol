@@ -190,7 +190,7 @@ contract BondingCurve is IBondingCurve {
             lastInternalPrice *
             exp(
                 wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(
-                    convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18)
+                    convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18) // TODO: can do unchecked subtraction (gas optimization)
                 )
             );
     }
@@ -217,7 +217,7 @@ contract BondingCurve is IBondingCurve {
 
         if (internalPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
-                (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) /
+                (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) / // TODO: can do unchecked subtraction (gas optimization)
                 (internalPrice * unitTokenTotalSupply);
         }
     }
