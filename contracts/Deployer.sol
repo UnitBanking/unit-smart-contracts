@@ -15,7 +15,7 @@ contract Deployer is Ownable, Pausable {
         _setOwner(msg.sender);
     }
 
-    function deploy(bytes memory bytecode, uint256 salt) external whenNotPaused returns (address _address) {
+    function deploy(bytes memory bytecode, uint256 salt) external onlyNotPaused returns (address _address) {
         if (bytecode.length == 0) {
             revert DeployerEmptyBytecode();
         }
@@ -28,12 +28,8 @@ contract Deployer is Ownable, Pausable {
         emit Deployed(_address, salt);
     }
 
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    function unpause() external onlyOwner {
-        _unpause();
+    function setPaused(bool _paused) public override onlyOwner {
+        super.setPaused(_paused);
     }
 
     function computeAddress(bytes32 salt, bytes32 bytecodeHash) external view returns (address) {

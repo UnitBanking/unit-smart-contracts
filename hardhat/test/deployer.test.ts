@@ -46,14 +46,26 @@ describe('Deployer', () => {
     expect(address).to.equal(meta.address)
   })
 
+  it('reverts when deploy on paused state', async () => {
+    const { deployer } = await loadFixture(deployDeployerFixture)
+    await deployer.setPaused(true)
+    await expect(deployer.deploy('0x', 0)).to.be.revertedWithCustomError(deployer, 'PausableEnforcedPause')
+  })
+
   it('reverts when pause with other signer', async () => {
     const { deployer, other } = await loadFixture(deployDeployerFixture)
-    await expect(deployer.connect(other).pause()).to.be.revertedWithCustomError(deployer, 'OwnableUnauthorizedOwner')
+    await expect(deployer.connect(other).setPaused(true)).to.be.revertedWithCustomError(
+      deployer,
+      'OwnableUnauthorizedOwner',
+    )
   })
 
   it('reverts when unpause with other signer', async () => {
     const { deployer, other } = await loadFixture(deployDeployerFixture)
-    await deployer.pause()
-    await expect(deployer.connect(other).unpause()).to.be.revertedWithCustomError(deployer, 'OwnableUnauthorizedOwner')
+    await deployer.setPaused(true)
+    await expect(deployer.connect(other).setPaused(false)).to.be.revertedWithCustomError(
+      deployer,
+      'OwnableUnauthorizedOwner',
+    )
   })
 })

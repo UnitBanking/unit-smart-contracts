@@ -26,7 +26,7 @@ abstract contract Ownable {
         if (_owner == address(0)) {
             revert OwnableInvalidOwner(address(0));
         }
-        if (owner == _owner) {
+        if (_owner == owner) {
             revert OwnableSameValueAlreadySet();
         }
         owner = _owner;

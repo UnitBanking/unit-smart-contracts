@@ -3,43 +3,33 @@
 pragma solidity ^0.8.21;
 
 abstract contract Pausable {
-    bool private _paused;
+    bool public paused;
 
-    event Paused(address account);
-    event Unpaused(address account);
+    event PausedSet(bool paused);
 
     error PausableEnforcedPause();
-    error PausableExpectedPause();
+    error PausableSameValueAlreadySet();
 
     constructor() {
-        _paused = false;
+        paused = false;
     }
 
-    modifier whenNotPaused() {
-        if (_paused) {
+    modifier onlyNotPaused() {
+        if (paused) {
             revert PausableEnforcedPause();
         }
         _;
     }
 
-    modifier whenPaused() {
-        if (!_paused) {
-            revert PausableExpectedPause();
+    function _setPaused(bool _paused) internal {
+        if (paused == _paused) {
+            revert PausableSameValueAlreadySet();
         }
-        _;
+        paused = _paused;
+        emit PausedSet(_paused);
     }
 
-    function paused() public view virtual returns (bool) {
-        return _paused;
-    }
-
-    function _pause() internal virtual whenNotPaused {
-        _paused = true;
-        emit Paused(msg.sender);
-    }
-
-    function _unpause() internal virtual whenPaused {
-        _paused = false;
-        emit Unpaused(msg.sender);
+    function setPaused(bool _paused) public virtual {
+        _setPaused(_paused);
     }
 }
