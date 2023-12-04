@@ -46,7 +46,6 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         address owner,
         address spender,
         uint256 value,
-        uint256 nonce,
         uint256 expiry,
         uint8 v,
         bytes32 r,
@@ -58,15 +57,13 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
         );
+        uint256 nonce = nonces[owner]++;
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));
-        address signatory = ecrecover(digest, v, r, s);
-        if (signatory == address(0)) {
-            revert ERC20InvalidPermitSignature(signatory);
+        address signer = ecrecover(digest, v, r, s);
+        if (signer != owner) {
+            revert ERC20InvalidSigner(signer, owner);
         }
-        if (nonce != nonces[signatory]++) {
-            revert ERC20InvalidPermitNonce(nonce);
-        }
-        _approve(signatory, spender, value, true);
+        _approve(signer, spender, value, true);
     }
 }

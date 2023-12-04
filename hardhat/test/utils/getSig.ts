@@ -17,7 +17,7 @@ export async function permitBySig(
   contract: IERC20Permit & IERC20,
 ) {
   const { expiry, v, r, s } = await getPermitBySigOptions(owner, spender, value, nonce, signer, contract)
-  await contract.permit(owner, spender, value, nonce, expiry, v, r, s)
+  await contract.permit(owner, spender, value, expiry, v, r, s)
 }
 
 export async function getDelegateBySigOptions(

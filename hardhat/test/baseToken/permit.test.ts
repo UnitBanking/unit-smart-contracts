@@ -8,24 +8,24 @@ describe('BaseToken permit', () => {
   it('permit via signature expired', async () => {
     const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
     await expect(
-      base.permit(owner.address, other.address, 1, 1, 1, 1, randomBytes(32), randomBytes(32)),
+      base.permit(owner.address, other.address, 1, 1, 1, randomBytes(32), randomBytes(32)),
     ).to.be.revertedWithCustomError(base, 'ERC20PermitSignatureExpired')
   })
 
   it('permit via invalid signature', async () => {
     const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
     await expect(
-      base.permit(owner.address, other.address, 1, 1, Date.now() + 1000, 1, randomBytes(32), randomBytes(32)),
-    ).to.be.revertedWithCustomError(base, 'ERC20InvalidPermitSignature')
+      base.permit(owner.address, other.address, 1, Date.now() + 1000, 1, randomBytes(32), randomBytes(32)),
+    ).to.be.revertedWithCustomError(base, 'ERC20InvalidSigner')
   })
 
-  it('permit via invalid nonce', async () => {
+  it('permit via invalid nonce due to old sig', async () => {
     const { base, other, owner } = await loadFixture(deployBaseTokenFixture)
     const { expiry, v, r, s } = await getPermitBySigOptions(owner.address, other.address, 1, 0, owner, base)
-    await base.permit(owner.address, other.address, 1, 0, expiry, v, r, s)
-    await expect(base.permit(owner.address, other.address, 1, 0, expiry, v, r, s)).to.be.revertedWithCustomError(
+    await base.permit(owner.address, other.address, 1, expiry, v, r, s)
+    await expect(base.permit(owner.address, other.address, 1, expiry, v, r, s)).to.be.revertedWithCustomError(
       base,
-      'ERC20InvalidPermitNonce',
+      'ERC20InvalidSigner',
     )
   })
 

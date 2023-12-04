@@ -4,7 +4,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from './fixtures/deployMineFixture'
 import { deployBaseTokenWithProxyFixture } from './fixtures/deployBaseTokenTestFixture'
 import { getMappingStorageKey } from './utils/getMappingStorageKey'
-import { delegateBySig, permitBySig } from './utils'
+import { permitBySig } from './utils'
 
 const SLOT_BYTES = 32
 const ADDRESS_BYTES = 20

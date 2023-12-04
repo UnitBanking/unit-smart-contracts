@@ -7,6 +7,7 @@ interface IVotes {
     error VotesInvalidDelegateNonce(uint256 nonce);
     error VotesDelegationSignatureExpired(uint256 expiry);
     error VotesBlockNumberTooHigh(uint256 blockNumber);
+    error VotesValueTooLarge(uint256 value);
 
     event DelegateSet(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
     event DelegateVotesSet(address indexed delegate, uint256 previousBalance, uint256 newBalance);

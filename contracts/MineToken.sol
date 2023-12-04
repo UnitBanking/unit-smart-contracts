@@ -57,7 +57,7 @@ contract MineToken is BaseToken, IVotes {
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
-        if(delegatees[to] == address(0) && to !=  address(0)) {
+        if(delegatees[to] == address(0) && to != address(0)) {
             delegatees[to] = defaultDelegatee;
             emit DelegateSet(to, address(0), defaultDelegatee);
         }
@@ -157,10 +157,14 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
+        if(newVotes > type(uint96).max) {
+            revert VotesValueTooLarge(newVotes);
+        }
+        uint96 newVotes96 = uint96(newVotes);
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
-            checkpoints[delegatee][nCheckpoints - 1].votes = uint96(newVotes);
+            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes96;
         } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(uint32(block.number), uint96(newVotes));
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(uint32(block.number), newVotes96);
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
