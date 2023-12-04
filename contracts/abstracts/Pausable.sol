@@ -10,10 +10,6 @@ abstract contract Pausable {
     error PausableEnforcedPause();
     error PausableSameValueAlreadySet();
 
-    constructor() {
-        paused = false;
-    }
-
     modifier onlyNotPaused() {
         if (paused) {
             revert PausableEnforcedPause();
