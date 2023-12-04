@@ -7,7 +7,7 @@ import './abstracts/Pausable.sol';
 
 contract Deployer is Ownable, Pausable {
     event Deployed(address _address, uint256 salt);
-    
+
     error DeployerEmptyBytecode();
     error DeployerFailedDeployment();
 

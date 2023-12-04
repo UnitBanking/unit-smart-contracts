@@ -38,7 +38,7 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function mint(address receiver, uint256 amount) public override {
-        if(delegatees[receiver] == address(0)) {
+        if (delegatees[receiver] == address(0)) {
             _delegate(receiver, defaultDelegatee);
         }
         super.mint(receiver, amount);
@@ -57,7 +57,7 @@ contract MineToken is BaseToken, IVotes {
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
-        if(delegatees[to] == address(0) && to != address(0)) {
+        if (delegatees[to] == address(0) && to != address(0)) {
             delegatees[to] = defaultDelegatee;
             emit DelegateSet(to, address(0), defaultDelegatee);
         }
@@ -81,7 +81,7 @@ contract MineToken is BaseToken, IVotes {
         if (signatory == address(0)) {
             revert VotesInvalidDelegateSignature(signatory);
         }
-        if (nonce != nonces[signatory]++){
+        if (nonce != nonces[signatory]++) {
             revert VotesInvalidDelegateNonce(nonce);
         }
         return _delegate(signatory, delegatee);
@@ -136,7 +136,6 @@ contract MineToken is BaseToken, IVotes {
 
         _updateVotes(oldDelegatee, delegatee, delegatorBalance);
     }
-
 
     function _updateVotes(address from, address to, uint256 amount) internal {
         if (from != to && amount > 0) {
