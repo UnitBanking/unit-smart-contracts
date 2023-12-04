@@ -49,7 +49,7 @@ describe('Deployer', () => {
   it('reverts when deploy on paused state', async () => {
     const { deployer } = await loadFixture(deployDeployerFixture)
     await deployer.setPaused(true)
-    await expect(deployer.deploy('0x', 0)).to.be.revertedWithCustomError(deployer, 'PausableEnforcedPause')
+    await expect(deployer.deploy('0x', 0)).to.be.revertedWithCustomError(deployer, 'PausableContractIsPaused')
   })
 
   it('reverts when pause with other signer', async () => {

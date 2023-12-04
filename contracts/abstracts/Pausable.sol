@@ -7,12 +7,12 @@ abstract contract Pausable {
 
     event PausedSet(bool paused);
 
-    error PausableEnforcedPause();
+    error PausableContractIsPaused();
     error PausableSameValueAlreadySet();
 
     modifier onlyNotPaused() {
         if (paused) {
-            revert PausableEnforcedPause();
+            revert PausableContractIsPaused();
         }
         _;
     }
