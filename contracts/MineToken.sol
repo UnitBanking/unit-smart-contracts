@@ -157,9 +157,10 @@ contract MineToken is BaseToken, IVotes {
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
-        if(newVotes > type(uint96).max) {
-            revert VotesValueTooLarge(newVotes);
-        }
+        // will be back for the logic of the check in the future
+        // if(newVotes > type(uint96).max) {
+        //    revert VotesValueTooLarge(newVotes);
+        // }
         uint96 newVotes96 = uint96(newVotes);
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes96;
