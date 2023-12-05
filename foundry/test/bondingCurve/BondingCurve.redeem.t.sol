@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.21;
 
-import { stdError } from 'forge-std/Test.sol';
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 
 contract BondingCurveRedeemTest is BondingCurveTestBase {
     function test_redeem_SuccessfullyRedeemsEth() public {
@@ -32,7 +32,7 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
 
     function test_redeem_SuccessfullySkipsRedemptionDueToNoExcessEth() public {
         // Arrange
-        uint256 mineTokenAmount = 1e10 * 1e18;
+        uint256 mineTokenAmount = 1e8 * 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
         uint256 userEthBalanceBefore = user.balance;
         uint256 bondingCurveEthBalanceBefore = address(bondingCurve).balance;
@@ -57,7 +57,7 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
 
     function test_redeem_Redeems0MineTokens() public {
         // Arrange
-        uint256 mineTokenAmount = 1e10 * 1e18;
+        uint256 mineTokenAmount = 1e8 * 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
         uint256 bondingCurveEthBalanceBefore = address(bondingCurve).balance;
@@ -82,15 +82,15 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
 
     function test_redeem_RevertsIfUserTriesToRedeemMoreThanMineBalance() public {
         // Arrange
-        uint256 mineTokenAmount = 1e10 * 1e18;
+        uint256 mineTokenAmount = 1e8 * 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
-        vm.prank(user);
-        mineToken.approve(address(bondingCurve), mineTokenAmount);
         uint256 userMineBalance = mineToken.balanceOf(user);
+        vm.prank(user);
+        mineToken.approve(address(bondingCurve), userMineBalance + 1);
 
         // Act & Assert
         vm.prank(user);
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(abi.encodeWithSelector(IERC20.ERC20InsufficientBalance.selector, user, userMineBalance, userMineBalance + 1));
         bondingCurve.redeem(userMineBalance + 1);
     }
 }

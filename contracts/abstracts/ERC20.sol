@@ -35,17 +35,7 @@ abstract contract ERC20 is IERC20 {
     }
 
     function transferFrom(address from, address to, uint256 value) external virtual override returns (bool) {
-        uint256 currentAllowance = allowance[from][msg.sender];
-        if (currentAllowance != type(uint256).max) {
-            if (currentAllowance < value) {
-                revert ERC20InsufficientAllowance(msg.sender, currentAllowance, value);
-            }
-            unchecked {
-                // Overflow not possible: value <= currentAllowance < type(uint256).max.
-                _approve(from, msg.sender, currentAllowance - value, false);
-            }
-        }
-
+        _spendAllowance(from, msg.sender, value);
         _transfer(from, to, value);
         return true;
     }
@@ -101,5 +91,18 @@ abstract contract ERC20 is IERC20 {
         }
 
         emit Transfer(from, to, value);
+    }
+
+    function _spendAllowance(address owner, address spender, uint256 value) internal virtual {
+        uint256 currentAllowance = allowance[owner][spender];
+        if (currentAllowance != type(uint256).max) {
+            if (currentAllowance < value) {
+                revert ERC20InsufficientAllowance(msg.sender, currentAllowance, value);
+            }
+            unchecked {
+                // Overflow not possible: value <= currentAllowance < type(uint256).max.
+                _approve(owner, spender, currentAllowance - value, false);
+            }
+        }
     }
 }

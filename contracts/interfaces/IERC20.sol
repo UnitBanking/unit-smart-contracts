@@ -10,6 +10,7 @@ interface IERC20 {
     error ERC20InvalidSpender(address spender);
     error ERC20InvalidSender(address sender);
     error ERC20InvalidReceiver(address receiver);
+    error ERC20InvalidTokenOwner(address tokenOwner);
     error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
     error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
 
@@ -18,8 +19,6 @@ interface IERC20 {
     function symbol() external view returns (string memory);
 
     function decimals() external view returns (uint8);
-
-    function minter() external view returns (address);
 
     function totalSupply() external view returns (uint256);
 
@@ -32,8 +31,4 @@ interface IERC20 {
     function transfer(address to, uint256 value) external returns (bool);
 
     function transferFrom(address from, address to, uint256 value) external returns (bool);
-
-    function mint(address receiver, uint256 value) external;
-
-    function burn(address from, uint256 value) external;
 }

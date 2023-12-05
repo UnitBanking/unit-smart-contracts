@@ -19,9 +19,17 @@ abstract contract Burnable {
     }
 
     function burn(uint256 /* amount */) public virtual {
+        _canBurn(msg.sender);
+    }
+
+    function burnFrom(address /* from */, uint256 /* amount */) public virtual {
+        _canBurn(msg.sender);
+    }
+
+    function _canBurn(address burner) private view {
         // everyone can burn when address(0) is burner
-        if (!isBurner[address(0)] && !isBurner[msg.sender]) {
-            revert BurnableUnauthorizedBurner(msg.sender);
+        if (!isBurner[address(0)] && !isBurner[burner]) {
+            revert BurnableUnauthorizedBurner(burner);
         }
     }
 }

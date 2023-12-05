@@ -2,11 +2,12 @@
 
 pragma solidity 0.8.21;
 
-import { Test, stdError } from 'forge-std/Test.sol';
+import { Test } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
 import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
-import { ERC20 } from '../../../contracts/ERC20.sol';
+import { MineToken } from '../../../contracts/MineToken.sol';
+import { UnitToken } from '../../../contracts/UnitToken.sol';
 
 abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
@@ -17,8 +18,8 @@ abstract contract BondingCurveTestBase is Test {
 
     InflationOracleHarness public inflationOracle;
     EthUsdOracleMock public ethUsdOracle;
-    ERC20 public unitToken;
-    ERC20 public mineToken;
+    UnitToken public unitToken;
+    MineToken public mineToken;
 
     BondingCurveHarness public bondingCurve;
 
@@ -38,15 +39,20 @@ abstract contract BondingCurveTestBase is Test {
         ethUsdOracle = new EthUsdOracleMock();
 
         // set up Unit token contract
-        unitToken = new ERC20(wallet);
+        unitToken = new UnitToken(); // TODO: use Proxy
+        unitToken.initialize();
         // set up Mine token contract
-        mineToken = new ERC20(wallet);
+        mineToken = new MineToken(); // TODO: use Proxy
+        mineToken.initialize();
 
         // set up BondingCurve contract
         bondingCurve = new BondingCurveHarness(address(unitToken), address(mineToken), inflationOracle, ethUsdOracle);
+        unitToken.setMinter(address(bondingCurve), true);
+        unitToken.setBurner(address(bondingCurve), true);
+        mineToken.setMinter(wallet, true);
+        mineToken.setBurner(address(bondingCurve), true);
+        
         vm.startPrank(wallet);
-        unitToken.setMinter(address(bondingCurve));
-        mineToken.setMinter(wallet);
         payable(address(bondingCurve)).transfer(INITIAL_ETH_VALUE);
         vm.stopPrank();
         vm.prank(address(bondingCurve));

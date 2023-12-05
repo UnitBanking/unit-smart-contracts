@@ -8,14 +8,14 @@ describe('BaseToken permit', () => {
   it('permit via signature expired', async () => {
     const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
     await expect(
-      base.permit(owner.address, other.address, 1, 1, 1, randomBytes(32), randomBytes(32)),
+      base.permit(owner.address, other.address, 1, 1, 1, randomBytes(32), randomBytes(32))
     ).to.be.revertedWithCustomError(base, 'ERC20PermitSignatureExpired')
   })
 
   it('permit via invalid signature', async () => {
     const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
     await expect(
-      base.permit(owner.address, other.address, 1, Date.now() + 1000, 1, randomBytes(32), randomBytes(32)),
+      base.permit(owner.address, other.address, 1, Date.now() + 1000, 1, randomBytes(32), randomBytes(32))
     ).to.be.revertedWithCustomError(base, 'ERC20InvalidSigner')
   })
 
@@ -25,7 +25,7 @@ describe('BaseToken permit', () => {
     await base.permit(owner.address, other.address, 1, expiry, v, r, s)
     await expect(base.permit(owner.address, other.address, 1, expiry, v, r, s)).to.be.revertedWithCustomError(
       base,
-      'ERC20InvalidSigner',
+      'ERC20InvalidSigner'
     )
   })
 

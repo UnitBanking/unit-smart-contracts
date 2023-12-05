@@ -3,6 +3,8 @@
 pragma solidity 0.8.21;
 
 import './interfaces/IBondingCurve.sol';
+import './abstracts/Burnable.sol';
+import './abstracts/Mintable.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
@@ -96,14 +98,14 @@ contract BondingCurve is IBondingCurve {
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
-        IERC20(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        Mintable(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
     /**
      * @inheritdoc IBondingCurve
      */
     function burn(uint256 unitTokenAmount) external {
-        IERC20(unitToken).burn(msg.sender, unitTokenAmount);
+        Burnable(unitToken).burnFrom(msg.sender, unitTokenAmount);
         uint256 withdrawEthAmount = ((unitTokenAmount) *
             ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
         payable(msg.sender).transfer(withdrawEthAmount);
@@ -123,7 +125,7 @@ contract BondingCurve is IBondingCurve {
                 REDEMPTION_DISCOUNT_PRECISION;
             uint256 burnEthAmount = totalEthAmount - userEthAmount;
 
-            IERC20(mineToken).burn(msg.sender, mineTokenAmount);
+            Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
             payable(msg.sender).transfer(userEthAmount);
             payable(address(0)).transfer(burnEthAmount);
         }

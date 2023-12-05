@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.21;
 
-import { stdError } from 'forge-std/Test.sol';
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 
 contract BondingCurveBurnTest is BondingCurveTestBase {
     function test_burn_SuccessfullyBurnsUnitToken() public {
@@ -56,8 +56,9 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
         // Arrange
         uint256 etherValue = 1 ether;
         address user = _createUserAndMintUnit(etherValue);
+        uint256 userUnitBalance = unitToken.balanceOf(user);
         uint256 additionalUnitAmount = 1;
-        uint256 burnAmount = unitToken.balanceOf(user) + additionalUnitAmount;
+        uint256 burnAmount = userUnitBalance + additionalUnitAmount;
         vm.prank(user);
         unitToken.approve(address(bondingCurve), burnAmount);
         vm.prank(address(bondingCurve));
@@ -65,7 +66,7 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
         // Act & Assert
         vm.prank(user);
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(abi.encodeWithSelector(IERC20.ERC20InsufficientBalance.selector, user, userUnitBalance, burnAmount));
         bondingCurve.burn(burnAmount);
     }
 
@@ -73,13 +74,32 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
         // Arrange
         uint256 etherValue = 1 ether;
         address user = _createUserAndMintUnit(etherValue);
+        uint256 userUnitBalance = unitToken.balanceOf(user);
         uint256 burnAmount = unitToken.totalSupply() + 1;
         vm.prank(user);
         unitToken.approve(address(bondingCurve), burnAmount);
 
         // Act & Assert
         vm.prank(user);
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(abi.encodeWithSelector(IERC20.ERC20InsufficientBalance.selector, user, userUnitBalance, burnAmount));
+        bondingCurve.burn(burnAmount);
+    }
+
+    function test_burn_RevertsIfUserTriesToBurnMoreThanUnitAllowance() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMintUnit(etherValue);
+        uint256 userUnitBalance = unitToken.balanceOf(user);
+        uint256 allowedAmount = userUnitBalance - 1;
+        uint256 burnAmount = allowedAmount + 1;
+        vm.prank(user);
+        unitToken.approve(address(bondingCurve), allowedAmount);
+        vm.prank(address(bondingCurve));
+        unitToken.mint(wallet, 1);
+
+        // Act & Assert
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(IERC20.ERC20InsufficientAllowance.selector, address(bondingCurve), allowedAmount, burnAmount));
         bondingCurve.burn(burnAmount);
     }
 }

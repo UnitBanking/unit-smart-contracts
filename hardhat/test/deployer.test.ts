@@ -27,7 +27,7 @@ describe('Deployer', () => {
     await deployer.deploy(meta.deployBytecode, meta.saltHex)
     await expect(deployer.deploy(meta.deployBytecode, meta.saltHex)).to.be.revertedWithCustomError(
       deployer,
-      'DeployerFailedDeployment',
+      'DeployerFailedDeployment'
     )
   })
 
@@ -56,7 +56,7 @@ describe('Deployer', () => {
     const { deployer, other } = await loadFixture(deployDeployerFixture)
     await expect(deployer.connect(other).setPaused(true)).to.be.revertedWithCustomError(
       deployer,
-      'OwnableUnauthorizedOwner',
+      'OwnableUnauthorizedOwner'
     )
   })
 
@@ -65,7 +65,7 @@ describe('Deployer', () => {
     await deployer.setPaused(true)
     await expect(deployer.connect(other).setPaused(false)).to.be.revertedWithCustomError(
       deployer,
-      'OwnableUnauthorizedOwner',
+      'OwnableUnauthorizedOwner'
     )
   })
 })
