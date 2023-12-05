@@ -41,5 +41,5 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install --frozen-lockfile
       - run: yarn lint
-      - run: yarn compile
-      - run: yarn hardhat:test
+      - run: yarn build:hardhat
+      - run: yarn test:hardhat
