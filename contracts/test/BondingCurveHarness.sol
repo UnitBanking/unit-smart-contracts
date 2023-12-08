@@ -11,7 +11,7 @@ import { unwrap } from '@prb/math/src/UD60x18.sol';
 contract BondingCurveHarness is BondingCurve {
     constructor() BondingCurve() {}
 
-    function exposed_getInternalPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
-        return unwrap(_getInternalPriceForTimestamp(timestamp));
+    function exposed_getUnitUsdPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
+        return unwrap(_getUnitUsdPriceForTimestamp(timestamp));
     }
 }

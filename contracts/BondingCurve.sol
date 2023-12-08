@@ -45,7 +45,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * ================ STATE VARIABLES ================
      */
 
-    UD60x18 public lastInternalPrice; // IP(t')
+    UD60x18 public lastUnitUsdPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t')) – ln(Index(t'- 20years)))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
 
@@ -81,7 +81,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
         IInflationOracle _inflationOracle,
         IEthUsdOracle _ethUsdOracle
     ) external {
-        lastInternalPrice = UNIT; // 1
+        lastUnitUsdPrice = UNIT; // 1
 
         unitToken = _unitToken;
         mineToken = _mineToken;
@@ -150,14 +150,14 @@ contract BondingCurve is IBondingCurve, Proxiable {
         );
         uint256 priceIndexDeltaUint256 = priceIndexDelta.unwrap() / (uUNIT / PRICE_INDEX_PRECISION);
 
-        lastInternalPrice = _getInternalPriceForTimestamp(currentOracleUpdateTimestamp);
+        lastUnitUsdPrice = _getUnitUsdPriceForTimestamp(currentOracleUpdateTimestamp);
         lastOracleInflationRate = Math.min(100 * PRICE_INDEX_PRECISION, Math.max(0, priceIndexDeltaUint256));
         lastOracleUpdateTimestamp = currentOracleUpdateTimestamp;
     }
 
     // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
-    function getInternalPrice() public view returns (uint256) {
-        return _getInternalPriceForTimestamp(block.timestamp).unwrap();
+    function getUnitUsdPrice() public view returns (uint256) {
+        return _getUnitUsdPriceForTimestamp(block.timestamp).unwrap();
     }
 
     // P(t) = min(IP(t)/EP(t), BalanceETH(t)/SupplyUnit(t))
@@ -177,7 +177,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     }
 
     function getExcessEthReserve() public view returns (uint256 excessEth) {
-        uint256 unitEthValue = (IERC20(unitToken).totalSupply() * getInternalPrice()) / ethUsdOracle.getEthUsdPrice();
+        uint256 unitEthValue = (IERC20(unitToken).totalSupply() * getUnitUsdPrice()) / ethUsdOracle.getEthUsdPrice();
 
         if (address(this).balance < unitEthValue) {
             return 0;
@@ -193,9 +193,9 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * ================ INTERNAL FUNCTIONS ================
      */
 
-    function _getInternalPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
+    function _getUnitUsdPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
         return
-            lastInternalPrice *
+            lastUnitUsdPrice *
             exp(
                 wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(
                     convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18) // TODO: can do unchecked subtraction (gas optimization)
@@ -208,25 +208,25 @@ contract BondingCurve is IBondingCurve, Proxiable {
         if (unitTotalSupply > 0) {
             return
                 Math.min(
-                    (unwrap(_getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
+                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
                         ethUsdOracle.getEthUsdPrice(),
                     ((address(this).balance - msg.value) * PRICE_PRECISION) / unitTotalSupply
                 );
         } else {
             return
-                (unwrap(_getInternalPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
+                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
                 ethUsdOracle.getEthUsdPrice();
         }
     }
 
     function _getReserveRatio() internal view returns (uint256 reserveRatio) {
-        uint256 internalPrice = getInternalPrice();
+        uint256 unitUsdPrice = getUnitUsdPrice();
         uint256 unitTokenTotalSupply = IERC20(unitToken).totalSupply();
 
-        if (internalPrice != 0 && unitTokenTotalSupply != 0) {
+        if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
                 (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) / // TODO: can do unchecked subtraction (gas optimization)
-                (internalPrice * unitTokenTotalSupply);
+                (unitUsdPrice * unitTokenTotalSupply);
         }
     }
 }

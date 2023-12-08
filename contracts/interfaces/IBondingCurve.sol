@@ -60,7 +60,7 @@ interface IBondingCurve {
     function redeem(uint256 mineTokenAmount) external;
 
     /**
-     * @dev Updates the values for {lastInternalPrice}, {lastOracleInflationRate}, and {lastOracleUpdateTimestamp}.
+     * @dev Updates the values for {lastUnitUsdPrice}, {lastOracleInflationRate}, and {lastOracleUpdateTimestamp}.
      */
     function updateInternals() external;
 
@@ -68,7 +68,7 @@ interface IBondingCurve {
      * ================ GETTERS ================
      */
 
-    function getInternalPrice() external view returns (uint256);
+    function getUnitUsdPrice() external view returns (uint256);
 
     function getUnitEthPrice() external view returns (uint256);
 

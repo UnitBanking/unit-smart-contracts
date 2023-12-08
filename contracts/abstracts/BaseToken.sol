@@ -43,11 +43,11 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
     }
 
     function burnFrom(address from, uint256 amount) public virtual override {
+        super.burnFrom(from, amount);
         if (from == address(0)) {
             revert ERC20InvalidTokenOwner(address(0));
         }
         _spendAllowance(from, msg.sender, amount);
-        super.burnFrom(from, amount);
         _update(from, address(0), amount);
     }
 
