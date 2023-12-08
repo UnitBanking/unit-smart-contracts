@@ -6,6 +6,7 @@ abstract contract Burnable {
     event BurnerSet(address indexed burner, bool canBurn);
 
     error BurnableSameValueAlreadySet();
+    error BurnableInvalidTokenOwner(address tokenOwner);
     error BurnableUnauthorizedBurner(address burner);
 
     mapping(address burner => bool canBurn) public isBurner;
@@ -22,7 +23,10 @@ abstract contract Burnable {
         _canBurn(msg.sender);
     }
 
-    function burnFrom(address /* from */, uint256 /* amount */) public virtual {
+    function burnFrom(address from, uint256 /* amount */) public virtual {
+        if (from == address(0)) {
+            revert BurnableInvalidTokenOwner(address(0));
+        }
         _canBurn(msg.sender);
     }
 

@@ -20,7 +20,6 @@ import './libraries/Math.sol';
  - replace all `transfer()` calls
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
- - Make proxyable after code integration
  */
 
 contract BondingCurve is IBondingCurve, Proxiable {
@@ -35,7 +34,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     uint256 public constant BASE_SPREAD = 10; // 0.1%
     uint256 public constant SPREAD_PRECISION = 10_000;
 
-    uint256 public constant PRICE_PRECISION = 1e18;
+    uint256 public constant PRICE_PRECISION = 1e18; // Should match Unit token decimals
     uint256 public constant HIGH_RR = 4; // High reserve ratio (RR). (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
 
     uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
@@ -104,6 +103,11 @@ contract BondingCurve is IBondingCurve, Proxiable {
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+
+        if (unitTokenAmount == 0) {
+            revert BondingCurveResultingTokenAmountZero();
+        }
+
         Mintable(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
@@ -114,6 +118,11 @@ contract BondingCurve is IBondingCurve, Proxiable {
         Burnable(unitToken).burnFrom(msg.sender, unitTokenAmount);
         uint256 withdrawEthAmount = ((unitTokenAmount) *
             ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
+
+        if (withdrawEthAmount == 0) {
+            revert BondingCurveResultingTokenAmountZero();
+        }
+
         payable(msg.sender).transfer(withdrawEthAmount);
     }
 
@@ -122,19 +131,17 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
     function redeem(uint256 mineTokenAmount) external {
         uint256 excessEth = getExcessEthReserve();
+        uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / IERC20(mineToken).totalSupply() / 100;
+        uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
+            REDEMPTION_DISCOUNT_PRECISION;
 
-        if (excessEth > 0) {
-            uint256 totalEthAmount = (((excessEth * mineTokenAmount) / IERC20(mineToken).totalSupply()) * (100 - 1)) /
-                100;
-
-            uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
-                REDEMPTION_DISCOUNT_PRECISION;
-            uint256 burnEthAmount = totalEthAmount - userEthAmount;
-
-            Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
-            payable(msg.sender).transfer(userEthAmount);
-            payable(address(0)).transfer(burnEthAmount);
+        if (userEthAmount == 0) {
+            revert BondingCurveResultingTokenAmountZero();
         }
+
+        Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
+        payable(msg.sender).transfer(userEthAmount);
+        payable(address(0)).transfer(totalEthAmount - userEthAmount);
     }
 
     /**

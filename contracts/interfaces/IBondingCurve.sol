@@ -11,9 +11,9 @@ interface IBondingCurve {
      */
 
     /**
-     * @dev The receiver of UNIT token is invalid.
+     * @dev The amount of tokens the user gets is zero.
      */
-    error BondingCurveInvalidReceiver(address receiver);
+    error BondingCurveResultingTokenAmountZero();
 
     /**
      * @dev Cannot mint due to too low reserve ratio.
