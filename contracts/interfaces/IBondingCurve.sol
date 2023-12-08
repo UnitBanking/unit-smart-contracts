@@ -2,6 +2,9 @@
 
 pragma solidity 0.8.21;
 
+import './IInflationOracle.sol';
+import './IEthUsdOracle.sol';
+
 interface IBondingCurve {
     /**
      * ================ ERRORS ================
@@ -20,6 +23,22 @@ interface IBondingCurve {
     /**
      * ================ CORE FUNCTIONALITY ================
      */
+
+    /**
+     * @notice Initializes the proxy contract's.
+     * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {ethUsdOracle}.
+     * @dev Calls Proxiable.initialize() at the end to set `initialized` flag.
+     * @param _unitToken UNIT token address.
+     * @param _mineToken MINE token address.
+     * @param _inflationOracle Inflation oracle.
+     * @param _ethUsdOracle ETH-USD price oracle.
+     */
+    function initialize(
+        address _unitToken,
+        address _mineToken,
+        IInflationOracle _inflationOracle,
+        IEthUsdOracle _ethUsdOracle
+    ) external;
 
     /**
      * @notice Allows to mint UNIT token to the specified receiver by providing ETH.

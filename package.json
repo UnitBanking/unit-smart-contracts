@@ -12,8 +12,8 @@
     "deploy": "hardhat run hardhat/scripts/deploy.ts",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:fix": "yarn lint:sol:fix && yarn lint:ts:fix",
-    "lint:sol": "yarn prettier './{foundry,contracts}/!(lib)/*.sol' './{foundry,contracts}/*.sol' --check",
-    "lint:sol:fix": "yarn prettier './{foundry,contracts}/!(lib)/*.sol' './{foundry,contracts}/*.sol' --write",
+    "lint:sol": "yarn prettier './{foundry,contracts}/!(lib)/**/*.sol' './{foundry,contracts}/!(lib)/**/*.sol' --check",
+    "lint:sol:fix": "yarn prettier './{foundry,contracts}/!(lib)/**/*.sol' './{foundry,contracts}/!(lib)/**/*.sol' --write",
     "lint:ts": "yarn prettier './{hardhat,foundry}/{test,deploy,scripts}/**/*.{js,ts}' --check && yarn eslint './{hardhat,foundry}/{test,deploy,scripts}/**/*.{js,ts}'",
     "lint:ts:fix": "yarn prettier './{hardhat,foundry}/{test,deploy,scripts}/**/*.{js,ts}' --write && yarn eslint './{hardhat,foundry}/{test,deploy,scripts}/**/*.{js,ts}' --fix"
   },

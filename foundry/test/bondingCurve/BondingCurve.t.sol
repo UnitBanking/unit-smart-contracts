@@ -15,7 +15,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         vm.warp(currentTimestamp);
 
         // Act
-        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurveProxy.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1000619095670254662; // 1.000619095670254662
@@ -28,7 +28,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         vm.warp(currentTimestamp);
 
         // Act
-        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurveProxy.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1001858437086397421; // 1.001858437086397421
@@ -41,12 +41,12 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         vm.warp(currentTimestamp);
         inflationOracle.setPriceIndexTwentyYearsAgo(78);
         inflationOracle.setLatestPriceIndex(122);
-        bondingCurve.updateInternals();
+        bondingCurveProxy.updateInternals();
 
         vm.warp(currentTimestamp + 1 days);
 
         // Act
-        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurveProxy.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         // IP(t’)               * exp(r(t’) * (t-t’))
@@ -61,12 +61,12 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         vm.warp(currentTimestamp);
         inflationOracle.setPriceIndexTwentyYearsAgo(78);
         inflationOracle.setLatestPriceIndex(122);
-        bondingCurve.updateInternals();
+        bondingCurveProxy.updateInternals();
 
         vm.warp(currentTimestamp + 1 seconds);
 
         // Act
-        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(block.timestamp);
+        uint256 price = bondingCurveProxy.exposed_getInternalPriceForTimestamp(block.timestamp);
 
         // Assert
         uint256 expectedPrice = 1001858437796746057; // 1.001858437796746057
@@ -75,7 +75,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getInternalPriceForTimestamp_0Days() public {
         // Arrange & Act
-        uint256 price = bondingCurve.exposed_getInternalPriceForTimestamp(START_TIMESTAMP);
+        uint256 price = bondingCurveProxy.exposed_getInternalPriceForTimestamp(START_TIMESTAMP);
 
         // Assert
         uint256 expectedPrice = 1e18;
@@ -88,22 +88,22 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_updateInternals() public {
         // Arrange
-        uint256 lastInternalPriceBefore = bondingCurve.getInternalPrice();
+        uint256 lastInternalPriceBefore = bondingCurveProxy.getInternalPrice();
         uint256 currentTimestamp = START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
         vm.warp(currentTimestamp);
-        uint256 lastOracleUpdateTimestampBefore = bondingCurve.lastOracleUpdateTimestamp();
+        uint256 lastOracleUpdateTimestampBefore = bondingCurveProxy.lastOracleUpdateTimestamp();
         inflationOracle.setPriceIndexTwentyYearsAgo(78);
         inflationOracle.setLatestPriceIndex(122);
 
         // Act
-        bondingCurve.updateInternals();
+        bondingCurveProxy.updateInternals();
 
         // Assert
-        uint256 lastOracleUpdateTimestampAfter = bondingCurve.lastOracleUpdateTimestamp();
-        uint256 lastInternalPriceAfter = bondingCurve.getInternalPrice();
+        uint256 lastOracleUpdateTimestampAfter = bondingCurveProxy.lastOracleUpdateTimestamp();
+        uint256 lastInternalPriceAfter = bondingCurveProxy.getInternalPrice();
         assertEq(lastInternalPriceBefore, 1e18); // 1
         assertEq(lastInternalPriceAfter, 1001858437086397421); // 1.001858437086397421
-        assertEq(bondingCurve.lastOracleInflationRate(), 2236); // 2.236%
+        assertEq(bondingCurveProxy.lastOracleInflationRate(), 2236); // 2.236%
         assertGt(lastOracleUpdateTimestampAfter, lastOracleUpdateTimestampBefore);
     }
 
@@ -113,7 +113,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getReserveRatio_ReturnsRR() public {
         // Arrange & Act
-        uint256 reserveRatio = bondingCurve.getReserveRatio();
+        uint256 reserveRatio = bondingCurveProxy.getReserveRatio();
 
         // Assert
         assertEq(reserveRatio, INITIAL_ETH_VALUE / INITIAL_UNIT_VALUE);
@@ -126,29 +126,29 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_getExcessEthReserve_ReturnsEE() public {
         // Arrange
         _createUserAndMintUnit(1 ether);
-        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurve.getInternalPrice()) /
+        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getInternalPrice()) /
             ethUsdOracle.getEthUsdPrice();
 
         // Act
-        uint256 excessEth = bondingCurve.getExcessEthReserve();
+        uint256 excessEth = bondingCurveProxy.getExcessEthReserve();
 
         // Assert
         assertEq(excessEth, 999000999001004);
-        assertGe(address(bondingCurve).balance, unitEthValue);
+        assertGe(address(bondingCurveProxy).balance, unitEthValue);
     }
 
     function test_getExcessEthReserve_ReturnsZero() public {
         // Arrange
         _createUserAndMintUnit(1 ether);
         ethUsdOracle.setEthUsdPrice(1e16);
-        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurve.getInternalPrice()) /
+        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getInternalPrice()) /
             ethUsdOracle.getEthUsdPrice();
 
         // Act
-        uint256 excessEth = bondingCurve.getExcessEthReserve();
+        uint256 excessEth = bondingCurveProxy.getExcessEthReserve();
 
         // Assert
         assertEq(excessEth, 0);
-        assertLt(address(bondingCurve).balance, unitEthValue);
+        assertLt(address(bondingCurveProxy).balance, unitEthValue);
     }
 }

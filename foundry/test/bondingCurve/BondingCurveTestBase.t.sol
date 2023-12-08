@@ -6,8 +6,10 @@ import { Test } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
 import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
+import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 import { UnitToken } from '../../../contracts/UnitToken.sol';
+import { Proxy } from '../../../contracts/Proxy.sol';
 
 abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
@@ -21,7 +23,9 @@ abstract contract BondingCurveTestBase is Test {
     UnitToken public unitToken;
     MineToken public mineToken;
 
-    BondingCurveHarness public bondingCurve;
+    Proxy public bondingCurveProxyType;
+    BondingCurveHarness public bondingCurveImplementation;
+    BondingCurveHarness public bondingCurveProxy;
 
     address public wallet = vm.addr(1);
 
@@ -46,16 +50,31 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.initialize();
 
         // set up BondingCurve contract
-        bondingCurve = new BondingCurveHarness(address(unitToken), address(mineToken), inflationOracle, ethUsdOracle);
-        unitToken.setMinter(address(bondingCurve), true);
-        unitToken.setBurner(address(bondingCurve), true);
+        bondingCurveImplementation = new BondingCurveHarness();
+        bondingCurveProxyType = new Proxy(address(this));
+
+        bondingCurveProxyType.upgradeToAndCall(
+            address(bondingCurveImplementation),
+            abi.encodeWithSelector(
+                IBondingCurve.initialize.selector,
+                address(unitToken),
+                address(mineToken),
+                inflationOracle,
+                ethUsdOracle
+            )
+        );
+
+        bondingCurveProxy = BondingCurveHarness(payable(bondingCurveProxyType));
+
+        unitToken.setMinter(address(bondingCurveProxy), true);
+        unitToken.setBurner(address(bondingCurveProxy), true);
         mineToken.setMinter(wallet, true);
-        mineToken.setBurner(address(bondingCurve), true);
-        
+        mineToken.setBurner(address(bondingCurveProxy), true);
+
         vm.startPrank(wallet);
-        payable(address(bondingCurve)).transfer(INITIAL_ETH_VALUE);
+        payable(address(bondingCurveProxy)).transfer(INITIAL_ETH_VALUE);
         vm.stopPrank();
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         unitToken.mint(wallet, INITIAL_UNIT_VALUE);
     }
 
@@ -68,7 +87,7 @@ abstract contract BondingCurveTestBase is Test {
 
         // Act
         vm.prank(user);
-        bondingCurve.mint{ value: etherValue }(user);
+        bondingCurveProxy.mint{ value: etherValue }(user);
 
         return user;
     }

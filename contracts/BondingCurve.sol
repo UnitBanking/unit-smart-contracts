@@ -3,6 +3,7 @@
 pragma solidity 0.8.21;
 
 import './interfaces/IBondingCurve.sol';
+import './abstracts/Proxiable.sol';
 import './abstracts/Burnable.sol';
 import './abstracts/Mintable.sol';
 import './interfaces/IERC20.sol';
@@ -22,7 +23,7 @@ import './libraries/Math.sol';
  - Make proxyable after code integration
  */
 
-contract BondingCurve is IBondingCurve {
+contract BondingCurve is IBondingCurve, Proxiable {
     /**
      * ================ CONSTANTS ================
      */
@@ -58,27 +59,11 @@ contract BondingCurve is IBondingCurve {
      */
 
     /**
-     * @notice Constructs a new BondingCurve contract.
-     * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {ethUsdOracle}.
-     * @param _unitToken UNIT token address.
-     * @param _mineToken MINE token address.
-     * @param _inflationOracle Inflation oracle.
-     * @param _ethUsdOracle ETH-USD price oracle.
+     * @notice This contract uses a Proxy pattern.
+     * Locks the contract, to prevent the implementation contract from being used.
      */
-    constructor(
-        address _unitToken,
-        address _mineToken,
-        IInflationOracle _inflationOracle,
-        IEthUsdOracle _ethUsdOracle
-    ) {
-        lastInternalPrice = UNIT; // 1
-
-        unitToken = _unitToken;
-        mineToken = _mineToken;
-        inflationOracle = _inflationOracle;
-        ethUsdOracle = _ethUsdOracle;
-
-        updateInternals();
+    constructor() {
+        initialized = true;
     }
 
     /**
@@ -90,10 +75,31 @@ contract BondingCurve is IBondingCurve {
     /**
      * @inheritdoc IBondingCurve
      */
-    function mint(address receiver) external payable {
-        if (receiver == address(0)) revert BondingCurveInvalidReceiver(address(0)); // todo: remove, duplicate in `UnitToken.mint`
+    function initialize(
+        address _unitToken,
+        address _mineToken,
+        IInflationOracle _inflationOracle,
+        IEthUsdOracle _ethUsdOracle
+    ) external {
+        lastInternalPrice = UNIT; // 1
 
-        if (_getReserveRatio() < HIGH_RR) revert BondingCurveMintDisabledDueToTooLowRR();
+        unitToken = _unitToken;
+        mineToken = _mineToken;
+        inflationOracle = _inflationOracle;
+        ethUsdOracle = _ethUsdOracle;
+
+        updateInternals();
+
+        Proxiable.initialize();
+    }
+
+    /**
+     * @inheritdoc IBondingCurve
+     */
+    function mint(address receiver) external payable {
+        if (_getReserveRatio() < HIGH_RR) {
+            revert BondingCurveMintDisabledDueToTooLowRR();
+        }
 
         // P(t) * (1 + spread(t))
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
