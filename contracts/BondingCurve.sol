@@ -104,7 +104,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
 
-        if (unitTokenAmount == 0) {
+        if (msg.value > 0 && unitTokenAmount == 0) {
             revert BondingCurveResultingTokenAmountZero();
         }
 
@@ -119,7 +119,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 withdrawEthAmount = ((unitTokenAmount) *
             ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
 
-        if (withdrawEthAmount == 0) {
+        if (unitTokenAmount > 0 && withdrawEthAmount == 0) {
             revert BondingCurveResultingTokenAmountZero();
         }
 
@@ -131,17 +131,20 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
     function redeem(uint256 mineTokenAmount) external {
         uint256 excessEth = getExcessEthReserve();
-        uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / IERC20(mineToken).totalSupply() / 100;
-        uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
-            REDEMPTION_DISCOUNT_PRECISION;
 
-        if (userEthAmount == 0) {
-            revert BondingCurveResultingTokenAmountZero();
+        if (excessEth > 0) {
+            uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / IERC20(mineToken).totalSupply() / 100;
+            uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
+                REDEMPTION_DISCOUNT_PRECISION;
+
+            if (mineTokenAmount > 0 && userEthAmount == 0) {
+                revert BondingCurveResultingTokenAmountZero();
+            }
+
+            Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
+            payable(msg.sender).transfer(userEthAmount);
+            payable(address(0)).transfer(totalEthAmount - userEthAmount);
         }
-
-        Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
-        payable(msg.sender).transfer(userEthAmount);
-        payable(address(0)).transfer(totalEthAmount - userEthAmount);
     }
 
     /**
