@@ -95,12 +95,12 @@ describe('BaseToken burn', () => {
 
   it('cannot burn from address zero', async () => {
     // Arrange
-    const { base, owner, other } = await loadFixture(deployBaseTokenFixture)
+    const { base, owner } = await loadFixture(deployBaseTokenFixture)
     expect(await base.isBurner(owner.address)).to.be.true
     const amount = 100n
 
     // Act & Assert
-    await expect(base.burnFrom(other, amount))
+    await expect(base.burnFrom(constants.ZeroAddress, amount))
       .to.be.revertedWithCustomError(base, 'BurnableInvalidTokenOwner')
       .withArgs(constants.ZeroAddress)
   })
