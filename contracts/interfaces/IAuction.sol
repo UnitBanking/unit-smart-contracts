@@ -19,9 +19,9 @@ interface IAuction {
     error AuctionNotStarted();
 
     struct Auction {
-        uint256 ethAmount;
+        uint256 totalBidAmount;
         uint256 targetAmount;
-        mapping(address bidder => uint256 ethAmount) bid;
+        mapping(address bidder => uint256 bidAmount) bid;
         mapping(address bidder => uint256 claimedAmount) claimed;
     }
 
@@ -41,7 +41,7 @@ interface IAuction {
 
     function setAuctionInterval(uint256 interval) external;
 
-    function bid() external payable;
+    function bid(uint256 amount) external payable;
 
     function claim(uint256 _auctionId, uint256 amount) external;
 

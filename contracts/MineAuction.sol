@@ -7,11 +7,14 @@ import './interfaces/IERC20.sol';
 import './abstracts/Ownable.sol';
 import 'hardhat/console.sol';
 import "./abstracts/Proxiable.sol";
+import "./abstracts/Mintable.sol";
 
 contract MineAuction is Ownable, IAuction, Proxiable {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
     //TODO: need bonding curve address?
-    IERC20 public constant mine = IERC20(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F);
+    address public constant bondingCurve = 0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F;
+    Mintable public constant mine = Mintable(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F);
+    IERC20 public constant bidToken = IERC20(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F);
 
     uint256 public override auctionStartTime;
     uint256 public override auctionSettleTime;
@@ -34,7 +37,6 @@ contract MineAuction is Ownable, IAuction, Proxiable {
     }
 
     function setAuctionSettleTime(uint256 settleTime) external override onlyOwner {
-        //TODO: need to check auctionInterval is set prior to settleTime
         if (auctionInterval - settleTime <= MINIMUM_AUCTION_INTERVAL) {
             revert AuctionInvalidSettleTime(settleTime);
         }
@@ -46,7 +48,7 @@ contract MineAuction is Ownable, IAuction, Proxiable {
     }
 
     function setAuctionInterval(uint256 interval) external override onlyOwner {
-        if (interval < MINIMUM_AUCTION_INTERVAL) {
+        if (interval < MINIMUM_AUCTION_INTERVAL || interval <= auctionSettleTime) {
             revert AuctionInvalidInterval(interval);
         }
         if (interval == auctionInterval) {
@@ -56,7 +58,7 @@ contract MineAuction is Ownable, IAuction, Proxiable {
         emit AuctionIntervalSet(interval);
     }
 
-    function bid() external payable override {
+    function bid(uint256 amount) external payable override {
         if (msg.value == 0) {
             revert AuctionInvalidBidAmount();
         }
@@ -76,11 +78,11 @@ contract MineAuction is Ownable, IAuction, Proxiable {
         }
 
         uint256 auctionId = nextAuctionId - 1;
-        auctions[auctionId].ethAmount += msg.value;
-        auctions[auctionId].bid[msg.sender] = msg.value;
+        auctions[auctionId].totalBidAmount += amount;
+        auctions[auctionId].bid[msg.sender] = amount;
 
-        //TODO: transfer eth to bonding curve
-        emit AuctionBid(auctionId, msg.sender, msg.value);
+        bidToken.transferFrom(msg.sender, bondingCurve, amount);
+        emit AuctionBid(auctionId, msg.sender, amount);
     }
 
     function claim(uint256 _auctionId, uint256 amount) external override {
@@ -98,8 +100,8 @@ contract MineAuction is Ownable, IAuction, Proxiable {
             amount = claimable;
         }
         //TODO: transfer from bonding curve
-        mine.transferFrom(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F, recipient, amount);
         auctions[_auctionId].claimed[bidder] += amount;
+        mine.mint(recipient, amount);
         emit AuctionClaimed(_auctionId, bidder, amount);
     }
 
@@ -108,12 +110,12 @@ contract MineAuction is Ownable, IAuction, Proxiable {
     }
 
     function getClaimableAmount(uint256 _auctionId, address bidder) internal view returns (uint256) {
-        if (auctions[_auctionId].ethAmount == 0) {
+        if (auctions[_auctionId].totalBidAmount == 0) {
             return 0;
         }
         //TODO: use prb-math
         uint256 totalClaimable = (auctions[_auctionId].bid[bidder] * auctions[_auctionId].targetAmount) /
-            auctions[_auctionId].ethAmount;
+            auctions[_auctionId].totalBidAmount;
         return totalClaimable - auctions[_auctionId].claimed[bidder];
     }
 
