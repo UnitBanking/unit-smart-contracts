@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import {type MineAuction, MineAuction__factory} from '../../build/types'
+import { type MineAuction, MineAuction__factory } from '../../build/types'
 import { assert } from 'chai'
 import { increaseTime } from '../utils/evm'
 

@@ -6,11 +6,14 @@ import {
 } from '../fixtures/deployMineAuctionFixture'
 import { expect } from 'chai'
 import { getEvents } from '../utils'
+import { deployBaseTokenFixture } from '../fixtures/deployBaseTokenTestFixture'
 
 describe('Mine Auctions', () => {
   it('can bid', async () => {
     const { auction, owner } = await loadFixture(deployMineAuctionFixture)
-    const tx = await auction.bid({ value: 100n })
+    const { base } = await deployBaseTokenFixture()
+    await base.approve(auction.address, 1000n)
+    const tx = await auction.bid(100)
     const events = await getEvents('AuctionStarted', tx)
     await expect(tx)
       .to.emit(auction, 'AuctionStarted')
