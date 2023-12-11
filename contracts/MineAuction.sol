@@ -6,8 +6,9 @@ import './interfaces/IAuction.sol';
 import './interfaces/IERC20.sol';
 import './abstracts/Ownable.sol';
 import 'hardhat/console.sol';
+import "./abstracts/Proxiable.sol";
 
-contract MineAuction is Ownable, IAuction {
+contract MineAuction is Ownable, IAuction, Proxiable {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
     //TODO: need bonding curve address?
     IERC20 public constant mine = IERC20(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F);
@@ -19,8 +20,9 @@ contract MineAuction is Ownable, IAuction {
 
     mapping(uint256 auctionId => Auction auction) public auctions;
 
-    constructor() {
+    function initialize() public virtual override {
         _setOwner(msg.sender);
+        super.initialize();
     }
 
     function setAuctionStartTime(uint256 startTime) external override onlyOwner {

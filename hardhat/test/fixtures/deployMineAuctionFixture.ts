@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { type MineAuction } from '../../build/types'
+import {type MineAuction, MineAuction__factory} from '../../build/types'
 import { assert } from 'chai'
 import { increaseTime } from '../utils/evm'
 
@@ -18,12 +18,20 @@ export async function deployMineAuctionFixture(): Promise<MineAuctionFixtureRetu
   const [owner, other, another] = await ethers.getSigners()
   const factory = await ethers.getContractFactory('MineAuction', { signer: owner })
   const auction = await factory.deploy()
+  const auctionAddress = await auction.getAddress()
+
+  const initialize = factory.interface.encodeFunctionData('initialize', [])
+  const proxy = await ethers.deployContract('Proxy', [owner.address], { signer: owner })
+  await proxy.upgradeToAndCall(auctionAddress, initialize)
+  const proxyAddress = await proxy.getAddress()
+  const proxyAuction = MineAuction__factory.connect(proxyAddress, owner)
+
   const block = await owner.provider.getBlock('latest')
   assert(block, 'No block found')
-  await auction.setAuctionStartTime(block.timestamp)
-  await auction.setAuctionInterval(DEFAULT_AUCTION_INTERVAL)
-  await auction.setAuctionSettleTime(DEFAULT_SETTLE_TIME)
+  await proxyAuction.setAuctionStartTime(block.timestamp)
+  await proxyAuction.setAuctionInterval(DEFAULT_AUCTION_INTERVAL)
+  await proxyAuction.setAuctionSettleTime(DEFAULT_SETTLE_TIME)
   await increaseTime(owner, 5 * 60)
 
-  return { auction, owner, other, another }
+  return { auction: proxyAuction, proxy, owner, other, another }
 }
