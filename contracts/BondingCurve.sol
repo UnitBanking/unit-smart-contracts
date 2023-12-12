@@ -104,10 +104,6 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
 
-        if (msg.value > 0 && unitTokenAmount == 0) {
-            revert BondingCurveResultingTokenAmountZero();
-        }
-
         Mintable(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
@@ -118,10 +114,6 @@ contract BondingCurve is IBondingCurve, Proxiable {
         Burnable(unitToken).burnFrom(msg.sender, unitTokenAmount);
         uint256 withdrawEthAmount = ((unitTokenAmount) *
             ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
-
-        if (unitTokenAmount > 0 && withdrawEthAmount == 0) {
-            revert BondingCurveResultingTokenAmountZero();
-        }
 
         payable(msg.sender).transfer(withdrawEthAmount);
     }
@@ -136,10 +128,6 @@ contract BondingCurve is IBondingCurve, Proxiable {
             uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / IERC20(mineToken).totalSupply() / 100;
             uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
                 REDEMPTION_DISCOUNT_PRECISION;
-
-            if (mineTokenAmount > 0 && userEthAmount == 0) {
-                revert BondingCurveResultingTokenAmountZero();
-            }
 
             Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
             payable(msg.sender).transfer(userEthAmount);

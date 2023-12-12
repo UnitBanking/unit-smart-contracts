@@ -11,11 +11,6 @@ interface IBondingCurve {
      */
 
     /**
-     * @dev The amount of tokens the user gets is zero.
-     */
-    error BondingCurveResultingTokenAmountZero();
-
-    /**
      * @dev Cannot mint due to too low reserve ratio.
      */
     error BondingCurveMintDisabledDueToTooLowRR();
@@ -41,20 +36,29 @@ interface IBondingCurve {
     ) external;
 
     /**
-     * @notice Allows to mint UNIT token to the specified receiver by providing ETH.
+     * @notice Creates UNIT token and assigns it to `receiver`. The amount created is proportional to the collateral token
+     * amount passed and depends on the UNIT price expressed in collateral token and the spread.
+     * Note that there is an edge case, where the caller passes a non-zero, albeit small, amount and due to market conditions
+     * and rounding they may receive zero tokens in return.
      * @dev This function can only by called by UNIT token minter. See {UnitToken-mint}.
      * @param receiver The receiver of minted UNIT tokens.
      */
     function mint(address receiver) external payable;
 
     /**
-     * @notice Allows to redeem ETH by burning UNIT token.
+     * @notice Burns UNIT tokens and transfers a proportional amount of the collateral token to the caller. The returned amount
+     * depends on the UNIT price expressed in collateral token and the spread.
+     * Note that there is an edge case, where the caller passes a non-zero, albeit small, amount and due to market conditions
+     * and rounding they may receive zero tokens in return.
      * @param unitTokenAmount UNIT token amount to be burned.
      */
     function burn(uint256 unitTokenAmount) external;
 
     /**
-     * @notice Allows to redeem a portion of excess ETH by burning MINE token.
+     * @notice Burns provided MINE token and redeems a portion of excess collateral token stored in the contract. The redeemed
+     * amount is proportional to the burned MINE.
+     * Note that there is an edge case, where the caller passes a non-zero, albeit small, amount and due to relatively large MINE
+     * supply and rounding they may receive zero tokens in return.
      * @param mineTokenAmount MINE token amount to be burned.
      */
     function redeem(uint256 mineTokenAmount) external;
