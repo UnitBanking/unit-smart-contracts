@@ -1,10 +1,8 @@
+import { assert } from 'chai'
 import { type ethers } from 'ethers'
 
-export async function increaseTime(wallet: ethers.Signer, seconds?: number) {
-  await (wallet.provider as ethers.JsonRpcProvider).send('evm_increaseTime', [seconds ?? 1])
-  await mineBlock(wallet)
-}
-
-export async function mineBlock(wallet: ethers.Signer) {
-  await (wallet.provider as ethers.JsonRpcProvider).send('evm_mine', [])
+export async function getLatestBlock(wallet: ethers.Signer) {
+  const block = await (wallet.provider as ethers.JsonRpcProvider).getBlock('latest')
+  assert(block, 'No block found')
+  return block
 }

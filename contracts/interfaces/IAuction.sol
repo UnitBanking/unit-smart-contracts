@@ -11,12 +11,15 @@ interface IAuction {
     event AuctionClaimed(uint256 auctionId, address recipient, uint256 amount);
 
     error AuctionNoDirectTransfer();
+    error AuctionStartTimeInThePast();
     error AuctionInvalidInterval(uint256 interval);
     error AuctionInvalidSettleTime(uint256 settleTime);
     error AuctionSameValueAlreadySet();
     error AuctionInvalidBidAmount();
-    error AuctionInSettlement();
     error AuctionNotStarted();
+    error AuctionInProgress();
+    error AuctionNotInSettlement();
+    error AuctionInSettlement();
 
     struct Auction {
         uint256 totalBidAmount;
@@ -25,7 +28,11 @@ interface IAuction {
         mapping(address bidder => uint256 claimedAmount) claimed;
     }
 
-    //TODO: add mapping auctions reader interface?
+    function getAuction(uint256 auctionId) external view returns (uint256 totalBidAmount, uint256 targetAmount);
+
+    function getBid(uint256 auctionId, address bidder) external view returns (uint256 bidAmount);
+
+    function getClaimed(uint256 auctionId, address bidder) external view returns (uint256 claimedAmount);
 
     function auctionStartTime() external view returns (uint256);
 
@@ -43,7 +50,7 @@ interface IAuction {
 
     function bid(uint256 amount) external payable;
 
-    function claim(uint256 _auctionId, uint256 amount) external;
+    function claim(uint256 auctionId, uint256 amount) external;
 
-    function claimTo(address recipient, uint256 _auctionId, uint256 amount) external;
+    function claimTo(address recipient, uint256 auctionId, uint256 amount) external;
 }
