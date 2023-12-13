@@ -4,13 +4,12 @@ pragma solidity 0.8.21;
 
 import './interfaces/IBondingCurve.sol';
 import './abstracts/Proxiable.sol';
-import './abstracts/Burnable.sol';
-import './abstracts/Mintable.sol';
-import './interfaces/IERC20.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
+import './MineToken.sol';
+import './UnitToken.sol';
 
 /*
  TODOs:
@@ -20,7 +19,6 @@ import './libraries/Math.sol';
  - replace all `transfer()` calls
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
- - cheng the type of tokens from `addess` to specific token contracts
  */
 
 contract BondingCurve is IBondingCurve, Proxiable {
@@ -52,8 +50,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
 
     IInflationOracle public inflationOracle;
     IEthUsdOracle public ethUsdOracle;
-    address public unitToken;
-    address public mineToken;
+    UnitToken public unitToken;
+    MineToken public mineToken;
 
     /**
      * ================ CONSTRUCTOR ================
@@ -77,14 +75,14 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * @inheritdoc IBondingCurve
      */
     function initialize(
-        address _unitToken,
-        address _mineToken,
+        UnitToken _unitToken,
+        MineToken _mineToken,
         IInflationOracle _inflationOracle,
         IEthUsdOracle _ethUsdOracle
     ) external {
-        uint256 unitPrecision = 10 ** IERC20(_unitToken).decimals();
-        if (UNITUSD_PRICE_PRECISION != unitPrecision) {
-            revert BondingCurveInvalidUnitTokenPrecision(unitPrecision, UNITUSD_PRICE_PRECISION);
+        uint256 unitTokenPrecision = 10 ** _unitToken.decimals();
+        if (unitTokenPrecision != UNITUSD_PRICE_PRECISION) {
+            revert BondingCurveInvalidUnitTokenPrecision(unitTokenPrecision, UNITUSD_PRICE_PRECISION);
         }
 
         lastUnitUsdPrice = UNIT; // 1
@@ -132,11 +130,11 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 excessEth = getExcessEthReserve();
 
         if (excessEth > 0) {
-            uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / IERC20(mineToken).totalSupply() / 100;
+            uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / mineToken.totalSupply() / 100;
             uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
                 REDEMPTION_DISCOUNT_PRECISION;
 
-            Burnable(mineToken).burnFrom(msg.sender, mineTokenAmount);
+            mineToken.burnFrom(msg.sender, mineTokenAmount);
             payable(msg.sender).transfer(userEthAmount);
             payable(address(0)).transfer(totalEthAmount - userEthAmount);
         }

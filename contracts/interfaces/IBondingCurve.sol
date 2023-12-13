@@ -4,6 +4,8 @@ pragma solidity 0.8.21;
 
 import './IInflationOracle.sol';
 import './IEthUsdOracle.sol';
+import '../MineToken.sol';
+import '../UnitToken.sol';
 
 interface IBondingCurve {
     /**
@@ -34,8 +36,8 @@ interface IBondingCurve {
      * @param _ethUsdOracle ETH-USD price oracle.
      */
     function initialize(
-        address _unitToken,
-        address _mineToken,
+        UnitToken _unitToken,
+        MineToken _mineToken,
         IInflationOracle _inflationOracle,
         IEthUsdOracle _ethUsdOracle
     ) external;
