@@ -16,6 +16,11 @@ interface IBondingCurve {
     error BondingCurveMintDisabledDueToTooLowRR();
 
     /**
+     * @dev Returned when the passed UNIT token does not have `expectedPrecision`.
+     */
+    error BondingCurveInvalidUnitTokenPrecision(uint256 invalidPrecision, uint256 expectedPrecision);
+
+    /**
      * ================ CORE FUNCTIONALITY ================
      */
 

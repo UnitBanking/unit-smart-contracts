@@ -20,6 +20,7 @@ import './libraries/Math.sol';
  - replace all `transfer()` calls
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
+ - cheng the type of tokens from `addess` to specific token contracts
  */
 
 contract BondingCurve is IBondingCurve, Proxiable {
@@ -81,6 +82,11 @@ contract BondingCurve is IBondingCurve, Proxiable {
         IInflationOracle _inflationOracle,
         IEthUsdOracle _ethUsdOracle
     ) external {
+        uint256 unitPrecision = 10 ** IERC20(_unitToken).decimals();
+        if (UNITUSD_PRICE_PRECISION != unitPrecision) {
+            revert BondingCurveInvalidUnitTokenPrecision(unitPrecision, UNITUSD_PRICE_PRECISION);
+        }
+
         lastUnitUsdPrice = UNIT; // 1
 
         unitToken = _unitToken;
