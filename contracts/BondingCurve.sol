@@ -109,14 +109,14 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 unitTokenAmount = (msg.value * UNITUSD_PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
 
-        Mintable(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
     /**
      * @inheritdoc IBondingCurve
      */
     function burn(uint256 unitTokenAmount) external {
-        Burnable(unitToken).burnFrom(msg.sender, unitTokenAmount);
+        unitToken.burnFrom(msg.sender, unitTokenAmount);
         uint256 withdrawEthAmount = ((unitTokenAmount) *
             ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / UNITUSD_PRICE_PRECISION;
 
@@ -185,7 +185,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     }
 
     function getExcessEthReserve() public view returns (uint256 excessEth) {
-        uint256 unitEthValue = (IERC20(unitToken).totalSupply() * getUnitUsdPrice()) / ethUsdOracle.getEthUsdPrice();
+        uint256 unitEthValue = (unitToken.totalSupply() * getUnitUsdPrice()) / ethUsdOracle.getEthUsdPrice();
 
         if (address(this).balance < unitEthValue) {
             return 0;
@@ -218,7 +218,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * @return UNIT price in ETH in precision that matches `UNITUSD_PRICE_PRECISION`.
      */
     function _getUnitEthPrice() internal view returns (uint256) {
-        uint256 unitTotalSupply = IERC20(unitToken).totalSupply();
+        uint256 unitTotalSupply = unitToken.totalSupply();
         if (unitTotalSupply > 0) {
             return
                 Math.min(
@@ -235,7 +235,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
 
     function _getReserveRatio() internal view returns (uint256 reserveRatio) {
         uint256 unitUsdPrice = getUnitUsdPrice();
-        uint256 unitTokenTotalSupply = IERC20(unitToken).totalSupply();
+        uint256 unitTokenTotalSupply = unitToken.totalSupply();
 
         if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
