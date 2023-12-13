@@ -34,7 +34,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
     uint256 public constant BASE_SPREAD = 10; // 0.1%
     uint256 public constant SPREAD_PRECISION = 10_000;
 
-    uint256 public constant PRICE_PRECISION = 1e18; // Should match Unit token decimals
+    uint256 public constant UNITUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision
+    uint256 public constant ETHUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision or UNITUSD_PRICE_PRECISION (which must be the same)
     uint256 public constant HIGH_RR = 4; // High reserve ratio (RR). (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
 
     uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
@@ -101,7 +102,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
         }
 
         // P(t) * (1 + spread(t))
-        uint256 unitTokenAmount = (msg.value * PRICE_PRECISION) /
+        uint256 unitTokenAmount = (msg.value * UNITUSD_PRICE_PRECISION) /
             ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
 
         Mintable(unitToken).mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
@@ -113,7 +114,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     function burn(uint256 unitTokenAmount) external {
         Burnable(unitToken).burnFrom(msg.sender, unitTokenAmount);
         uint256 withdrawEthAmount = ((unitTokenAmount) *
-            ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / PRICE_PRECISION;
+            ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / UNITUSD_PRICE_PRECISION;
 
         payable(msg.sender).transfer(withdrawEthAmount);
     }
@@ -196,6 +197,9 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * ================ INTERNAL FUNCTIONS ================
      */
 
+    /**
+     * @return UNIT price in USD in `UNITUSD_PRICE_PRECISION` precision.
+     */
     function _getUnitUsdPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
         return
             lastUnitUsdPrice *
@@ -206,18 +210,21 @@ contract BondingCurve is IBondingCurve, Proxiable {
             );
     }
 
+    /**
+     * @return UNIT price in ETH in precision that matches `UNITUSD_PRICE_PRECISION`.
+     */
     function _getUnitEthPrice() internal view returns (uint256) {
         uint256 unitTotalSupply = IERC20(unitToken).totalSupply();
         if (unitTotalSupply > 0) {
             return
                 Math.min(
-                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
+                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * ETHUSD_PRICE_PRECISION) /
                         ethUsdOracle.getEthUsdPrice(),
-                    ((address(this).balance - msg.value) * PRICE_PRECISION) / unitTotalSupply
+                    ((address(this).balance - msg.value) * UNITUSD_PRICE_PRECISION) / unitTotalSupply
                 );
         } else {
             return
-                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * PRICE_PRECISION) /
+                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * ETHUSD_PRICE_PRECISION) /
                 ethUsdOracle.getEthUsdPrice();
         }
     }
