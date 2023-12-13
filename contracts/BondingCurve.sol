@@ -143,14 +143,19 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 currentPriceIndex = inflationOracle.getLatestPriceIndex();
         uint256 pastPriceIndex = inflationOracle.getPriceIndexTwentyYearsAgo();
 
-        UD60x18 priceIndexDelta = (ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(
-            TWENTY_YEARS_UD60x18
-        );
-        uint256 priceIndexDeltaUint256 = priceIndexDelta.unwrap() / (uUNIT / PRICE_INDEX_PRECISION);
-
         lastUnitUsdPrice = _getUnitUsdPriceForTimestamp(currentOracleUpdateTimestamp);
-        lastOracleInflationRate = Math.min(100 * PRICE_INDEX_PRECISION, Math.max(0, priceIndexDeltaUint256));
         lastOracleUpdateTimestamp = currentOracleUpdateTimestamp;
+
+        if (currentPriceIndex <= pastPriceIndex) {
+            lastOracleInflationRate = 0;
+        } else {
+            UD60x18 priceIndexDelta = (ln(convert(currentPriceIndex)).sub(ln(convert(pastPriceIndex)))).div(
+                TWENTY_YEARS_UD60x18
+            );
+            uint256 priceIndexDeltaUint256 = priceIndexDelta.unwrap() / (uUNIT / PRICE_INDEX_PRECISION);
+
+            lastOracleInflationRate = Math.min(100 * PRICE_INDEX_PRECISION, priceIndexDeltaUint256);
+        }
     }
 
     // IP(t) = IP(t’) * exp(r(t’) * (t-t’))
