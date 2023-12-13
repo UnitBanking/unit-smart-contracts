@@ -1,24 +1,22 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import {
-  DEFAULT_AUCTION_INTERVAL,
-  DEFAULT_SETTLE_TIME,
-  mineAuctionFixture,
-  mineAuctionWithoutInitializationFixture,
-} from '../fixtures/deployMineAuctionFixture'
+import { DEFAULT_AUCTION_INTERVAL, DEFAULT_SETTLE_TIME, mineAuctionFixture } from '../fixtures/deployMineAuctionFixture'
 import { expect } from 'chai'
 import { getEvents, getLatestBlock } from '../utils'
 import { type MineAuction } from '../../build/types'
-import { increase } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
+import { increase, setNextBlockTimestamp } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
+import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Mine Auctions', () => {
-  describe('Current time is before auction start time', () => {
+  describe('Before auction start', () => {
     let auction: MineAuction
+    let owner: HardhatEthersSigner
 
     beforeEach(async () => {
-      const { auction: _auction, owner } = await loadFixture(mineAuctionWithoutInitializationFixture)
+      const { auction: _auction, owner: _owner } = await loadFixture(mineAuctionFixture)
       auction = _auction
+      owner = _owner
       const block = await getLatestBlock(owner)
-      await auction.setAuctionStartTime(block.timestamp + 1 * 60 * 60)
+      await auction.setAuctionStartTime(block.timestamp + DEFAULT_AUCTION_INTERVAL + 10)
     })
 
     it('reverts when bid', async () => {
@@ -26,9 +24,20 @@ describe('Mine Auctions', () => {
       await increase(5 * 60)
       await expect(auction.bid(100)).to.be.revertedWithCustomError(auction, 'AuctionNotStarted')
     })
+
+    it('allows to change auction start time', async () => {
+      const block = await getLatestBlock(owner)
+      const newStartTime = BigInt(block.timestamp) + 1n
+      await setNextBlockTimestamp(newStartTime)
+
+      await auction.setAuctionStartTime(newStartTime)
+      expect(await auction.auctionStartTime()).to.equal(newStartTime)
+      await increase(10n)
+      await expect(auction.bid(100)).to.be.emit(auction, 'AuctionStarted')
+    })
   })
 
-  describe('Current time is after auction start time and before auction settle time', () => {
+  describe('Auction started and before settlement', () => {
     it('can bid', async () => {
       const { auction, owner } = await loadFixture(mineAuctionFixture)
       const tx = await auction.bid(100)
@@ -58,6 +67,6 @@ describe('Mine Auctions', () => {
       }
     })
   })
-  describe('Current time is after auction settle time and before auction end time', () => {})
-  describe('Current time is after auction end time', () => {})
+  describe('In settlement and before auction ends', () => {})
+  describe('Auction ended', () => {})
 })

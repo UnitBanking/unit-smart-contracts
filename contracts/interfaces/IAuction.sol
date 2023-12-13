@@ -18,7 +18,7 @@ interface IAuction {
     error AuctionInvalidBidAmount();
     error AuctionNotStarted();
     error AuctionInProgress();
-    error AuctionNotInSettlement();
+    error AuctionBiddingInProgress();
     error AuctionInSettlement();
 
     struct Auction {

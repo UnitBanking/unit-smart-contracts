@@ -24,6 +24,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
 
     function initialize() public virtual override {
         _setOwner(msg.sender);
+        _setAuctionStartTime(566352000); // 00:00
         //TODO: either initialize times here or check in bid() interval/settle != 0
         _setAuctionInterval(24 hours);
         _setAuctionSettleTime(1 hours);
@@ -31,11 +32,11 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     }
 
     function setAuctionStartTime(uint256 startTime) external override onlyOwner lock {
-        revertIfInSettlement();
+        revertIfNotInSettlement();
         if (startTime == auctionStartTime) {
             revert AuctionSameValueAlreadySet();
         }
-        if (startTime <= auctionStartTime + auctionInterval) {
+        if (startTime < block.timestamp) {
             revert AuctionStartTimeInThePast();
         }
         _setAuctionStartTime(startTime);
@@ -72,22 +73,28 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
             revert AuctionNotStarted();
         }
         uint256 auctionElapsed;
+        uint256 auctionDuration;
+        uint256 auctionId;
         unchecked {
             // Overflow not possible: previous checked block.timestamp >= auctionStartTime
             auctionElapsed = block.timestamp - auctionStartTime;
             // Overflow not possible: auctionInterval > auctionSettleTime
-            if (auctionElapsed > auctionInterval - auctionSettleTime && auctionElapsed <= auctionInterval) {
+            auctionDuration = auctionInterval - auctionSettleTime;
+            if (auctionElapsed > auctionDuration && auctionElapsed <= auctionInterval) {
                 revert AuctionInSettlement();
             }
+            // Overflow not possible: tested in statement
+            auctionId = nextAuctionId == 0 ? 0 : nextAuctionId - 1;
         }
 
-        if (auctionElapsed > auctionInterval) {
-            emit AuctionStarted(nextAuctionId, block.timestamp, auctionSettleTime, auctionInterval);
-            _setAuctionStartTime(block.timestamp);
-            auctions[nextAuctionId++].targetAmount = getTargetAmount();
+        if (auctionElapsed < auctionDuration && auctions[auctionId].totalBidAmount == 0) {
+            initializeAuction(auctionId);
+            _setAuctionStartTime(auctionStartTime + auctionInterval);
+        } else if (auctionElapsed > auctionInterval) {
+            initializeAuction(auctionId);
+            _setAuctionStartTime(block.timestamp - (auctionElapsed % auctionInterval));
         }
 
-        uint256 auctionId = nextAuctionId - 1;
         auctions[auctionId].totalBidAmount += amount;
         auctions[auctionId].bid[msg.sender] = amount;
 
@@ -121,6 +128,12 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
         emit AuctionClaimed(auctionId, bidder, amount);
     }
 
+    function initializeAuction(uint256 auctionId) internal {
+        nextAuctionId++;
+        auctions[auctionId].targetAmount = getTargetAmount();
+        emit AuctionStarted(auctionId, block.timestamp, auctionSettleTime, auctionInterval);
+    }
+
     //TODO: stub for testing
     function getTargetAmount() internal pure returns (uint256) {
         return 100;
@@ -142,7 +155,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     }
 
     function _setAuctionSettleTime(uint256 settleTime) internal {
-        revertIfInSettlement();
+        revertIfNotInSettlement();
         if (auctionInterval - settleTime <= MINIMUM_AUCTION_INTERVAL) {
             revert AuctionInvalidSettleTime(settleTime);
         }
@@ -154,7 +167,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     }
 
     function _setAuctionInterval(uint256 interval) internal {
-        revertIfInSettlement();
+        revertIfNotInSettlement();
         if (interval < MINIMUM_AUCTION_INTERVAL || interval <= auctionSettleTime) {
             revert AuctionInvalidInterval(interval);
         }
@@ -165,11 +178,15 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
         emit AuctionIntervalSet(interval);
     }
 
-    function revertIfInSettlement() internal view {
+    function revertIfNotInSettlement() internal view {
         unchecked {
+            uint256 currentAuctionId = nextAuctionId == 0 ? 0 : nextAuctionId - 1;
             // Overflow not possible: auctionInterval > auctionSettleTime
-            if (block.timestamp <= auctionStartTime + auctionInterval - auctionSettleTime) {
-                revert AuctionNotInSettlement();
+            if (
+                block.timestamp <= auctionStartTime + auctionInterval - auctionSettleTime &&
+                auctions[currentAuctionId].totalBidAmount != 0
+            ) {
+                revert AuctionBiddingInProgress();
             }
         }
     }
