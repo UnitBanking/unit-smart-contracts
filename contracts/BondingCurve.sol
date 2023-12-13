@@ -8,6 +8,7 @@ import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
+import './libraries/TransferHelper.sol';
 import './MineToken.sol';
 import './UnitToken.sol';
 
@@ -16,12 +17,13 @@ import './UnitToken.sol';
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility (possibly convert all to public for improved testability)
  - revisit `burn()` interface upon code integration
- - replace all `transfer()` calls
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
  */
 
 contract BondingCurve is IBondingCurve, Proxiable {
+    using TransferHelper for address;
+
     /**
      * ================ CONSTANTS ================
      */
@@ -114,7 +116,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     function burn(uint256 unitTokenAmount) external {
         unitToken.burnFrom(msg.sender, unitTokenAmount);
 
-        payable(msg.sender).transfer(_getWithdrawalAmount(unitTokenAmount));
+        msg.sender.transferEth(_getWithdrawalAmount(unitTokenAmount));
     }
 
     /**
@@ -125,8 +127,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
         (uint256 userEthAmount, uint256 burnEthAmount) = _getRedemptionAmounts(mineTokenAmount, excessEth);
 
         mineToken.burnFrom(msg.sender, excessEth == 0 ? 0 : mineTokenAmount);
-        payable(msg.sender).transfer(userEthAmount);
-        payable(address(0)).transfer(burnEthAmount);
+        msg.sender.transferEth(userEthAmount);
+        address(0).transferEth(burnEthAmount);
     }
 
     /**
