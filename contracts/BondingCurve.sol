@@ -105,11 +105,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
             revert BondingCurveMintDisabledDueToTooLowRR();
         }
 
-        // P(t) * (1 + spread(t))
-        uint256 unitTokenAmount = (msg.value * UNITUSD_PRICE_PRECISION) /
-            ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
-
-        unitToken.mint(receiver, unitTokenAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        unitToken.mint(receiver, _getMintAmount(msg.value)); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
     /**
@@ -117,27 +113,20 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
     function burn(uint256 unitTokenAmount) external {
         unitToken.burnFrom(msg.sender, unitTokenAmount);
-        uint256 withdrawEthAmount = ((unitTokenAmount) *
-            ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / UNITUSD_PRICE_PRECISION;
 
-        payable(msg.sender).transfer(withdrawEthAmount);
+        payable(msg.sender).transfer(_getWithdrawalAmount(unitTokenAmount));
     }
 
     /**
      * @inheritdoc IBondingCurve
      */
     function redeem(uint256 mineTokenAmount) external {
-        uint256 excessEth = getExcessEthReserve();
+        uint256 excessEth = getExcessEthReserve();        
+        (uint256 userEthAmount, uint256 burnEthAmount) = _getRedemptionAmounts(mineTokenAmount, excessEth);
 
-        if (excessEth > 0) {
-            uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / mineToken.totalSupply() / 100;
-            uint256 userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
-                REDEMPTION_DISCOUNT_PRECISION;
-
-            mineToken.burnFrom(msg.sender, mineTokenAmount);
-            payable(msg.sender).transfer(userEthAmount);
-            payable(address(0)).transfer(totalEthAmount - userEthAmount);
-        }
+        mineToken.burnFrom(msg.sender, excessEth == 0 ? 0 : mineTokenAmount);
+        payable(msg.sender).transfer(userEthAmount);
+        payable(address(0)).transfer(burnEthAmount);
     }
 
     /**
@@ -198,8 +187,62 @@ contract BondingCurve is IBondingCurve, Proxiable {
     }
 
     /**
+     * ================ HELPER READ-ONLY FUNCTIONS ================
+     * 
+     * The following functions are included to help determine the amount of tokens the end-user will receive in minting,
+     * burning, or redeeming scenarios based on the tokens they provide. Given that these amounts depend on market
+     * conditions, and more specifically, price feeds from oracles, the results may vary even within the same block.
+     * For this reason, they're only to be used for informational purposes (e.g. in frontends) and the end-user should
+     * be made aware of potential variations.
+     */
+
+    function tryMint(uint256 ethAmount) external view returns (uint256) {
+        if (_getReserveRatio() < HIGH_RR) {
+            return 0;
+        }
+
+        return _getMintAmount(ethAmount);
+    }
+
+    function tryBurn(uint256 unitTokenAmount) external view returns (uint256) {
+        return _getWithdrawalAmount(unitTokenAmount);
+    }
+
+    function tryRedeem(uint256 mineTokenAmount) external view returns (uint256, uint256) {
+        return _getRedemptionAmounts(mineTokenAmount, getExcessEthReserve());
+    }
+
+    /**
      * ================ INTERNAL FUNCTIONS ================
      */
+
+    /**
+     * @return UNIT token amount that should be minted for the provided `ethAmount`.
+     */
+    function _getMintAmount(uint256 ethAmount) internal view returns (uint256) {
+        return (ethAmount * UNITUSD_PRICE_PRECISION) /
+            ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+    }
+
+    /**
+     * @return ETH amount that should be transferred to the user based on the provided `unitTokenAmount` in a burn scenario.
+     */
+    function _getWithdrawalAmount(uint256 unitTokenAmount) internal view returns (uint256) {
+        return (unitTokenAmount *
+            ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / UNITUSD_PRICE_PRECISION;
+    }
+
+    /**
+     * @dev Called to calculate the ETH amounts when redeeming the collateral with MINE token.
+     * @return userEthAmount ETH amount that should be transferred to the user based on the provided `mineTokenAmount`.
+     * @return burnEthAmount ETH amount that should be burned based on the provided `mineTokenAmount`.
+     */
+    function _getRedemptionAmounts(uint256 mineTokenAmount, uint256 excessEth) internal view returns (uint256 userEthAmount, uint256 burnEthAmount) {
+        uint256 totalEthAmount = (excessEth * mineTokenAmount) * (100 - 1) / mineToken.totalSupply() / 100;
+        userEthAmount = (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
+            REDEMPTION_DISCOUNT_PRECISION;
+        burnEthAmount = totalEthAmount - userEthAmount;
+    }
 
     /**
      * @return UNIT price in USD in `UNITUSD_PRICE_PRECISION` precision.
