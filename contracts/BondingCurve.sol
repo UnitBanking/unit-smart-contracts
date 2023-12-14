@@ -215,6 +215,15 @@ contract BondingCurve is IBondingCurve, Proxiable {
     }
 
     /**
+     * @inheritdoc IBondingCurve
+     * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
+     */
+    function getMintPrice() external view returns (uint256) {
+        return ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
+          (1 ether * UNITUSD_PRICE_PRECISION);
+    }
+
+    /**
      * ================ INTERNAL FUNCTIONS ================
      */
 

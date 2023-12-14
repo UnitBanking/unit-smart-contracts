@@ -86,4 +86,9 @@ interface IBondingCurve {
     function getReserveRatio() external view returns (uint256);
 
     function getExcessEthReserve() external view returns (uint256);
+
+    /**
+     * @notice Returns the current UNIT price in ETH, which is used when minting UNIT.
+     */
+    function getMintPrice() external view returns (uint256);
 }
