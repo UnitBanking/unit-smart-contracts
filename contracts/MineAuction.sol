@@ -6,20 +6,25 @@ import './interfaces/IAuction.sol';
 import './interfaces/IERC20.sol';
 import './abstracts/Ownable.sol';
 import './abstracts/Proxiable.sol';
-import './abstracts/Mintable.sol';
 import './abstracts/Lockable.sol';
+import "./MineToken.sol";
 
 contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
+    uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
+    uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR;
 
     address public bondingCurve;
-    Mintable public mine;
+    MineToken public mine;
     IERC20 public bidToken;
 
     uint256 public override auctionStartTime;
     uint256 public override auctionSettleTime;
     uint256 public override auctionInterval;
     uint256 public override nextAuctionId;
+
+    uint256 public totalAuctionableAmount;
+    uint256 public initialAuctionaTime;
 
     mapping(uint256 auctionId => Auction auction) private auctions;
 
@@ -38,7 +43,9 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     }
 
     function setMine(address _mine) external onlyOwner {
-        mine = Mintable(_mine);
+        mine = MineToken(_mine);
+        //Todo:  use prb math
+        totalAuctionableAmount = mine.MAX_SUPPLY() * 80 / 100;
     }
 
     function setBidToken(address _bidToken) external onlyOwner {
@@ -141,14 +148,24 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     }
 
     function initializeAuction(uint256 auctionId) internal {
+        if(auctionId == 0) {
+            initialAuctionaTime = block.timestamp;
+        }
         nextAuctionId++;
         auctions[auctionId].targetAmount = getTargetAmount();
         emit AuctionStarted(auctionId, block.timestamp, auctionSettleTime, auctionInterval);
     }
 
-    //TODO: stub for testing
-    function getTargetAmount() internal pure returns (uint256) {
-        return 100;
+    //TODO: use prb math to optimize
+    function getTargetAmount() internal view returns (uint256) {
+        uint256 period = (block.timestamp - initialAuctionaTime) % SECONDS_IN_FOUR_YEARS + 1;
+        uint256 currentAuctionId = nextAuctionId - 1;
+        uint256 auctionableAmount = totalAuctionableAmount;
+        uint256 i = 0;
+        for (; i < period; i++) {
+            auctionableAmount = auctionableAmount / 2;
+        }
+        return  (auctionableAmount * (currentAuctionId + 1)) / 1460;
     }
 
     function getClaimableAmount(uint256 auctionId, address bidder) internal view returns (uint256) {

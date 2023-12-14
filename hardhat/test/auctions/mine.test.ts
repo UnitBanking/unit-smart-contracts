@@ -77,7 +77,7 @@ describe('Mine Auctions', () => {
       {
         const [totalBidAmount, targetAmount] = await auction.getAuction(0)
         expect(totalBidAmount).to.equal(100n)
-        expect(targetAmount).to.equal(100n)
+        expect(targetAmount).not.to.equal(0n)
       }
 
       await increase(5 * 60)
@@ -90,7 +90,7 @@ describe('Mine Auctions', () => {
       {
         const [totalBidAmount, targetAmount] = await auction.getAuction(0)
         expect(totalBidAmount).to.equal(100n + 101n)
-        expect(targetAmount).to.equal(100n)
+        expect(targetAmount).not.to.equal(0n)
       }
     })
   })
