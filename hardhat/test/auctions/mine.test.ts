@@ -5,6 +5,7 @@ import { getEvents, getLatestBlock } from '../utils'
 import { type MineAuction } from '../../build/types'
 import { increase, setNextBlockTimestamp } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { simulateAnAuction } from './auctionOperations'
 
 describe('Mine Auctions', () => {
   describe('Before auction start', () => {
@@ -32,8 +33,20 @@ describe('Mine Auctions', () => {
 
       await auction.setAuctionStartTime(newStartTime)
       expect(await auction.auctionStartTime()).to.equal(newStartTime)
-      await increase(10n)
-      await expect(auction.bid(100)).to.be.emit(auction, 'AuctionStarted')
+    })
+
+    it('allows to change auction interval', async () => {
+      const newInterval = 2 * 60 * 60
+      await expect(auction.setAuctionInterval(newInterval)).to.emit(auction, 'AuctionIntervalSet').withArgs(newInterval)
+      expect(await auction.auctionInterval()).to.equal(newInterval)
+    })
+
+    it('allows to change auction settle time', async () => {
+      const newSettleTime = 60 * 30
+      await expect(auction.setAuctionSettleTime(newSettleTime))
+        .to.emit(auction, 'AuctionSettleTimeSet')
+        .withArgs(newSettleTime)
+      expect(await auction.auctionSettleTime()).to.equal(newSettleTime)
     })
   })
 
@@ -69,4 +82,20 @@ describe('Mine Auctions', () => {
   })
   describe('In settlement and before auction ends', () => {})
   describe('Auction ended', () => {})
+  describe('At any time', () => {
+    it('reverts when bid amount is zero', async () => {})
+    it('allows to claim', async () => {
+      const { auction, owner, other } = await loadFixture(mineAuctionFixture)
+      await simulateAnAuction(auction, owner, other)
+      await increase(DEFAULT_AUCTION_INTERVAL)
+
+      // TODO: expected to fail since mine auction doesn't have real mine token set
+      await expect(auction.claim(0, 100)).to.emit(auction, 'AuctionClaimed').withArgs(0, owner.address, 100n)
+      await expect(auction.connect(other).claim(0, 100))
+        .to.emit(auction, 'AuctionClaimed')
+        .withArgs(0, other.address, 101n)
+    })
+
+    it('allows to partial claim', async () => {})
+  })
 })

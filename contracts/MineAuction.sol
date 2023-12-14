@@ -89,7 +89,6 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
 
         if (auctionElapsed < auctionDuration && auctions[auctionId].totalBidAmount == 0) {
             initializeAuction(auctionId);
-            _setAuctionStartTime(auctionStartTime + auctionInterval);
         } else if (auctionElapsed > auctionInterval) {
             initializeAuction(auctionId);
             _setAuctionStartTime(block.timestamp - (auctionElapsed % auctionInterval));
