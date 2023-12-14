@@ -198,7 +198,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * be made aware of potential variations.
      */
 
-    function tryMint(uint256 ethAmount) external view returns (uint256) {
+    function quoteMint(uint256 ethAmount) external view returns (uint256) {
         if (_getReserveRatio() < HIGH_RR) {
             return 0;
         }
@@ -206,11 +206,11 @@ contract BondingCurve is IBondingCurve, Proxiable {
         return _getMintAmount(ethAmount);
     }
 
-    function tryBurn(uint256 unitTokenAmount) external view returns (uint256) {
+    function quoteBurn(uint256 unitTokenAmount) external view returns (uint256) {
         return _getWithdrawalAmount(unitTokenAmount);
     }
 
-    function tryRedeem(uint256 mineTokenAmount) external view returns (uint256, uint256) {
+    function quoteRedeem(uint256 mineTokenAmount) external view returns (uint256, uint256) {
         return _getRedemptionAmounts(mineTokenAmount, getExcessEthReserve());
     }
 
