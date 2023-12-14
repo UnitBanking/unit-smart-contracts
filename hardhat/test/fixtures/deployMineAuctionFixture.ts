@@ -1,8 +1,9 @@
-import { ethers as constants } from 'ethers'
 import { ethers } from 'hardhat'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { type MineAuction, type Proxy, MineAuction__factory, type BaseToken } from '../../build/types'
 import { deployBaseTokenFixture } from './deployBaseTokenTestFixture'
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import { deployMineFixture } from './deployMineFixture'
 
 interface MineAuctionFixtureReturnType {
   auction: MineAuction
@@ -28,8 +29,12 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
   const proxyAddress = await proxy.getAddress()
   const proxyAuction = MineAuction__factory.connect(proxyAddress, owner)
 
+  const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
   const { base } = await deployBaseTokenFixture()
-  await base.approve(proxyAddress, constants.MaxUint256)
-
+  const { mine } = await loadFixture(deployMineFixture)
+  await proxyAuction.setMine(await mine.getAddress())
+  await proxyAuction.setBidToken(await base.getAddress())
+  await proxyAuction.setBondingCurve(dummyBondingCurve)
+  await mine.setMinter(await proxyAuction.getAddress(), true)
   return { auction: proxyAuction, proxy, token: base, owner, other, another }
 }

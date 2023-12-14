@@ -11,9 +11,10 @@ import './abstracts/Lockable.sol';
 
 contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
-    address public constant bondingCurve = 0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F;
-    Mintable public constant mine = Mintable(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F);
-    IERC20 public constant bidToken = IERC20(0x0f0f0F0f0f0F0F0f0F0F0F0F0F0F0f0f0F0F0F0F);
+
+    address public bondingCurve;
+    Mintable public mine;
+    IERC20 public bidToken;
 
     uint256 public override auctionStartTime;
     uint256 public override auctionSettleTime;
@@ -29,6 +30,19 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
         _setAuctionInterval(24 hours);
         _setAuctionSettleTime(1 hours);
         super.initialize();
+    }
+
+    //TODO: use setter temp, should replace with precompile in the future
+    function setBondingCurve(address _bondingCurve) external onlyOwner {
+        bondingCurve = _bondingCurve;
+    }
+
+    function setMine(address _mine) external onlyOwner {
+        mine = Mintable(_mine);
+    }
+
+    function setBidToken(address _bidToken) external onlyOwner {
+        bidToken = IERC20(_bidToken);
     }
 
     function setAuctionStartTime(uint256 startTime) external override onlyOwner lock {
@@ -65,7 +79,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
         claimedAmount = auctions[auctionId].claimed[bidder];
     }
 
-    function bid(uint256 amount) external payable override lock {
+    function bid(uint256 amount) external override lock {
         if (amount == 0) {
             revert AuctionInvalidBidAmount();
         }
@@ -97,8 +111,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
         auctions[auctionId].totalBidAmount += amount;
         auctions[auctionId].bid[msg.sender] = amount;
 
-        //TODO: transfer bid token to bonding curve
-        //bidToken.transferFrom(msg.sender, bondingCurve, amount);
+        bidToken.transferFrom(msg.sender, bondingCurve, amount);
         emit AuctionBid(auctionId, msg.sender, amount);
     }
 

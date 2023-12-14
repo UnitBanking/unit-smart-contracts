@@ -2,7 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { DEFAULT_AUCTION_INTERVAL, DEFAULT_SETTLE_TIME, mineAuctionFixture } from '../fixtures/deployMineAuctionFixture'
 import { expect } from 'chai'
 import { getEvents, getLatestBlock } from '../utils'
-import { type MineAuction } from '../../build/types'
+import { type IERC20, type MineAuction } from '../../build/types'
 import { increase, setNextBlockTimestamp } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { simulateAnAuction } from './auctionOperations'
@@ -11,13 +11,21 @@ describe('Mine Auctions', () => {
   describe('Before auction start', () => {
     let auction: MineAuction
     let owner: HardhatEthersSigner
+    let bidToken: IERC20
 
     beforeEach(async () => {
-      const { auction: _auction, owner: _owner } = await loadFixture(mineAuctionFixture)
+      const { auction: _auction, owner: _owner, token } = await loadFixture(mineAuctionFixture)
       auction = _auction
       owner = _owner
+      bidToken = token
       const block = await getLatestBlock(owner)
       await auction.setAuctionStartTime(block.timestamp + DEFAULT_AUCTION_INTERVAL + 10)
+    })
+
+    it('reverts if not approve bit token', async () => {
+      const block = await getLatestBlock(owner)
+      await increase(block.timestamp + DEFAULT_AUCTION_INTERVAL + 100)
+      await expect(auction.bid(100)).to.be.revertedWithCustomError(bidToken, 'ERC20InsufficientAllowance')
     })
 
     it('reverts when bid', async () => {
@@ -47,12 +55,18 @@ describe('Mine Auctions', () => {
         .to.emit(auction, 'AuctionSettleTimeSet')
         .withArgs(newSettleTime)
       expect(await auction.auctionSettleTime()).to.equal(newSettleTime)
+      await increase(10n)
+      await bidToken.approve(await auction.getAddress(), 100)
+      await expect(auction.bid(100)).to.be.emit(auction, 'AuctionStarted')
+      // check balance of
+      expect(await bidToken.balanceOf(await auction.bondingCurve())).to.equal(100n)
     })
   })
 
   describe('Auction started and before settlement', () => {
     it('can bid', async () => {
-      const { auction, owner } = await loadFixture(mineAuctionFixture)
+      const { auction, owner, token } = await loadFixture(mineAuctionFixture)
+      await token.approve(await auction.getAddress(), 10000)
       const tx = await auction.bid(100)
       const events = await getEvents('AuctionStarted', tx)
       await expect(tx)

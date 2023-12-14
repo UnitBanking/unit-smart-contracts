@@ -48,7 +48,7 @@ interface IAuction {
 
     function setAuctionInterval(uint256 interval) external;
 
-    function bid(uint256 amount) external payable;
+    function bid(uint256 amount) external;
 
     function claim(uint256 auctionId, uint256 amount) external;
 
