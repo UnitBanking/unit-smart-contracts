@@ -3,6 +3,7 @@
 pragma solidity 0.8.21;
 
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
+import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 
 contract BondingCurveHarnessTest is BondingCurveTestBase {
     /**
@@ -150,5 +151,119 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         // Assert
         assertEq(excessEth, 0);
         assertLt(address(bondingCurveProxy).balance, unitEthValue);
+    }
+
+    /**
+     * ================ quoteMint() ================
+     */
+
+    function test_quoteMint_ReturnsQuotes() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 etherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteMint(etherValue);
+
+        // Assert
+        assertEq(quotes, 998382904467586844); //0.998382904467586844 UNIT
+    }
+
+    function test_quoteMint_ReturnsQuotesFor0Eth() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteMint(0);
+
+        // Assert
+        assertEq(quotes, 0);
+    }
+
+    function test_quoteMint_RevertWhenReserveRatioBelowHighRR() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 etherValue = 1 ether;
+        uint256 userEthBalance = 100 ether;
+        vm.deal(user, userEthBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+        vm.prank(address(bondingCurveProxy));
+        payable(address(0)).transfer(address(bondingCurveProxy).balance); // remove ETH form BondingCurve to lower RR
+
+        // Act && Assert
+        vm.prank(user);
+        vm.expectRevert(IBondingCurve.BondingCurveMintDisabled.selector);
+        bondingCurveProxy.quoteMint(etherValue);
+    }
+
+    /**
+     * ================ quoteBurn() ================
+     */
+
+    function test_quoteBurn_ReturnsQuotes() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMintUnit(etherValue);
+        uint256 burnAmount = 499191452233793422;
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteBurn(burnAmount);
+
+        // Assert
+        assertEq(quotes, 499000999000999000);
+    }
+
+    function test_quoteBurn_ReturnsQuotesFor0Tokens() public {
+        // Arrange
+        uint256 etherValue = 1 ether;
+        address user = _createUserAndMintUnit(etherValue);
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteBurn(0);
+
+        // Assert
+        assertEq(quotes, 0);
+    }
+
+    /**
+     * ================ quoteRedeem() ================
+     */
+
+    function test_quoteRedeem_ReturnsQuotes() public {
+        // Arrange
+        uint256 mineTokenAmount = 1e18;
+        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
+
+        // Act
+        vm.prank(user);
+        (uint256 userAmount, uint256 burnAmount) = bondingCurveProxy.quoteRedeem(mineTokenAmount);
+
+        // Assert
+        assertEq(userAmount, 494505494505496);
+        assertEq(burnAmount, 494505494505497);
+    }
+
+    function test_quoteRedeem_ReturnsQuotesFor0Token() public {
+        // Arrange
+        uint256 mineTokenAmount = 1e18;
+        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
+
+        // Act
+        vm.prank(user);
+        (uint256 userAmount, uint256 burnAmount) = bondingCurveProxy.quoteRedeem(0);
+
+        // Assert
+        assertEq(userAmount, 0);
+        assertEq(burnAmount, 0);
     }
 }
