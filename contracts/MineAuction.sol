@@ -7,7 +7,7 @@ import './interfaces/IERC20.sol';
 import './abstracts/Ownable.sol';
 import './abstracts/Proxiable.sol';
 import './abstracts/Lockable.sol';
-import "./MineToken.sol";
+import './MineToken.sol';
 
 contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
@@ -45,7 +45,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     function setMine(address _mine) external onlyOwner {
         mine = MineToken(_mine);
         //Todo:  use prb math
-        totalAuctionableAmount = mine.MAX_SUPPLY() * 80 / 100;
+        totalAuctionableAmount = (mine.MAX_SUPPLY() * 80) / 100;
     }
 
     function setBidToken(address _bidToken) external onlyOwner {
@@ -148,7 +148,7 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
     }
 
     function initializeAuction(uint256 auctionId) internal {
-        if(auctionId == 0) {
+        if (auctionId == 0) {
             initialAuctionaTime = block.timestamp;
         }
         nextAuctionId++;
@@ -158,14 +158,14 @@ contract MineAuction is Ownable, Proxiable, IAuction, Lockable {
 
     //TODO: use prb math to optimize
     function getTargetAmount() internal view returns (uint256) {
-        uint256 period = (block.timestamp - initialAuctionaTime) % SECONDS_IN_FOUR_YEARS + 1;
+        uint256 period = ((block.timestamp - initialAuctionaTime) % SECONDS_IN_FOUR_YEARS) + 1;
         uint256 currentAuctionId = nextAuctionId - 1;
         uint256 auctionableAmount = totalAuctionableAmount;
         uint256 i = 0;
         for (; i < period; i++) {
             auctionableAmount = auctionableAmount / 2;
         }
-        return  (auctionableAmount * (currentAuctionId + 1)) / 1460;
+        return (auctionableAmount * (currentAuctionId + 1)) / 1460;
     }
 
     function getClaimableAmount(uint256 auctionId, address bidder) internal view returns (uint256) {
