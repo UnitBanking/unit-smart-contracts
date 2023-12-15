@@ -42,6 +42,9 @@ contract BondingCurve is IBondingCurve, Proxiable {
     uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
     uint256 public constant REDEMPTION_DISCOUNT_PRECISION = 10_000;
 
+    uint256 public constant BASE_REDEMPTION_SPREAD = 100; // 0.01 or 1%
+    uint256 public constant BASE_REDEMPTION_SPREAD_PRECISION = 10_000;
+
     /**
      * ================ STATE VARIABLES ================
      */
@@ -170,9 +173,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     }
 
     function getSpread() public pure returns (uint256) {
-        uint256 dynamicSpread; // TODO: This is TBC
-
-        return BASE_SPREAD + dynamicSpread;
+        return BASE_SPREAD + _getDynamicSpread();
     }
 
     function getExcessEthReserve() public view returns (uint256 excessEth) {
@@ -246,9 +247,12 @@ contract BondingCurve is IBondingCurve, Proxiable {
         uint256 mineTokenAmount,
         uint256 excessEth
     ) internal view returns (uint256 userEthAmount, uint256 burnEthAmount) {
-        uint256 totalEthAmount = ((excessEth * mineTokenAmount) * (100 - 1)) / mineToken.totalSupply() / 100;
+        uint256 totalEthAmount = ((excessEth * mineTokenAmount) *
+            (BASE_REDEMPTION_SPREAD_PRECISION - _getBaseRedemptionSpread())) /
+            mineToken.totalSupply() /
+            BASE_REDEMPTION_SPREAD_PRECISION;
         userEthAmount =
-            (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - REDEMPTION_DISCOUNT)) /
+            (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - _getRedemptionDiscount())) /
             REDEMPTION_DISCOUNT_PRECISION;
         burnEthAmount = totalEthAmount - userEthAmount;
     }
@@ -294,5 +298,20 @@ contract BondingCurve is IBondingCurve, Proxiable {
                 (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) / // TODO: can do unchecked subtraction (gas optimization)
                 (unitUsdPrice * unitTokenTotalSupply);
         }
+    }
+
+    function _getRedemptionDiscount() internal pure returns (uint256) {
+        return REDEMPTION_DISCOUNT;
+    }
+
+    function _getBaseRedemptionSpread() internal pure returns (uint256) {
+        return BASE_REDEMPTION_SPREAD;
+    }
+
+    /**
+     * @dev This function is TBD.
+     */
+    function _getDynamicSpread() internal pure returns (uint256) {
+        return 0;
     }
 }
