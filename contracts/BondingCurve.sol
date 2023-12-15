@@ -261,11 +261,16 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * @return UNIT price in USD in `UNITUSD_PRICE_PRECISION` precision.
      */
     function _getUnitUsdPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
+        uint256 timestampDelta;
+        unchecked {
+            timestampDelta = timestamp - lastOracleUpdateTimestamp;
+        }
+
         return
             lastUnitUsdPrice *
             exp(
-                wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(
-                    convert(timestamp - lastOracleUpdateTimestamp).div(ONE_YEAR_IN_SECONDS_UD60x18) // TODO: can do unchecked subtraction (gas optimization)
+                wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(convert(timestampDelta)).div(
+                    ONE_YEAR_IN_SECONDS_UD60x18
                 )
             );
     }
