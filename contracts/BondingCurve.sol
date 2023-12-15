@@ -104,7 +104,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
     function mint(address receiver) external payable {
         if (_getReserveRatio() < HIGH_RR) {
-            revert BondingCurveMintDisabledDueToTooLowRR();
+            revert BondingCurveMintDisabled();
         }
 
         unitToken.mint(receiver, _getMintAmount(msg.value)); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
@@ -200,7 +200,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
 
     function quoteMint(uint256 ethAmount) external view returns (uint256) {
         if (_getReserveRatio() < HIGH_RR) {
-            return 0;
+            revert BondingCurveMintDisabled();
         }
 
         return _getMintAmount(ethAmount);

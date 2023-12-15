@@ -15,7 +15,7 @@ interface IBondingCurve {
     /**
      * @dev Cannot mint due to too low reserve ratio.
      */
-    error BondingCurveMintDisabledDueToTooLowRR();
+    error BondingCurveMintDisabled();
 
     /**
      * @dev Returned when the passed UNIT token does not have `expectedPrecision`.

@@ -102,7 +102,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act && Assert
         vm.prank(user);
-        vm.expectRevert(IBondingCurve.BondingCurveMintDisabledDueToTooLowRR.selector);
+        vm.expectRevert(IBondingCurve.BondingCurveMintDisabled.selector);
         bondingCurveProxy.mint{ value: etherValue }(user);
     }
 
