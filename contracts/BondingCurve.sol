@@ -230,8 +230,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * @return ETH amount that should be transferred to the user based on the provided `unitTokenAmount` in a burn scenario.
      */
     function _getWithdrawalAmount(uint256 unitTokenAmount) internal view returns (uint256) {
-        return (unitTokenAmount *
-            ((getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION)) / UNITUSD_PRICE_PRECISION;
+        return unitTokenAmount * (getUnitEthPrice() * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION / UNITUSD_PRICE_PRECISION;
     }
 
     /**
