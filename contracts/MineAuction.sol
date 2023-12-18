@@ -62,7 +62,6 @@ contract MineAuction is Ownable, Proxiable, IAuction {
             revert AuctionStartTimeInThePast();
         }
         _setAuctionStartTime(auctionStartTime - auctionInterval - (startTime - block.timestamp) % auctionInterval);
-        // nextAuctionId++;
     }
 
     function setAuctionSettleTime(uint256 settleTime) external override onlyOwner {
@@ -107,7 +106,7 @@ contract MineAuction is Ownable, Proxiable, IAuction {
                 revert AuctionInSettlement();
             }
             // Overflow not possible: tested in statement
-            auctionId = nextAuctionId == 0 ? 0 : nextAuctionId - 1;
+            auctionId = nextAuctionId - 1;
         }
 
         // 0 1          1-1
@@ -119,7 +118,13 @@ contract MineAuction is Ownable, Proxiable, IAuction {
             initializeAuction(auctionId);
         } else if (auctionElapsed > auctionInterval) {
             console.log('in bid skipped auctionId: %s', auctionId);
-            initializeAuction(auctionId);
+            if(auctions[auctionId].totalBidAmount == 0) {
+                initializeAuction(auctionId);
+            } else {
+                nextAuctionId++;
+                auctionId = nextAuctionId - 1;
+                initializeAuction(auctionId);
+            }
             _setAuctionStartTime(block.timestamp - (auctionElapsed % auctionInterval));
         }
 
@@ -161,10 +166,9 @@ contract MineAuction is Ownable, Proxiable, IAuction {
     }
 
     function initializeAuction(uint256 auctionId) internal {
-        if (auctionId == 1) {
+        if(auctionId == 0) {
             initialAuctionaTime = block.timestamp;
         }
-        nextAuctionId++;
         auctions[auctionId].targetAmount = getTargetAmount();
         emit AuctionStarted(auctionId, block.timestamp, auctionSettleTime, auctionInterval);
     }
@@ -223,7 +227,7 @@ contract MineAuction is Ownable, Proxiable, IAuction {
     function revertIfNotInSettlement() internal view {
         unchecked {
             // Overflow not possible: auctionInterval > auctionSettleTime
-            if (block.timestamp <= auctionStartTime + auctionInterval - auctionSettleTime) {
+            if (block.timestamp <= auctionStartTime + auctionInterval - auctionSettleTime && block.timestamp > auctionStartTime) {
                 revert AuctionBiddingInProgress();
             }
         }
