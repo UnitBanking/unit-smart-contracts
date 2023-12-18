@@ -7,7 +7,6 @@ import './interfaces/IERC20.sol';
 import './abstracts/Ownable.sol';
 import './abstracts/Proxiable.sol';
 import './MineToken.sol';
-import 'hardhat/console.sol';
 
 contract MineAuction is Ownable, Proxiable, IAuction {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
@@ -30,7 +29,7 @@ contract MineAuction is Ownable, Proxiable, IAuction {
 
     function initialize() public virtual override {
         _setOwner(msg.sender);
-        _setAuctionStartTime(566352030); // 00:00
+        _setAuctionStartTime(566352000); // 00:00
         //TODO: either initialize times here or check in bid() interval/settle != 0
         _setAuctionInterval(24 hours);
         _setAuctionSettleTime(1 hours);
@@ -61,7 +60,9 @@ contract MineAuction is Ownable, Proxiable, IAuction {
         if (startTime < block.timestamp) {
             revert AuctionStartTimeInThePast();
         }
-        _setAuctionStartTime(auctionStartTime - auctionInterval - (startTime - block.timestamp) % auctionInterval);
+
+        _setAuctionStartTime(startTime);
+        nextAuctionId++;
     }
 
     function setAuctionSettleTime(uint256 settleTime) external override onlyOwner {
@@ -105,20 +106,14 @@ contract MineAuction is Ownable, Proxiable, IAuction {
             if (auctionElapsed > auctionDuration && auctionElapsed <= auctionInterval) {
                 revert AuctionInSettlement();
             }
-            // Overflow not possible: tested in statement
+            // Overflow not possible: nextAuctionId >= 1
             auctionId = nextAuctionId - 1;
         }
 
-        // 0 1          1-1
-        // |-*---|--|---*--|--|----|-----|
-        // 0    12  24   36  48  60   72
-
         if (auctionElapsed < auctionDuration && auctions[auctionId].totalBidAmount == 0) {
-            console.log('in bid continuous auctionId: %s', auctionId);
             initializeAuction(auctionId);
         } else if (auctionElapsed > auctionInterval) {
-            console.log('in bid skipped auctionId: %s', auctionId);
-            if(auctions[auctionId].totalBidAmount == 0) {
+            if (auctions[auctionId].totalBidAmount == 0) {
                 initializeAuction(auctionId);
             } else {
                 nextAuctionId++;
@@ -127,11 +122,6 @@ contract MineAuction is Ownable, Proxiable, IAuction {
             }
             _setAuctionStartTime(block.timestamp - (auctionElapsed % auctionInterval));
         }
-
-        // if (auctions[auctionId].totalBidAmount == 0 || auctionElapsed > auctionInterval) {
-        //     initializeAuction(auctionId);
-        //     _setAuctionStartTime(block.timestamp - (auctionElapsed % auctionInterval));
-        // }
 
         auctions[auctionId].totalBidAmount += amount;
         auctions[auctionId].bid[msg.sender] = amount;
@@ -166,7 +156,7 @@ contract MineAuction is Ownable, Proxiable, IAuction {
     }
 
     function initializeAuction(uint256 auctionId) internal {
-        if(auctionId == 0) {
+        if (auctionId == 0) {
             initialAuctionaTime = block.timestamp;
         }
         auctions[auctionId].targetAmount = getTargetAmount();
@@ -227,7 +217,10 @@ contract MineAuction is Ownable, Proxiable, IAuction {
     function revertIfNotInSettlement() internal view {
         unchecked {
             // Overflow not possible: auctionInterval > auctionSettleTime
-            if (block.timestamp <= auctionStartTime + auctionInterval - auctionSettleTime && block.timestamp > auctionStartTime) {
+            if (
+                block.timestamp < auctionStartTime + auctionInterval - auctionSettleTime &&
+                block.timestamp >= auctionStartTime
+            ) {
                 revert AuctionBiddingInProgress();
             }
         }

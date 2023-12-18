@@ -125,61 +125,52 @@ describe('Mine Auctions', () => {
     it('allows to partial claim', async () => {})
   })
 
-  it('still can bid when auction is skipped', async () => {})
+  it('can bid when auction is skipped', async () => {})
 
-  it('multiple auctions', async () => {
-    const { auction, other } = await loadFixture(mineAuctionFixture)
-    await auction.bid(100)
-    await auction.connect(other).bid(101)
+  it('can bid in continuous auctions', async () => {
+    await expect(auction.bid(100))
+      .to.emit(auction, 'AuctionStarted')
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(0, owner.address, 100n)
+    await expect(auction.connect(other).bid(101))
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(0, other.address, 101n)
+      .to.not.emit(auction, 'AuctionStarted')
     await increase(DEFAULT_AUCTION_INTERVAL * 2 + 1)
     await auction.bid(100)
     await expect(auction.connect(other).bid(101)).to.emit(auction, 'AuctionBid').withArgs(1, other.address, 101n)
   })
 
-  it.only('set start time between auctions', async () => {
-    const { auction, other } = await loadFixture(mineAuctionFixture)
-    await expect(auction.bid(100)).to.emit(auction, 'AuctionBid').withArgs(0, owner.address, 100n)
-    console.log(await auction.nextAuctionId())
-    await expect(auction.connect(other).bid(101)).to.emit(auction, 'AuctionBid').withArgs(0, other.address, 101n)
-    console.log(await auction.nextAuctionId())
-
-    const block0 = await getLatestBlock(owner)
-    // console.log(new Date(block0.timestamp * 1000).getUTCHours())
-    // console.log(
-    //   (DEFAULT_AUCTION_INTERVAL - new Date(block0.timestamp * 1000).getUTCHours() * 60 * 60 - DEFAULT_SETTLE_TIME) /
-    //     60 /
-    //     60,
-    // )
-    await increase(
-      DEFAULT_AUCTION_INTERVAL - new Date(block0.timestamp * 1000).getUTCHours() * 60 * 60 - DEFAULT_SETTLE_TIME + 10,
-    )
-    // const block1 = await getLatestBlock(owner)
-    // console.log(new Date(block1.timestamp * 1000))
+  it('set start time between auctions', async () => {
+    await expect(auction.bid(100))
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(0, owner.address, 100n)
+      .to.emit(auction, 'AuctionStarted')
+    await expect(auction.connect(other).bid(101))
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(0, other.address, 101n)
+      .to.not.emit(auction, 'AuctionStarted')
+    // be able to set start time
+    await increase(DEFAULT_AUCTION_INTERVAL)
 
     const startTime = await auction.auctionStartTime()
-    // console.log(
-    //   new Date((Number(startTime.toString()) + DEFAULT_AUCTION_INTERVAL + 60 * 60 * 2) * 1000),
-    //   new Date(Number(startTime) * 1000),
-    // )
-    await auction.setAuctionStartTime(startTime + BigInt(DEFAULT_AUCTION_INTERVAL * 2) + 60n * 60n)
-    await increase(3 * 60 * 60 + DEFAULT_AUCTION_INTERVAL)
+    const newStartTime = startTime + BigInt(DEFAULT_AUCTION_INTERVAL * 2) + 1n
+    await auction.setAuctionStartTime(newStartTime)
+    await expect(auction.bid(1)).to.be.revertedWithCustomError(auction, 'AuctionNotStarted')
+    // increase to new start time left boundary
+    await setNextBlockTimestamp(newStartTime)
 
-
-    const block2 = await getLatestBlock(owner)
-    console.log(new Date(block2.timestamp * 1000))
-    const tx = await auction.bid(100)
-    console.log(await auction.nextAuctionId())
-    const events = await getEvents('AuctionStarted', tx)
-    // await expect(tx).to.emit(auction, 'AuctionBid').withArgs(1, owner.address, 100n).to.emit(auction, 'AuctionStarted').withArgs(1, events[0].args[1], DEFAULT_SETTLE_TIME, DEFAULT_AUCTION_INTERVAL)
-
-    const tx1 = await auction.bid(100)
-    console.log(await auction.nextAuctionId())
-    const events1 = await getEvents('AuctionStarted', tx1)
-    // await expect(auction.connect(other).bid(101)).to.emit(auction, 'AuctionBid').withArgs(2, other.address, 101n).to.emit(auction, 'AuctionStarted').withArgs(3, 0, DEFAULT_SETTLE_TIME, DEFAULT_AUCTION_INTERVAL)
-
-    const tx2 = await auction.bid(100)
-    console.log(await auction.nextAuctionId())
-    const events2 = await getEvents('AuctionStarted', tx2)
-    // await expect(auction.connect(another).bid(101)).to.emit(auction, 'AuctionBid').withArgs(2, other.address, 101n).to.emit(auction, 'AuctionStarted').withArgs(3, 0, DEFAULT_SETTLE_TIME, DEFAULT_AUCTION_INTERVAL)
+    await expect(auction.bid(100))
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(1, owner.address, 100n)
+      .to.emit(auction, 'AuctionStarted')
+    await expect(auction.connect(other).bid(101))
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(1, other.address, 101n)
+      .to.not.emit(auction, 'AuctionStarted')
+    await expect(auction.connect(another).bid(101))
+      .to.emit(auction, 'AuctionBid')
+      .withArgs(1, another.address, 101n)
+      .to.not.emit(auction, 'AuctionStarted')
   })
 })
