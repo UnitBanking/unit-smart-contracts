@@ -20,17 +20,15 @@ contract MineAuction is Ownable, Proxiable, IAuction {
     uint256 public override auctionStartTime;
     uint256 public override auctionSettleTime;
     uint256 public override auctionInterval;
-    uint256 public override nextAuctionId = 1;
+    uint256 public override nextAuctionId;
 
     uint256 public totalAuctionableAmount;
-    uint256 public initialAuctionaTime;
+    uint256 public initialAuctionTime;
 
     mapping(uint256 auctionId => Auction auction) private auctions;
 
     function initialize() public virtual override {
         _setOwner(msg.sender);
-        _setAuctionStartTime(566352000); // 00:00
-        //TODO: either initialize times here or check in bid() interval/settle != 0
         _setAuctionInterval(24 hours);
         _setAuctionSettleTime(1 hours);
         nextAuctionId = 1;
@@ -75,9 +73,9 @@ contract MineAuction is Ownable, Proxiable, IAuction {
 
     function getAuction(
         uint256 auctionId
-    ) external view override returns (uint256 totalBidAmount, uint256 targetAmount) {
+    ) external view override returns (uint256 totalBidAmount, uint256 rewardAmount) {
         totalBidAmount = auctions[auctionId].totalBidAmount;
-        targetAmount = auctions[auctionId].targetAmount;
+        rewardAmount = auctions[auctionId].rewardAmount;
     }
 
     function getBid(uint256 auctionId, address bidder) external view override returns (uint256 bidAmount) {
@@ -134,11 +132,11 @@ contract MineAuction is Ownable, Proxiable, IAuction {
         _claim(msg.sender, msg.sender, auctionId, amount);
     }
 
-    function claimTo(address recipient, uint256 auctionId, uint256 amount) external override {
-        _claim(msg.sender, recipient, auctionId, amount);
+    function claimTo(address to, uint256 auctionId, uint256 amount) external override {
+        _claim(msg.sender, to, auctionId, amount);
     }
 
-    function _claim(address bidder, address recipient, uint256 auctionId, uint256 amount) internal {
+    function _claim(address bidder, address to, uint256 auctionId, uint256 amount) internal {
         uint256 currentAuctionId = nextAuctionId == 0 ? 0 : nextAuctionId - 1;
         if (block.timestamp <= auctionStartTime + auctionInterval && auctionId == currentAuctionId) {
             revert AuctionInProgress();
@@ -151,21 +149,21 @@ contract MineAuction is Ownable, Proxiable, IAuction {
             return;
         }
         auctions[auctionId].claimed[bidder] += amount;
-        mine.mint(recipient, amount);
+        mine.mint(to, amount);
         emit AuctionClaimed(auctionId, bidder, amount);
     }
 
     function initializeAuction(uint256 auctionId) internal {
         if (auctionId == 0) {
-            initialAuctionaTime = block.timestamp;
+            initialAuctionTime = block.timestamp;
         }
-        auctions[auctionId].targetAmount = getTargetAmount();
+        auctions[auctionId].rewardAmount = getRewardAmount();
         emit AuctionStarted(auctionId, block.timestamp, auctionSettleTime, auctionInterval);
     }
 
     //TODO: use prb math to optimize
-    function getTargetAmount() internal view returns (uint256) {
-        uint256 period = ((block.timestamp - initialAuctionaTime) / SECONDS_IN_FOUR_YEARS) + 1;
+    function getRewardAmount() internal view returns (uint256) {
+        uint256 period = ((block.timestamp - initialAuctionTime) / SECONDS_IN_FOUR_YEARS) + 1;
         uint256 currentAuctionId = nextAuctionId - 1;
         uint256 auctionableAmount = totalAuctionableAmount;
         uint256 i = 0;
@@ -180,7 +178,7 @@ contract MineAuction is Ownable, Proxiable, IAuction {
             return 0;
         }
         //TODO: use prb-math
-        uint256 totalClaimable = (auctions[auctionId].bid[bidder] * auctions[auctionId].targetAmount) /
+        uint256 totalClaimable = (auctions[auctionId].bid[bidder] * auctions[auctionId].rewardAmount) /
             auctions[auctionId].totalBidAmount;
         return totalClaimable - auctions[auctionId].claimed[bidder];
     }

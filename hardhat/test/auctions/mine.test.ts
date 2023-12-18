@@ -67,9 +67,9 @@ describe('Mine Auctions', () => {
         .withArgs(0, events[0].args[1], DEFAULT_SETTLE_TIME, DEFAULT_AUCTION_INTERVAL)
         .to.emit(auction, 'AuctionBid')
         .withArgs(0, owner.address, 100n)
-      const [totalBidAmount, targetAmount] = await auction.getAuction(0)
+      const [totalBidAmount, rewardAmount] = await auction.getAuction(0)
       expect(totalBidAmount).to.equal(100n)
-      expect(targetAmount).to.be.greaterThan(0n)
+      expect(rewardAmount).to.be.greaterThan(0n)
     })
 
     it('can bid', async () => {
@@ -80,9 +80,9 @@ describe('Mine Auctions', () => {
         .to.emit(auction, 'AuctionBid')
         .withArgs(0, owner.address, 101n)
         .to.not.emit(auction, 'AuctionStarted')
-      const [totalBidAmount, targetAmount] = await auction.getAuction(0)
+      const [totalBidAmount, rewardAmount] = await auction.getAuction(0)
       expect(totalBidAmount).to.equal(100n + 101n)
-      expect(targetAmount).to.be.greaterThan(0n)
+      expect(rewardAmount).to.be.greaterThan(0n)
       expect(await token.balanceOf(await auction.bondingCurve())).to.equal(100n + 101n)
     })
 

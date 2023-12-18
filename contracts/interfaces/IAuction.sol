@@ -23,12 +23,12 @@ interface IAuction {
 
     struct Auction {
         uint256 totalBidAmount;
-        uint256 targetAmount;
+        uint256 rewardAmount;
         mapping(address bidder => uint256 bidAmount) bid;
         mapping(address bidder => uint256 claimedAmount) claimed;
     }
 
-    function getAuction(uint256 auctionId) external view returns (uint256 totalBidAmount, uint256 targetAmount);
+    function getAuction(uint256 auctionId) external view returns (uint256 totalBidAmount, uint256 rewardAmount);
 
     function getBid(uint256 auctionId, address bidder) external view returns (uint256 bidAmount);
 
