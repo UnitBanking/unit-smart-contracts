@@ -63,8 +63,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
 
     /**
-     * @notice This contract uses a Proxy pattern.
-     * Locks the contract, to prevent the implementation contract from being used.
+     * @notice This contract is meant to be used through a proxy. The contructor makes it uninitializable, which
+     * makes it unusable when called directly.
      */
     constructor() {
         initialized = true;
@@ -269,8 +269,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
         return
             lastUnitUsdPrice *
             exp(
-                wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(convert(timestampDelta)).div(
-                    ONE_YEAR_IN_SECONDS_UD60x18
+                wrap(lastOracleInflationRate * uUNIT).mul(convert(timestampDelta)).div(
+                    ONE_YEAR_IN_SECONDS_UD60x18 * wrap(uUNIT * PRICE_INDEX_PRECISION)
                 )
             );
     }
