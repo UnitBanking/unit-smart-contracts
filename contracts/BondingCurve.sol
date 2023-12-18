@@ -269,8 +269,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
         return
             lastUnitUsdPrice *
             exp(
-                wrap(lastOracleInflationRate * uUNIT).mul(convert(timestampDelta)).div(
-                    ONE_YEAR_IN_SECONDS_UD60x18 * wrap(uUNIT * PRICE_INDEX_PRECISION)
+                wrap(lastOracleInflationRate * (uUNIT / PRICE_INDEX_PRECISION)).mul(convert(timestampDelta)).div(
+                    ONE_YEAR_IN_SECONDS_UD60x18
                 )
             );
     }
