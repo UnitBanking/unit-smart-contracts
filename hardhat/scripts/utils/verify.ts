@@ -17,7 +17,7 @@ export async function verify(name: string, path: string, args: any, [address, sk
       constructorArguments: args,
       contract: `${path}:${name}`,
     },
-    skipWait,
+    skipWait
   )
 
   if (proxyResult) {
@@ -30,7 +30,7 @@ export async function verify(name: string, path: string, args: any, [address, sk
         constructorArguments: [owner.address],
         contract: `${proxyPath}:${proxyName}`,
       },
-      true,
+      true
     )
   }
 }
