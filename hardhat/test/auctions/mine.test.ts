@@ -90,7 +90,7 @@ describe('Mine Auctions', () => {
       const block = await getLatestBlock(owner)
       await expect(auction.setAuctionStartTime(block.timestamp)).to.be.revertedWithCustomError(
         auction,
-        'AuctionBiddingInProgress',
+        'AuctionBiddingInProgress'
       )
       await expect(auction.setAuctionInterval(60)).to.be.revertedWithCustomError(auction, 'AuctionBiddingInProgress')
       await expect(auction.setAuctionSettleTime(30)).to.be.revertedWithCustomError(auction, 'AuctionBiddingInProgress')

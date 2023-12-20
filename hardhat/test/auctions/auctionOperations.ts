@@ -8,7 +8,7 @@ export async function simulateAnAuction(
   auction: MineAuction,
   owner: HardhatEthersSigner,
   other: HardhatEthersSigner,
-  startTime?: bigint,
+  startTime?: bigint
 ) {
   if (startTime) {
     const block = await getLatestBlock(owner)
@@ -25,7 +25,7 @@ export async function simulateAnAuction(
 export async function simulateAnContinuousAuction(
   auction: MineAuction,
   owner: HardhatEthersSigner,
-  other: HardhatEthersSigner,
+  other: HardhatEthersSigner
 ) {
   const block = await getLatestBlock(owner)
   const newStartTime = BigInt(block.timestamp) + 1n
