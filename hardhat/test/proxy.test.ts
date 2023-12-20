@@ -44,7 +44,7 @@ describe('Proxy', () => {
     const { proxy, other } = await loadFixture(proxyFixture)
     await expect(proxy.connect(other).upgradeTo(FakeAddress)).to.revertedWithCustomError(
       proxy,
-      'ProxyUnauthorizedAdmin',
+      'ProxyUnauthorizedAdmin'
     )
   })
 
@@ -65,7 +65,7 @@ describe('Proxy', () => {
     await proxy.changeAdmin(other.address)
     await expect(proxy.connect(other).upgradeTo(FakeAddress)).to.not.revertedWithCustomError(
       proxy,
-      'ProxyUnauthorizedAdmin',
+      'ProxyUnauthorizedAdmin'
     )
   })
 
@@ -73,7 +73,7 @@ describe('Proxy', () => {
     const { proxy, other } = await loadFixture(proxyFixture)
     await expect(proxy.connect(other).changeAdmin(other.address)).to.revertedWithCustomError(
       proxy,
-      'ProxyUnauthorizedAdmin',
+      'ProxyUnauthorizedAdmin'
     )
   })
 
@@ -93,7 +93,7 @@ describe('Proxy', () => {
     const { proxyAsContract } = await loadFixture(proxyFixture)
     await expect(proxyAsContract.initialize()).to.revertedWithCustomError(
       proxyAsContract,
-      'ProxiableAlreadyInitialized',
+      'ProxiableAlreadyInitialized'
     )
   })
 })

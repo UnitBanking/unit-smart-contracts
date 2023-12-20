@@ -14,7 +14,7 @@ export async function permitBySig(
   value: number,
   nonce: number,
   signer: e.Signer,
-  contract: IERC20Permit & IERC20,
+  contract: IERC20Permit & IERC20
 ) {
   const { expiry, v, r, s } = await getPermitBySigOptions(owner, spender, value, nonce, signer, contract)
   await contract.permit(owner, spender, value, expiry, v, r, s)
@@ -24,7 +24,7 @@ export async function getDelegateBySigOptions(
   delegatee: string,
   nonce: number,
   signer: e.Signer,
-  contract: IVotes & IERC20,
+  contract: IVotes & IERC20
 ) {
   const expiry = Date.now() + 100000
   const name = await contract.name()
@@ -42,7 +42,7 @@ export async function getDelegateBySigOptions(
       delegatee,
       nonce,
       expiry,
-    },
+    }
   )
   const signature = splitSignature(rawSignature)
   return { delegatee, nonce, expiry, v: signature.v, r: signature.r, s: signature.s }
@@ -54,7 +54,7 @@ export async function getPermitBySigOptions(
   value: number,
   nonce: number,
   signer: e.Signer,
-  contract: IERC20Permit & IERC20,
+  contract: IERC20Permit & IERC20
 ) {
   const expiry = Date.now() + 100000
   const name = await contract.name()
@@ -74,7 +74,7 @@ export async function getPermitBySigOptions(
       value,
       nonce,
       expiry,
-    },
+    }
   )
   const signature = splitSignature(rawSignature)
   return { owner, spender, value, nonce, expiry, v: signature.v, r: signature.r, s: signature.s }

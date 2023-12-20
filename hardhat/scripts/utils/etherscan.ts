@@ -17,7 +17,7 @@ export async function verify(contractName: string, verifyArguments: verifyTaskAr
   const etherscan = createEtherscanInstance(apiKey)
   const verified = await transient<boolean>(
     `Checking verification status on ${verifyArguments.address}...`,
-    async () => await etherscan.isVerified(verifyArguments.address),
+    async () => await etherscan.isVerified(verifyArguments.address)
   )
   if (verified) {
     clearLine()
@@ -50,7 +50,7 @@ function createEtherscanInstance(apiKey: string) {
   return new Etherscan(
     apiKey,
     ETHERSCAN_API_URL[hre.network.name as Network],
-    ETHERSCAN_URL[hre.network.name as Network],
+    ETHERSCAN_URL[hre.network.name as Network]
   )
 }
 

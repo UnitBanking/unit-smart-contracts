@@ -45,7 +45,7 @@ export function writeContractLog(
   name: string,
   content: ContractInfo,
   replace = true,
-  location: string = LOCATION,
+  location: string = LOCATION
 ) {
   const path = `${network}.${name}`
   writeLog(path, content, replace, location)

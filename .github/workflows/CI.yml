@@ -1,0 +1,45 @@
+name: CI
+
+on: [push]
+
+jobs:
+  foundry_test:
+    name: Foundry build and test
+    strategy:
+      fail-fast: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+
+  hardhat_test:
+    name: Hardhat build and test
+    strategy:
+      matrix:
+        node-version: ['16.x']
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint
+      - run: yarn build:hardhat
+      - run: yarn test:hardhat

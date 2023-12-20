@@ -14,7 +14,7 @@ describe('BaseToken ownerable', () => {
     const { base, other } = await loadFixture(deployBaseTokenFixture)
     await expect(base.connect(other).setOwner(other.address)).to.be.revertedWithCustomError(
       base,
-      'OwnableUnauthorizedOwner',
+      'OwnableUnauthorizedOwner'
     )
   })
 
@@ -24,7 +24,7 @@ describe('BaseToken ownerable', () => {
 
     await expect(base.connect(other).setOwner(other.address)).to.be.revertedWithCustomError(
       base,
-      'OwnableSameValueAlreadySet',
+      'OwnableSameValueAlreadySet'
     )
   })
 
