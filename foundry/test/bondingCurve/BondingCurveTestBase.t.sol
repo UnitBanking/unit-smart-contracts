@@ -78,7 +78,7 @@ abstract contract BondingCurveTestBase is Test {
         unitToken.mint(wallet, INITIAL_UNIT_VALUE);
     }
 
-    function _createUserAndMintUnit(uint256 etherValue) internal returns (address user) {
+    function _createUserAndMintUnit(uint256 collateralAmountIn) internal returns (address user) {
         // Arrange
         user = vm.addr(2);
         uint256 userEthBalance = 100 ether;
@@ -87,7 +87,7 @@ abstract contract BondingCurveTestBase is Test {
 
         // Act
         vm.prank(user);
-        bondingCurveProxy.mint{ value: etherValue }(user);
+        bondingCurveProxy.mint(user, collateralAmountIn);
 
         return user;
     }
@@ -98,10 +98,10 @@ abstract contract BondingCurveTestBase is Test {
     }
 
     function _createUserAndMintUnitAndMineTokens(
-        uint256 etherValue,
+        uint256 collateralAmount,
         uint256 mineTokenAmount
     ) internal returns (address user) {
-        user = _createUserAndMintUnit(etherValue);
+        user = _createUserAndMintUnit(collateralAmount);
         _mintMineToken(user, mineTokenAmount);
     }
 }
