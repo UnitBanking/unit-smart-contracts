@@ -4,6 +4,7 @@ pragma solidity 0.8.21;
 
 import './interfaces/IBondingCurve.sol';
 import './abstracts/Proxiable.sol';
+import './abstracts/ReentrancyGuard.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
@@ -14,6 +15,7 @@ import './UnitToken.sol';
 
 /*
  TODOs:
+ - replace all occurences of `IERC20.transferFrom` to a library call, which leverages OZ's `SafeERC20.safeTransferFrom`
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility (possibly convert all to public for improved testability)
  - revisit `burn()` interface upon code integration
@@ -21,7 +23,7 @@ import './UnitToken.sol';
  - TBC: make oracles mutable
  */
 
-contract BondingCurve is IBondingCurve, Proxiable {
+contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     using TransferHelper for address;
 
     /**
@@ -32,12 +34,13 @@ contract BondingCurve is IBondingCurve, Proxiable {
     UD60x18 private constant TWENTY_YEARS_UD60x18 = UD60x18.wrap(20 * uUNIT);
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
 
+    uint256 public constant HIGH_RR = 4; // High reserve ratio (RR). (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
+
     uint256 public constant BASE_SPREAD = 10; // 0.1%
     uint256 public constant SPREAD_PRECISION = 10_000;
 
     uint256 public constant UNITUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision
     uint256 public constant ETHUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision or UNITUSD_PRICE_PRECISION (which must be the same)
-    uint256 public constant HIGH_RR = 4; // High reserve ratio (RR). (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
 
     uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
     uint256 public constant REDEMPTION_DISCOUNT_PRECISION = 10_000;
@@ -53,6 +56,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t')) – ln(Index(t'- 20years)))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
 
+    IERC20 public collateralToken;
     IInflationOracle public inflationOracle;
     IEthUsdOracle public ethUsdOracle;
     UnitToken public unitToken;
@@ -63,8 +67,8 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
 
     /**
-     * @notice This contract is meant to be used through a proxy. The contructor makes it uninitializable, which
-     * makes it unusable when called directly.
+     * @dev This contract is meant to be used through a proxy. The constructor makes the implementation contract
+     * uninitializable, which makes it unusable when called directly.
      */
     constructor() {
         initialized = true;
@@ -80,6 +84,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      * @inheritdoc IBondingCurve
      */
     function initialize(
+        IERC20 _collateralToken,
         UnitToken _unitToken,
         MineToken _mineToken,
         IInflationOracle _inflationOracle,
@@ -92,6 +97,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
 
         lastUnitUsdPrice = UNIT; // 1
 
+        collateralToken = _collateralToken;
         unitToken = _unitToken;
         mineToken = _mineToken;
         inflationOracle = _inflationOracle;
@@ -105,12 +111,14 @@ contract BondingCurve is IBondingCurve, Proxiable {
     /**
      * @inheritdoc IBondingCurve
      */
-    function mint(address receiver) external payable {
+    function mint(address receiver, uint256 collateralAmountIn) external nonReentrant {
         if (_getReserveRatio() < HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
-        unitToken.mint(receiver, _getMintAmount(msg.value)); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        collateralToken.transferFrom(msg.sender, address(this), collateralAmountIn);
+
+        unitToken.mint(receiver, _getMintAmount(collateralAmountIn)); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
     /**
@@ -163,7 +171,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
     }
 
     // P(t) = min(IP(t)/EP(t), BalanceETH(t)/SupplyUnit(t))
-    function getUnitEthPrice() public view returns (uint256) {
+    function getUnitEthPrice() external view returns (uint256) {
         return _getUnitEthPrice();
     }
 
@@ -178,13 +186,14 @@ contract BondingCurve is IBondingCurve, Proxiable {
 
     function getExcessEthReserve() public view returns (uint256 excessEth) {
         uint256 unitEthValue = (unitToken.totalSupply() * getUnitUsdPrice()) / ethUsdOracle.getEthUsdPrice();
+        uint256 collateralAmount = collateralToken.balanceOf(address(this));
 
-        if (address(this).balance < unitEthValue) {
+        if (collateralAmount < unitEthValue) {
             return 0;
         } else {
             unchecked {
-                // Overflow not possible: address(this).balance >= unitEthValue.
-                return address(this).balance - unitEthValue;
+                // Overflow not possible: collateralAmount >= unitEthValue.
+                return collateralAmount - unitEthValue;
             }
         }
     }
@@ -220,12 +229,12 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
 
     /**
-     * @return UNIT token amount that should be minted for the provided `ethAmount`.
+     * @return UNIT token amount that should be minted for the provided `collateralAmountIn`.
      */
-    function _getMintAmount(uint256 ethAmount) internal view returns (uint256) {
+    function _getMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
         return
-            (ethAmount * UNITUSD_PRICE_PRECISION) /
-            ((getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+            (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
+            ((_getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
     }
 
     /**
@@ -233,7 +242,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
      */
     function _getWithdrawalAmount(uint256 unitTokenAmount) internal view returns (uint256) {
         return
-            (unitTokenAmount * (getUnitEthPrice() * (SPREAD_PRECISION - getSpread()))) /
+            (unitTokenAmount * (_getUnitEthPrice() * (SPREAD_PRECISION - getSpread()))) /
             SPREAD_PRECISION /
             UNITUSD_PRICE_PRECISION;
     }
@@ -285,7 +294,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
                 Math.min(
                     (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * ETHUSD_PRICE_PRECISION) /
                         ethUsdOracle.getEthUsdPrice(),
-                    ((address(this).balance - msg.value) * UNITUSD_PRICE_PRECISION) / unitTotalSupply
+                    (collateralToken.balanceOf(address(this)) * UNITUSD_PRICE_PRECISION) / unitTotalSupply
                 );
         } else {
             return
@@ -300,7 +309,7 @@ contract BondingCurve is IBondingCurve, Proxiable {
 
         if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
-                (ethUsdOracle.getEthUsdPrice() * (address(this).balance - msg.value)) / // TODO: can do unchecked subtraction (gas optimization)
+                (ethUsdOracle.getEthUsdPrice() * collateralToken.balanceOf(address(this))) / // TODO: can do unchecked subtraction (gas optimization)
                 (unitUsdPrice * unitTokenTotalSupply);
         }
     }

@@ -11,7 +11,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
     function test_mint_SuccessfullyMintsUnitToken() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmountIn = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
@@ -19,12 +19,12 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act
         vm.prank(user);
-        bondingCurveProxy.mint{ value: etherValue }(user);
+        bondingCurveProxy.mint(user, collateralAmountIn);
 
         // Assert
         uint256 bondingCurveBalanceAfter = address(bondingCurveProxy).balance;
-        assertEq(user.balance, userEthBalance - etherValue);
-        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, etherValue);
+        assertEq(user.balance, userEthBalance - collateralAmountIn);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, collateralAmountIn);
         assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
     }
 
@@ -32,8 +32,8 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         // Arrange
         address user1 = vm.addr(2);
         address user2 = vm.addr(3);
-        uint256 user1EtherValue = 1 ether;
-        uint256 user2EtherValue = 1 ether;
+        uint256 user1collateralAmountIn = 1 ether;
+        uint256 user2collateralAmountIn = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user1, userEthBalance);
         vm.deal(user2, userEthBalance);
@@ -44,15 +44,18 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act
         vm.prank(user1);
-        bondingCurveProxy.mint{ value: user1EtherValue }(user1);
+        bondingCurveProxy.mint(user1, user1collateralAmountIn);
         vm.prank(user2);
-        bondingCurveProxy.mint{ value: user2EtherValue }(user2);
+        bondingCurveProxy.mint(user2, user2collateralAmountIn);
 
         // Assert
         uint256 bondingCurveBalanceAfter = address(bondingCurveProxy).balance;
-        assertEq(user1.balance, userEthBalance - user1EtherValue);
-        assertEq(user2.balance, userEthBalance - user2EtherValue);
-        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, user1EtherValue + user2EtherValue);
+        assertEq(user1.balance, userEthBalance - user1collateralAmountIn);
+        assertEq(user2.balance, userEthBalance - user2collateralAmountIn);
+        assertEq(
+            bondingCurveBalanceAfter - bondingCurveBalanceBefore,
+            user1collateralAmountIn + user2collateralAmountIn
+        );
         assertEq(unitToken.balanceOf(user1), 998382904467586844); //0.998382904467586844 UNIT
         assertEq(unitToken.balanceOf(user2), 998382904467586844); //0.998382904467586844 UNIT
     }
@@ -67,7 +70,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act
         vm.prank(user);
-        bondingCurveProxy.mint{ value: 0 }(user);
+        bondingCurveProxy.mint(user, 0);
 
         // Assert
         uint256 bondingCurveBalanceAfter = address(bondingCurveProxy).balance;
@@ -79,7 +82,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
     function test_mint_RevertIfReceiverIsAddressZero() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmountIn = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
@@ -87,13 +90,13 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         // Act && Assert
         vm.prank(user);
         vm.expectRevert(abi.encodeWithSelector(Mintable.MintableInvalidReceiver.selector, address(0)));
-        bondingCurveProxy.mint{ value: etherValue }(address(0));
+        bondingCurveProxy.mint(address(0), collateralAmountIn);
     }
 
     function test_mint_RevertWhenReserveRatioBelowHighRR() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmountIn = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
@@ -103,13 +106,13 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         // Act && Assert
         vm.prank(user);
         vm.expectRevert(IBondingCurve.BondingCurveReserveRatioTooLow.selector);
-        bondingCurveProxy.mint{ value: etherValue }(user);
+        bondingCurveProxy.mint(user, collateralAmountIn);
     }
 
     function test_mint_SuccessfullyMintsWhenReserveRatioEqualsHighRR() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmountIn = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
@@ -118,19 +121,19 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act
         vm.prank(user);
-        bondingCurveProxy.mint{ value: etherValue }(user);
+        bondingCurveProxy.mint(user, collateralAmountIn);
 
         // Assert
         uint256 bondingCurveBalanceAfter = address(bondingCurveProxy).balance;
-        assertEq(user.balance, userEthBalance - etherValue);
-        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, etherValue);
+        assertEq(user.balance, userEthBalance - collateralAmountIn);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, collateralAmountIn);
         assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
     }
 
     function test_mint_SuccessfullyMintsWhenReserveRatioIsMuchHigherThanHighRR() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmountIn = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.deal(address(bondingCurveProxy), type(uint256).max / ethUsdOracle.getEthUsdPrice());
@@ -140,12 +143,12 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act
         vm.prank(user);
-        bondingCurveProxy.mint{ value: etherValue }(user);
+        bondingCurveProxy.mint(user, collateralAmountIn);
 
         // Assert
         uint256 bondingCurveBalanceAfter = address(bondingCurveProxy).balance;
-        assertEq(user.balance, userEthBalance - etherValue);
-        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, etherValue);
+        assertEq(user.balance, userEthBalance - collateralAmountIn);
+        assertEq(bondingCurveBalanceAfter - bondingCurveBalanceBefore, collateralAmountIn);
         assertEq(unitToken.balanceOf(user), 998382904467586844); //0.998382904467586844 UNIT
     }
 }

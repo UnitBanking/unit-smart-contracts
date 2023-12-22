@@ -160,14 +160,14 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_quoteMint_ReturnsQuotes() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmount = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);
-        uint256 quotes = bondingCurveProxy.quoteMint(etherValue);
+        uint256 quotes = bondingCurveProxy.quoteMint(collateralAmount);
 
         // Assert
         assertEq(quotes, 998382904467586844); //0.998382904467586844 UNIT
@@ -191,7 +191,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_quoteMint_RevertWhenReserveRatioBelowHighRR() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
+        uint256 collateralAmount = 1 ether;
         uint256 userEthBalance = 100 ether;
         vm.deal(user, userEthBalance);
         vm.warp(START_TIMESTAMP + 10 days);
@@ -201,7 +201,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         // Act && Assert
         vm.prank(user);
         vm.expectRevert(IBondingCurve.BondingCurveReserveRatioTooLow.selector);
-        bondingCurveProxy.quoteMint(etherValue);
+        bondingCurveProxy.quoteMint(collateralAmount);
     }
 
     /**
@@ -210,8 +210,8 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_quoteBurn_ReturnsQuotes() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1 ether;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 burnAmount = 499191452233793422;
 
         // Act
@@ -224,8 +224,8 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_quoteBurn_ReturnsQuotesFor0Tokens() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1 ether;
+        address user = _createUserAndMintUnit(collateralAmount);
 
         // Act
         vm.prank(user);
