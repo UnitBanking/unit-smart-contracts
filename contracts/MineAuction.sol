@@ -17,21 +17,17 @@ contract MineAuction is Ownable, Proxiable, IAuction {
     MineToken public mine;
     IERC20 public bidToken;
 
-    uint256 public override auctionStartTime;
-    uint256 public override auctionSettleTime;
-    uint256 public override auctionInterval;
-    uint256 public override nextAuctionId;
+    uint256 public override currentAuctionGroup;
+    AuctionGroup[] private auctionGroups;
+    mapping(uint256 auctionGroupId => mapping(uint256 auctionId => Auction auction)) auctions;
 
     uint256 public totalAuctionableAmount;
     uint256 public initialAuctionTime;
 
-    mapping(uint256 auctionId => Auction auction) private auctions;
-
     function initialize() public virtual override {
         _setOwner(msg.sender);
-        _setAuctionInterval(24 hours);
-        _setAuctionSettleTime(1 hours);
-        nextAuctionId = 1;
+        _setAuctionGroup(block.timestamp, 1 hours, 24 hours);
+        initialAuctionTime = block.timestamp;
         super.initialize();
     }
 
@@ -50,174 +46,134 @@ contract MineAuction is Ownable, Proxiable, IAuction {
         bidToken = IERC20(_bidToken);
     }
 
-    function setAuctionStartTime(uint256 startTime) external override onlyOwner {
-        revertIfNotInSettlement();
-        if (startTime % auctionInterval == auctionStartTime % auctionInterval) {
-            revert AuctionSameValueAlreadySet();
-        }
+    function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external override onlyOwner {
         if (startTime < block.timestamp) {
             revert AuctionStartTimeInThePast();
         }
-
-        _setAuctionStartTime(startTime);
-        nextAuctionId++;
-    }
-
-    function setAuctionSettleTime(uint256 settleTime) external override onlyOwner {
-        _setAuctionSettleTime(settleTime);
-    }
-
-    function setAuctionInterval(uint256 interval) external override onlyOwner {
-        _setAuctionInterval(interval);
+        if (interval - settleTime <= MINIMUM_AUCTION_INTERVAL) {
+            revert AuctionInvalidSettleTime(settleTime);
+        }
+        if (interval < MINIMUM_AUCTION_INTERVAL || interval <= settleTime) {
+            revert AuctionInvalidInterval(interval);
+        }
+        _setAuctionGroup(startTime, settleTime, interval);
     }
 
     function getAuction(
+        uint256 auctionGroupId,
         uint256 auctionId
     ) external view override returns (uint256 totalBidAmount, uint256 rewardAmount) {
-        totalBidAmount = auctions[auctionId].totalBidAmount;
-        rewardAmount = auctions[auctionId].rewardAmount;
+        totalBidAmount = auctions[auctionGroupId][auctionId].totalBidAmount;
+        rewardAmount = auctions[auctionGroupId][auctionId].rewardAmount;
     }
 
-    function getBid(uint256 auctionId, address bidder) external view override returns (uint256 bidAmount) {
-        bidAmount = auctions[auctionId].bid[bidder];
+    function getBid(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    ) external view override returns (uint256 bidAmount) {
+        bidAmount = auctions[auctionGroupId][auctionId].bid[bidder];
     }
 
-    function getClaimed(uint256 auctionId, address bidder) external view override returns (uint256 claimedAmount) {
-        claimedAmount = auctions[auctionId].claimed[bidder];
+    function getClaimed(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    ) external view override returns (uint256 claimedAmount) {
+        claimedAmount = auctions[auctionGroupId][auctionId].claimed[bidder];
     }
 
-    function bid(uint256 amount) external override {
+    function bid(uint256 auctionId, uint256 amount) external override {
         if (amount == 0) {
             revert AuctionInvalidBidAmount();
         }
-        if (block.timestamp < auctionStartTime) {
-            revert AuctionNotStarted();
-        }
-        uint256 auctionElapsed;
-        uint256 auctionDuration;
-        uint256 auctionId;
-        unchecked {
-            // Overflow not possible: previous checked block.timestamp >= auctionStartTime
-            auctionElapsed = block.timestamp - auctionStartTime;
-            // Overflow not possible: auctionInterval > auctionSettleTime
-            auctionDuration = auctionInterval - auctionSettleTime;
-            if (auctionElapsed > auctionDuration && auctionElapsed <= auctionInterval) {
-                revert AuctionInSettlement();
-            }
-            // Overflow not possible: nextAuctionId >= 1
-            auctionId = nextAuctionId - 1;
+
+        if (!isAuctionIdValid(auctionId)) {
+            revert AuctionInvalidAuctionId(auctionId);
         }
 
-        if (auctionElapsed < auctionDuration && auctions[auctionId].totalBidAmount == 0) {
-            initializeAuction(auctionId);
-        } else if (auctionElapsed > auctionInterval) {
-            if (auctions[auctionId].totalBidAmount == 0) {
-                initializeAuction(auctionId);
-            } else {
-                nextAuctionId++;
-                auctionId = nextAuctionId - 1;
-                initializeAuction(auctionId);
-            }
-            _setAuctionStartTime(block.timestamp - (auctionElapsed % auctionInterval));
-        }
+        auctions[currentAuctionGroup][auctionId].totalBidAmount += amount;
+        auctions[currentAuctionGroup][auctionId].bid[msg.sender] = amount;
 
-        auctions[auctionId].totalBidAmount += amount;
-        auctions[auctionId].bid[msg.sender] = amount;
+        if (auctions[currentAuctionGroup][auctionId].rewardAmount == 0) {
+            auctions[currentAuctionGroup][auctionId].rewardAmount = getRewardAmount();
+        }
 
         bidToken.transferFrom(msg.sender, bondingCurve, amount);
-        emit AuctionBid(auctionId, msg.sender, amount);
+        emit AuctionBid(currentAuctionGroup, auctionId, msg.sender, amount);
     }
 
-    function claim(uint256 auctionId, uint256 amount) external override {
-        _claim(msg.sender, msg.sender, auctionId, amount);
+    function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external override {
+        _claim(auctionGroupId, msg.sender, msg.sender, auctionId, amount);
     }
 
-    function claimTo(address to, uint256 auctionId, uint256 amount) external override {
-        _claim(msg.sender, to, auctionId, amount);
+    function claimTo(uint256 auctionGroupId, address to, uint256 auctionId, uint256 amount) external override {
+        _claim(auctionGroupId, msg.sender, to, auctionId, amount);
     }
 
-    function _claim(address bidder, address to, uint256 auctionId, uint256 amount) internal {
-        uint256 currentAuctionId = nextAuctionId == 0 ? 0 : nextAuctionId - 1;
-        if (block.timestamp <= auctionStartTime + auctionInterval && auctionId == currentAuctionId) {
-            revert AuctionInProgress();
-        }
-        uint256 claimable = getClaimableAmount(auctionId, bidder);
+    function isAuctionIdValid(uint256 auctionId) internal returns (bool) {
+        AuctionGroup memory auctionGroup = auctionGroups[currentAuctionGroup];
+        uint256 interval = auctionId * auctionGroup.interval;
+        uint256 startTime = interval + auctionGroup.startTime;
+        uint256 endTime = interval + auctionGroup.interval - auctionGroup.settleTime;
+        return block.timestamp >= startTime && block.timestamp <= endTime;
+    }
+
+    function _claim(uint256 auctionGroupId, address bidder, address to, uint256 auctionId, uint256 amount) internal {
+        revertIfNotInSettlement();
+        uint256 claimable = getClaimableAmount(auctionGroupId, auctionId, bidder);
         if (amount > claimable) {
             amount = claimable;
         }
         if (amount == 0) {
             return;
         }
-        auctions[auctionId].claimed[bidder] += amount;
+        auctions[auctionGroupId][auctionId].claimed[bidder] += amount;
         mine.mint(to, amount);
-        emit AuctionClaimed(auctionId, bidder, amount);
-    }
-
-    function initializeAuction(uint256 auctionId) internal {
-        if (auctionId == 0) {
-            initialAuctionTime = block.timestamp;
-        }
-        auctions[auctionId].rewardAmount = getRewardAmount();
-        emit AuctionStarted(auctionId, block.timestamp, auctionSettleTime, auctionInterval);
+        emit AuctionClaimed(auctionGroupId, auctionId, bidder, amount);
     }
 
     //TODO: use prb math to optimize
     function getRewardAmount() internal view returns (uint256) {
         uint256 period = ((block.timestamp - initialAuctionTime) / SECONDS_IN_FOUR_YEARS) + 1;
-        uint256 currentAuctionId = nextAuctionId - 1;
+        uint256 timeElapsed = (block.timestamp - initialAuctionTime) % SECONDS_IN_FOUR_YEARS;
         uint256 auctionableAmount = totalAuctionableAmount;
         uint256 i = 0;
         for (; i < period; i++) {
             auctionableAmount = auctionableAmount / 2;
         }
-        return (auctionableAmount * (currentAuctionId + 1)) / 1460;
+        return (auctionableAmount * timeElapsed) / SECONDS_IN_FOUR_YEARS;
     }
 
-    function getClaimableAmount(uint256 auctionId, address bidder) internal view returns (uint256) {
-        if (auctions[auctionId].totalBidAmount == 0) {
+    function getClaimableAmount(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    ) internal view returns (uint256) {
+        if (auctions[auctionGroupId][auctionId].totalBidAmount == 0) {
             return 0;
         }
+        Auction storage auction = auctions[auctionGroupId][auctionId];
         //TODO: use prb-math
-        uint256 totalClaimable = (auctions[auctionId].bid[bidder] * auctions[auctionId].rewardAmount) /
-            auctions[auctionId].totalBidAmount;
-        return totalClaimable - auctions[auctionId].claimed[bidder];
+        uint256 totalClaimable = (auction.bid[bidder] * auction.rewardAmount) / auction.totalBidAmount;
+        return totalClaimable - auction.claimed[bidder];
     }
 
-    function _setAuctionStartTime(uint256 startTime) internal {
-        auctionStartTime = startTime;
-        emit AuctionStartTimeSet(startTime);
-    }
-
-    function _setAuctionSettleTime(uint256 settleTime) internal {
-        revertIfNotInSettlement();
-        if (auctionInterval - settleTime <= MINIMUM_AUCTION_INTERVAL) {
-            revert AuctionInvalidSettleTime(settleTime);
-        }
-        if (settleTime == auctionSettleTime) {
-            revert AuctionSameValueAlreadySet();
-        }
-        auctionSettleTime = settleTime;
-        emit AuctionSettleTimeSet(settleTime);
-    }
-
-    function _setAuctionInterval(uint256 interval) internal {
-        revertIfNotInSettlement();
-        if (interval < MINIMUM_AUCTION_INTERVAL || interval <= auctionSettleTime) {
-            revert AuctionInvalidInterval(interval);
-        }
-        if (interval == auctionInterval) {
-            revert AuctionSameValueAlreadySet();
-        }
-        auctionInterval = interval;
-        emit AuctionIntervalSet(interval);
+    function _setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) internal {
+        currentAuctionGroup++;
+        auctionGroups[currentAuctionGroup].settleTime = settleTime;
+        auctionGroups[currentAuctionGroup].interval = interval;
+        auctionGroups[currentAuctionGroup].startTime = startTime;
+        emit AuctionGroupSet(currentAuctionGroup, startTime, settleTime, interval);
     }
 
     function revertIfNotInSettlement() internal view {
+        AuctionGroup memory auctionGroup = auctionGroups[currentAuctionGroup];
         unchecked {
             // Overflow not possible: auctionInterval > auctionSettleTime
             if (
-                block.timestamp < auctionStartTime + auctionInterval - auctionSettleTime &&
-                block.timestamp >= auctionStartTime
+                block.timestamp < auctionGroup.startTime + auctionGroup.interval - auctionGroup.settleTime &&
+                block.timestamp >= auctionGroup.startTime
             ) {
                 revert AuctionBiddingInProgress();
             }

@@ -3,18 +3,15 @@
 pragma solidity 0.8.21;
 
 interface IAuction {
-    event AuctionStartTimeSet(uint256 startTime);
-    event AuctionSettleTimeSet(uint256 settleTime);
-    event AuctionIntervalSet(uint256 interval);
-    event AuctionStarted(uint256 newAuctionId, uint256 startTime, uint256 settleTime, uint256 interval);
-    event AuctionBid(uint256 auctionId, address bidder, uint256 amount);
-    event AuctionClaimed(uint256 auctionId, address recipient, uint256 amount);
+    event AuctionBid(uint256 auctionGroupId, uint256 auctionId, address bidder, uint256 amount);
+    event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
+    event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 interval);
 
     error AuctionNoDirectTransfer();
+    error AuctionInvalidAuctionId(uint256 auctionId);
     error AuctionStartTimeInThePast();
     error AuctionInvalidInterval(uint256 interval);
     error AuctionInvalidSettleTime(uint256 settleTime);
-    error AuctionSameValueAlreadySet();
     error AuctionInvalidBidAmount();
     error AuctionNotStarted();
     error AuctionInProgress();
@@ -28,29 +25,36 @@ interface IAuction {
         mapping(address bidder => uint256 claimedAmount) claimed;
     }
 
-    function getAuction(uint256 auctionId) external view returns (uint256 totalBidAmount, uint256 rewardAmount);
+    struct AuctionGroup {
+        uint256 startTime;
+        uint256 settleTime;
+        uint256 interval;
+    }
 
-    function getBid(uint256 auctionId, address bidder) external view returns (uint256 bidAmount);
+    function getAuction(
+        uint256 auctionGroupId,
+        uint256 auctionId
+    ) external view returns (uint256 totalBidAmount, uint256 rewardAmount);
 
-    function getClaimed(uint256 auctionId, address bidder) external view returns (uint256 claimedAmount);
+    function getBid(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    ) external view returns (uint256 bidAmount);
 
-    function auctionStartTime() external view returns (uint256);
+    function getClaimed(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    ) external view returns (uint256 claimedAmount);
 
-    function auctionSettleTime() external view returns (uint256);
+    function currentAuctionGroup() external view returns (uint256);
 
-    function auctionInterval() external view returns (uint256);
+    function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external;
 
-    function nextAuctionId() external view returns (uint256);
+    function bid(uint256 auctionId, uint256 amount) external;
 
-    function setAuctionStartTime(uint256 startTime) external;
+    function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 
-    function setAuctionSettleTime(uint256 settleTime) external;
-
-    function setAuctionInterval(uint256 interval) external;
-
-    function bid(uint256 amount) external;
-
-    function claim(uint256 auctionId, uint256 amount) external;
-
-    function claimTo(address recipient, uint256 auctionId, uint256 amount) external;
+    function claimTo(uint256 auctionGroupId, address recipient, uint256 auctionId, uint256 amount) external;
 }
