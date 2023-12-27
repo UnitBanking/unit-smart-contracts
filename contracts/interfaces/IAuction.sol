@@ -2,21 +2,22 @@
 
 pragma solidity 0.8.21;
 
-interface IAuction {
+interface IMineAuction {
     event AuctionBid(uint256 auctionGroupId, uint256 auctionId, address bidder, uint256 amount);
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
     event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 interval);
 
     error AuctionNoDirectTransfer();
-    error AuctionInvalidAuctionId(uint256 auctionId);
+    error AuctionAuctionGroupIdTooLarge(uint256 auctionGroupId);
+    error AuctionNotCurrentAuctionId(uint256 auctionId);
     error AuctionStartTimeInThePast();
     error AuctionInvalidInterval(uint256 interval);
     error AuctionInvalidSettleTime(uint256 settleTime);
     error AuctionInvalidBidAmount();
-    error AuctionNotStarted();
     error AuctionInProgress();
     error AuctionBiddingInProgress();
     error AuctionInSettlement();
+    error AuctionClaimingCurrentAuction();
 
     struct Auction {
         uint256 totalBidAmount;
@@ -30,6 +31,12 @@ interface IAuction {
         uint256 settleTime;
         uint256 interval;
     }
+
+    function getAuctionGroup(
+        uint256 auctionGroupId
+    ) external view returns (uint256 startTime, uint256 settleTime, uint256 interval);
+
+    function getCurrentAuctionGroup() external view returns (uint256 startTime, uint256 settleTime, uint256 interval);
 
     function getAuction(
         uint256 auctionGroupId,
@@ -48,7 +55,7 @@ interface IAuction {
         address bidder
     ) external view returns (uint256 claimedAmount);
 
-    function currentAuctionGroup() external view returns (uint256);
+    function currentAuctionGroupId() external view returns (uint256);
 
     function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external;
 
@@ -56,5 +63,5 @@ interface IAuction {
 
     function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 
-    function claimTo(uint256 auctionGroupId, address recipient, uint256 auctionId, uint256 amount) external;
+    function claimTo(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external;
 }
