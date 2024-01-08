@@ -96,7 +96,7 @@ describe('Mine Auctions', () => {
 
     it('reverts if auction is not approved for bid token', async () => {
       await token.approve(await auction.getAddress(), 0)
-      await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(token, 'ERC20InsufficientAllowance')
+      await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(auction, 'TransferHelperERC20TransferFailed')
     })
   })
   describe('In settlement and before auction ends', () => {})
