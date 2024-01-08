@@ -1,9 +1,9 @@
-import { Log, ethers as e } from 'ethers'
+import { ethers as e } from 'ethers'
 import { ethers } from 'hardhat'
-import { assert, expect } from 'chai'
+import { expect } from 'chai'
 import { proxyFixture } from './fixtures/proxyFixture'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { FakeAddress } from './utils'
+import { FakeAddress, getHiddenEvents } from './utils'
 import { ProxiableTest__factory } from '../build/types'
 
 describe('Proxy', () => {
@@ -17,17 +17,9 @@ describe('Proxy', () => {
     const proxy = await ethers.deployContract('Proxy', [owner.address], { signer: owner })
 
     const tx = await proxy.upgradeToAndCall(contractAddress, initialize)
-
     // InitializedBy event is in sub delegatedCall
-    const eventFragment = factory.interface.getEvent('InitializedBy')
-    assert(eventFragment)
-    const receipt = await tx.wait()
-    assert(receipt)
-
-    const filteredLog = receipt.logs.filter((log) => log instanceof Log && log.topics[0] === eventFragment.topicHash)
-    expect(filteredLog.length).to.equal(1)
-    const decodedArguments = factory.interface.decodeEventLog(eventFragment, filteredLog[0].data, filteredLog[0].topics)
-    expect(decodedArguments[0]).to.equal(owner.address)
+    const results = await getHiddenEvents('ProxiableTest', 'InitializedBy', tx)
+    expect(results[0][0]).to.equal(owner.address)
   })
 
   it('can output implementation address', async () => {
