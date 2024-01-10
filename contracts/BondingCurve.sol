@@ -144,7 +144,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
 
         mineToken.burnFrom(msg.sender, excessCollateralAmount == 0 ? 0 : mineTokenAmount);
         collateralToken.transfer(msg.sender, userCollateralAmount);
-        collateralToken.transfer(0x000000000000000000000000000000000000dEaD , burnCollateralAmount); // TODO: review and modify burning mechanism
+        collateralToken.transfer(0x000000000000000000000000000000000000dEaD, burnCollateralAmount); // TODO: review and modify burning mechanism
     }
 
     /**
