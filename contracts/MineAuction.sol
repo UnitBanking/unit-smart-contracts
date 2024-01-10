@@ -188,7 +188,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable {
     }
 
     //TODO: use prb math to optimize
-    function getRewardAmount(uint256 auctionId) internal view returns (uint256) {
+    function getRewardAmount() internal view returns (uint256) {
         uint256 period = ((block.timestamp - initialAuctionTime) / SECONDS_IN_FOUR_YEARS) + 1;
         uint256 timeElapsed = (block.timestamp - initialAuctionTime) % SECONDS_IN_FOUR_YEARS;
         uint256 auctionableAmount = totalAuctionableAmount >> period;
