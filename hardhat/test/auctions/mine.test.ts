@@ -111,6 +111,12 @@ describe('Mine Auctions', () => {
       await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
       await expect(auction.getBid(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
     })
+    it('reverts when auctionId is too large', async () => {
+      const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
+      await expect(auction.getAuction(groupId, auctionId + 1n)).to.be.revertedWithCustomError(auction, 'AuctionAuctionIdTooLarge')
+      await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionIdTooLarge')
+      await expect(auction.getBid(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionIdTooLarge')
+    })
   })
   describe('At any time', () => {
     it('reverts when bid amount is zero', async () => {})
