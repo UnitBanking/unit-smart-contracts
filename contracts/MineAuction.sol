@@ -132,7 +132,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
             auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount();
         }
 
-        TransferHelper.safeTransferFromERC20(bidToken, msg.sender, address(bondingCurve), amount);
+        TransferHelper.safeTransferFrom(bidToken, msg.sender, address(bondingCurve), amount);
         emit AuctionBid(auctionGroupId, auctionId, msg.sender, amount);
     }
 
