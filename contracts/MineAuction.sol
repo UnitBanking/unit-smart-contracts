@@ -13,8 +13,8 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
     uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR;
-    uint256 constant AUCTIONABLE_NUMERATOR = 800;
-    uint256 constant AUCTIONABLE_DENOMINATOR = 100;
+    uint256 constant AUCTIONABLE_NUMERATOR = 8000;
+    uint256 constant AUCTIONABLE_DENOMINATOR = 10000;
 
     BondingCurve public bondingCurve;
     MineToken public mine;
@@ -41,6 +41,11 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
         totalAuctionableAmount = (_mine.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
 
         Proxiable.initialize();
+    }
+
+    function setIntialAuctionTime(uint256 _initialAuctionTime) external override onlyOwner {
+        initialAuctionTime = _initialAuctionTime;
+        emit InitialAuctionTimeSet(_initialAuctionTime);
     }
 
     function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external override onlyOwner {

@@ -11,6 +11,7 @@ interface IMineAuction {
     event AuctionBid(uint256 auctionGroupId, uint256 auctionId, address bidder, uint256 amount);
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
     event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 interval);
+    event InitialAuctionTimeSet(uint256 initialAuctionTime);
 
     error AuctionNoDirectTransfer();
     error AuctionAuctionGroupIdTooLarge(uint256 auctionGroupId);
@@ -72,6 +73,8 @@ interface IMineAuction {
     function currentAuctionGroupId() external view returns (uint256);
 
     function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external;
+
+    function setIntialAuctionTime(uint256 startTime) external;
 
     function bid(uint256 auctionId, uint256 amount) external;
 
