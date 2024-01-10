@@ -87,5 +87,5 @@ interface IBondingCurve {
 
     function getReserveRatio() external view returns (uint256);
 
-    function getExcessEthReserve() external view returns (uint256);
+    function getExcessCollateralReserve() external view returns (uint256);
 }

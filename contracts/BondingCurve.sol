@@ -21,6 +21,7 @@ import './UnitToken.sol';
  - revisit `burn()` interface upon code integration
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
+ - TBD: collateral token burning mechanism
  */
 
 contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
@@ -115,10 +116,11 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         if (_getReserveRatio() < HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
+        uint256 mintAmount = _getMintAmount(collateralAmountIn);
 
         collateralToken.transferFrom(msg.sender, address(this), collateralAmountIn);
 
-        unitToken.mint(receiver, _getMintAmount(collateralAmountIn)); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        unitToken.mint(receiver, mintAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
     /**
@@ -127,19 +129,22 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     function burn(uint256 unitTokenAmount) external {
         unitToken.burnFrom(msg.sender, unitTokenAmount);
 
-        msg.sender.transferEth(_getWithdrawalAmount(unitTokenAmount));
+        collateralToken.transfer(msg.sender, _getWithdrawalAmount(unitTokenAmount));
     }
 
     /**
      * @inheritdoc IBondingCurve
      */
     function redeem(uint256 mineTokenAmount) external {
-        uint256 excessEth = getExcessEthReserve();
-        (uint256 userEthAmount, uint256 burnEthAmount) = _getRedemptionAmounts(mineTokenAmount, excessEth);
+        uint256 excessCollateralAmount = getExcessCollateralReserve();
+        (uint256 userCollateralAmount, uint256 burnCollateralAmount) = _getRedemptionAmounts(
+            mineTokenAmount,
+            excessCollateralAmount
+        );
 
-        mineToken.burnFrom(msg.sender, excessEth == 0 ? 0 : mineTokenAmount);
-        msg.sender.transferEth(userEthAmount);
-        address(0).transferEth(burnEthAmount);
+        mineToken.burnFrom(msg.sender, excessCollateralAmount == 0 ? 0 : mineTokenAmount);
+        collateralToken.transfer(msg.sender, userCollateralAmount);
+        collateralToken.transfer(0x000000000000000000000000000000000000dEaD , burnCollateralAmount); // TODO: review and modify burning mechanism
     }
 
     /**
@@ -184,7 +189,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         return BASE_SPREAD + _getDynamicSpread();
     }
 
-    function getExcessEthReserve() public view returns (uint256 excessEth) {
+    function getExcessCollateralReserve() public view returns (uint256) {
         uint256 unitEthValue = (unitToken.totalSupply() * getUnitUsdPrice()) / ethUsdOracle.getEthUsdPrice();
         uint256 collateralAmount = collateralToken.balanceOf(address(this));
 
@@ -208,12 +213,12 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * be made aware of potential variations.
      */
 
-    function quoteMint(uint256 ethAmount) external view returns (uint256) {
+    function quoteMint(uint256 collateralAmount) external view returns (uint256) {
         if (_getReserveRatio() < HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
-        return _getMintAmount(ethAmount);
+        return _getMintAmount(collateralAmount);
     }
 
     function quoteBurn(uint256 unitTokenAmount) external view returns (uint256) {
@@ -221,7 +226,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     }
 
     function quoteRedeem(uint256 mineTokenAmount) external view returns (uint256, uint256) {
-        return _getRedemptionAmounts(mineTokenAmount, getExcessEthReserve());
+        return _getRedemptionAmounts(mineTokenAmount, getExcessCollateralReserve());
     }
 
     /**
@@ -238,7 +243,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     }
 
     /**
-     * @return ETH amount that should be transferred to the user based on the provided `unitTokenAmount` in a burn scenario.
+     * @return Collateral token amount that should be transferred to the user based on the provided `unitTokenAmount` in a burn scenario.
      */
     function _getWithdrawalAmount(uint256 unitTokenAmount) internal view returns (uint256) {
         return
@@ -248,22 +253,22 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     }
 
     /**
-     * @dev Called to calculate the ETH amounts when redeeming the collateral with MINE token.
-     * @return userEthAmount ETH amount that should be transferred to the user based on the provided `mineTokenAmount`.
-     * @return burnEthAmount ETH amount that should be burned based on the provided `mineTokenAmount`.
+     * @dev Called to calculate the collateral token amounts when redeeming the collateral with MINE token.
+     * @return userCollateralAmount Collateral token amount that should be transferred to the user based on the provided `mineTokenAmount`.
+     * @return burnCollateralAmount Collateral token amount that should be burned based on the provided `mineTokenAmount`.
      */
     function _getRedemptionAmounts(
         uint256 mineTokenAmount,
-        uint256 excessEth
-    ) internal view returns (uint256 userEthAmount, uint256 burnEthAmount) {
-        uint256 totalEthAmount = ((excessEth * mineTokenAmount) *
+        uint256 excessCollateral
+    ) internal view returns (uint256 userCollateralAmount, uint256 burnCollateralAmount) {
+        uint256 totalCollateralAmount = ((excessCollateral * mineTokenAmount) *
             (BASE_REDEMPTION_SPREAD_PRECISION - _getBaseRedemptionSpread())) /
             mineToken.totalSupply() /
             BASE_REDEMPTION_SPREAD_PRECISION;
-        userEthAmount =
-            (totalEthAmount * (REDEMPTION_DISCOUNT_PRECISION - _getRedemptionDiscount())) /
+        userCollateralAmount =
+            (totalCollateralAmount * (REDEMPTION_DISCOUNT_PRECISION - _getRedemptionDiscount())) /
             REDEMPTION_DISCOUNT_PRECISION;
-        burnEthAmount = totalEthAmount - userEthAmount;
+        burnCollateralAmount = totalCollateralAmount - userCollateralAmount;
     }
 
     /**
