@@ -9,7 +9,7 @@ import './abstracts/Proxiable.sol';
 import './libraries/TransferHelper.sol';
 import './MineToken.sol';
 
-contract MineAuction is Ownable, IMineAuction, Proxiable  {
+contract MineAuction is Ownable, IMineAuction, Proxiable {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
     uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR;
@@ -26,11 +26,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
     uint256 public totalAuctionableAmount;
     uint256 public initialAuctionTime;
 
-    function initialize(
-        BondingCurve _bondingCurve,
-        MineToken _mine,
-        IERC20 _bidToken
-    ) external {
+    function initialize(BondingCurve _bondingCurve, MineToken _mine, IERC20 _bidToken) external {
         _setOwner(msg.sender);
         _setAuctionGroup(0, 1 hours, 24 hours);
         bondingCurve = _bondingCurve;
@@ -160,9 +156,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
     }
 
     function validateAuctionGroupId(uint256 auctionGroupId) internal view {
-         if (auctionGroupId > currentAuctionGroupId()) {
+        if (auctionGroupId > currentAuctionGroupId()) {
             revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
-         }
+        }
     }
 
     function validateAuctionId(uint256 auctionGroupId, uint256 auctionId) internal view {
@@ -173,7 +169,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
         AuctionGroup memory auctionGroup = auctionGroups[groupId];
         uint256 previousAuctionDuration = auctionId * auctionGroup.interval;
         uint256 startTime = previousAuctionDuration + auctionGroup.startTime;
-        if(block.timestamp < startTime) {
+        if (block.timestamp < startTime) {
             revert AuctionAuctionIdTooLarge(auctionId);
         }
     }
@@ -192,7 +188,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
     }
 
     //TODO: use prb math to optimize
-    function getRewardAmount() internal view returns (uint256) {
+    function getRewardAmount(uint256 auctionId) internal view returns (uint256) {
         uint256 period = ((block.timestamp - initialAuctionTime) / SECONDS_IN_FOUR_YEARS) + 1;
         uint256 timeElapsed = (block.timestamp - initialAuctionTime) % SECONDS_IN_FOUR_YEARS;
         uint256 auctionableAmount = totalAuctionableAmount >> period;

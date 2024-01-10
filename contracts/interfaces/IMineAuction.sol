@@ -6,7 +6,6 @@ import '../MineToken.sol';
 import '../BondingCurve.sol';
 import './IERC20.sol';
 
-
 interface IMineAuction {
     event AuctionBid(uint256 auctionGroupId, uint256 auctionId, address bidder, uint256 amount);
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
@@ -27,7 +26,6 @@ interface IMineAuction {
     error AuctionClaimingCurrentAuction();
     error AuctionInvalidClaimAmount(uint256 amount);
 
-
     struct Auction {
         uint256 totalBidAmount;
         uint256 rewardAmount;
@@ -41,11 +39,7 @@ interface IMineAuction {
         uint256 interval;
     }
 
-    function initialize(
-        BondingCurve bondingCurve,
-        MineToken mine,
-        IERC20 bidToken
-    ) external;
+    function initialize(BondingCurve bondingCurve, MineToken mine, IERC20 bidToken) external;
 
     function getAuctionGroup(
         uint256 auctionGroupId

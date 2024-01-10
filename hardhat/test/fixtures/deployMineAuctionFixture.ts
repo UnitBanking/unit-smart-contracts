@@ -31,7 +31,11 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
 
   const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
 
-  const initialize = factory.interface.encodeFunctionData('initialize(address,address,address)', [dummyBondingCurve, mineAddress, bidTokenAddress])
+  const initialize = factory.interface.encodeFunctionData('initialize(address,address,address)', [
+    dummyBondingCurve,
+    mineAddress,
+    bidTokenAddress,
+  ])
   const proxy = await ethers.deployContract('Proxy', [owner.address], { signer: owner })
   await proxy.upgradeToAndCall(auctionAddress, initialize)
   const proxyAddress = await proxy.getAddress()

@@ -97,7 +97,10 @@ describe('Mine Auctions', () => {
 
     it('reverts if auction is not approved for bid token', async () => {
       await token.approve(await auction.getAddress(), 0)
-      await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(auction, 'TransferHelperERC20TransferFailed')
+      await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(
+        auction,
+        'TransferHelperERC20TransferFailed'
+      )
     })
   })
   describe('In settlement and before auction ends', () => {})
@@ -106,16 +109,37 @@ describe('Mine Auctions', () => {
     it('reverts when groupId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
       await increase(DEFAULT_AUCTION_INTERVAL)
-      await expect(auction.getAuction(groupId + 1n, auctionId)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
-      await expect(auction.getAuctionGroup(groupId + 1n)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
-      await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
-      await expect(auction.getBid(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
+      await expect(auction.getAuction(groupId + 1n, auctionId)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionGroupIdTooLarge'
+      )
+      await expect(auction.getAuctionGroup(groupId + 1n)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionGroupIdTooLarge'
+      )
+      await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionGroupIdTooLarge'
+      )
+      await expect(auction.getBid(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionGroupIdTooLarge'
+      )
     })
     it('reverts when auctionId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
-      await expect(auction.getAuction(groupId, auctionId + 1n)).to.be.revertedWithCustomError(auction, 'AuctionAuctionIdTooLarge')
-      await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionIdTooLarge')
-      await expect(auction.getBid(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionIdTooLarge')
+      await expect(auction.getAuction(groupId, auctionId + 1n)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionIdTooLarge'
+      )
+      await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionIdTooLarge'
+      )
+      await expect(auction.getBid(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionIdTooLarge'
+      )
     })
   })
   describe('At any time', () => {
@@ -123,7 +147,10 @@ describe('Mine Auctions', () => {
     it('revert when claim amount is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
       await increase(DEFAULT_AUCTION_INTERVAL)
-      await expect(auction.claim(groupId, auctionId, ethers.MaxUint256)).to.be.revertedWithCustomError(auction, 'AuctionInvalidClaimAmount')
+      await expect(auction.claim(groupId, auctionId, ethers.MaxUint256)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionInvalidClaimAmount'
+      )
     })
     it('allows to claim', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)

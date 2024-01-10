@@ -2,10 +2,9 @@
 
 pragma solidity 0.8.21;
 
-import "../interfaces/IERC20.sol";
+import '../interfaces/IERC20.sol';
 
 library TransferHelper {
-
     error TransferHelperEthTransferFailed(address receiver, uint256 amount);
     error TransferHelperERC20TransferFailed(address token, address receiver, uint256 amount);
 
