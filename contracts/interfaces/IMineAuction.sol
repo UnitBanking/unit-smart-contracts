@@ -2,6 +2,11 @@
 
 pragma solidity 0.8.21;
 
+import '../MineToken.sol';
+import '../BondingCurve.sol';
+import './IERC20.sol';
+
+
 interface IMineAuction {
     event AuctionBid(uint256 auctionGroupId, uint256 auctionId, address bidder, uint256 amount);
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
@@ -9,6 +14,7 @@ interface IMineAuction {
 
     error AuctionNoDirectTransfer();
     error AuctionAuctionGroupIdTooLarge(uint256 auctionGroupId);
+    error AuctionAuctionIdTooLarge(uint256 auctionId);
     error AuctionNotCurrentAuctionId(uint256 auctionId);
     error AuctionStartTimeInThePast();
     error AuctionInvalidInterval(uint256 interval);
@@ -18,6 +24,8 @@ interface IMineAuction {
     error AuctionBiddingInProgress();
     error AuctionInSettlement();
     error AuctionClaimingCurrentAuction();
+    error AuctionInvalidClaimAmount(uint256 amount);
+
 
     struct Auction {
         uint256 totalBidAmount;
@@ -31,6 +39,12 @@ interface IMineAuction {
         uint256 settleTime;
         uint256 interval;
     }
+
+    function initialize(
+        BondingCurve bondingCurve,
+        MineToken mine,
+        IERC20 bidToken
+    ) external;
 
     function getAuctionGroup(
         uint256 auctionGroupId

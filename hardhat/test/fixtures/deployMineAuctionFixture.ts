@@ -23,19 +23,20 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
   const factory = await ethers.getContractFactory('MineAuction', { signer: owner })
   const auction = await factory.deploy()
   const auctionAddress = await auction.getAddress()
+  const { mine } = await loadFixture(deployMineFixture)
+  const { base } = await deployBaseTokenFixture()
 
-  const initialize = factory.interface.encodeFunctionData('initialize', [])
+  const mineAddress = await mine.getAddress()
+  const bidTokenAddress = await base.getAddress()
+
+  const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
+
+  const initialize = factory.interface.encodeFunctionData('initialize(address,address,address)', [dummyBondingCurve, mineAddress, bidTokenAddress])
   const proxy = await ethers.deployContract('Proxy', [owner.address], { signer: owner })
   await proxy.upgradeToAndCall(auctionAddress, initialize)
   const proxyAddress = await proxy.getAddress()
   const proxyAuction = MineAuction__factory.connect(proxyAddress, owner)
 
-  const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
-  const { base } = await deployBaseTokenFixture()
-  const { mine } = await loadFixture(deployMineFixture)
-  await proxyAuction.setMine(await mine.getAddress())
-  await proxyAuction.setBidToken(await base.getAddress())
-  await proxyAuction.setBondingCurve(dummyBondingCurve)
   await mine.setMinter(await proxyAuction.getAddress(), true)
 
   await base.mint(other.address, 10000n * 10n ** (await base.decimals()))

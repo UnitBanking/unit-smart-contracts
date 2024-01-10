@@ -9,14 +9,14 @@ import './abstracts/Proxiable.sol';
 import './libraries/TransferHelper.sol';
 import './MineToken.sol';
 
-contract MineAuction is Ownable, Proxiable, IMineAuction {
+contract MineAuction is Ownable, IMineAuction, Proxiable  {
     uint8 public constant MINIMUM_AUCTION_INTERVAL = 12;
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
     uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR;
     uint256 constant AUCTIONABLE_NUMERATOR = 800;
     uint256 constant AUCTIONABLE_DENOMINATOR = 100;
 
-    address public bondingCurve;
+    BondingCurve public bondingCurve;
     MineToken public mine;
     IERC20 public bidToken;
 
@@ -26,26 +26,21 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
     uint256 public totalAuctionableAmount;
     uint256 public initialAuctionTime;
 
-    function initialize() public virtual override {
+    function initialize(
+        BondingCurve _bondingCurve,
+        MineToken _mine,
+        IERC20 _bidToken
+    ) external {
         _setOwner(msg.sender);
         _setAuctionGroup(0, 1 hours, 24 hours);
-        initialAuctionTime = block.timestamp;
-        super.initialize();
-    }
-
-    //TODO: use setter temp, should replace with precompile in the future
-    function setBondingCurve(address _bondingCurve) external onlyOwner {
         bondingCurve = _bondingCurve;
-    }
+        mine = _mine;
+        bidToken = _bidToken;
 
-    function setMine(address _mine) external onlyOwner {
-        mine = MineToken(_mine);
-        //Todo:  use prb math
-        totalAuctionableAmount = (mine.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
-    }
+        initialAuctionTime = block.timestamp;
+        totalAuctionableAmount = (_mine.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
 
-    function setBidToken(address _bidToken) external onlyOwner {
-        bidToken = IERC20(_bidToken);
+        Proxiable.initialize();
     }
 
     function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external override onlyOwner {
@@ -68,9 +63,7 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
     function getAuctionGroup(
         uint256 auctionGroupId
     ) external view override returns (uint256 startTime, uint256 settleTime, uint256 interval) {
-        if (auctionGroupId > currentAuctionGroupId()) {
-            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
-        }
+        validateAuctionGroupId(auctionGroupId);
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         startTime = auctionGroup.startTime;
         settleTime = auctionGroup.settleTime;
@@ -97,6 +90,7 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
         uint256 auctionGroupId,
         uint256 auctionId
     ) external view override returns (uint256 totalBidAmount, uint256 rewardAmount) {
+        validateAuctionId(auctionGroupId, auctionId);
         Auction storage auction = auctions[auctionGroupId][auctionId];
         totalBidAmount = auction.totalBidAmount;
         rewardAmount = auction.rewardAmount;
@@ -107,6 +101,7 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
         uint256 auctionId,
         address bidder
     ) external view override returns (uint256 bidAmount) {
+        validateAuctionId(auctionGroupId, auctionId);
         bidAmount = auctions[auctionGroupId][auctionId].bid[bidder];
     }
 
@@ -115,6 +110,7 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
         uint256 auctionId,
         address bidder
     ) external view override returns (uint256 claimedAmount) {
+        validateAuctionId(auctionGroupId, auctionId);
         claimedAmount = auctions[auctionGroupId][auctionId].claimed[bidder];
     }
 
@@ -136,7 +132,7 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
             auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount();
         }
 
-        TransferHelper.safeTransferFromERC20(bidToken, msg.sender, bondingCurve, amount);
+        TransferHelper.safeTransferFromERC20(bidToken, msg.sender, address(bondingCurve), amount);
         emit AuctionBid(auctionGroupId, auctionId, msg.sender, amount);
     }
 
@@ -158,13 +154,32 @@ contract MineAuction is Ownable, Proxiable, IMineAuction {
         }
     }
 
+    function validateAuctionGroupId(uint256 auctionGroupId) internal view {
+         if (auctionGroupId > currentAuctionGroupId()) {
+            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
+         }
+    }
+
+    function validateAuctionId(uint256 auctionGroupId, uint256 auctionId) internal view {
+        uint256 groupId = currentAuctionGroupId();
+        if (auctionGroupId > groupId) {
+            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
+        }
+        AuctionGroup memory auctionGroup = auctionGroups[groupId];
+        uint256 previousAuctionDuration = auctionId * auctionGroup.interval;
+        uint256 startTime = previousAuctionDuration + auctionGroup.startTime;
+        if(block.timestamp < startTime) {
+            revert AuctionAuctionIdTooLarge(auctionId);
+        }
+    }
+
     function _claim(uint256 auctionGroupId, uint256 auctionId, address bidder, address to, uint256 amount) internal {
         if (auctionGroupId == currentAuctionGroupId() && isCurrentAuctionId(auctionId)) {
             revert AuctionClaimingCurrentAuction();
         }
         uint256 claimable = getClaimableAmount(auctionGroupId, auctionId, bidder);
         if (amount > claimable) {
-            amount = claimable;
+            revert AuctionInvalidClaimAmount(amount);
         }
         if (amount == 0) {
             return;

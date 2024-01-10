@@ -17,7 +17,7 @@ library TransferHelper {
     }
 
     function safeTransferFromERC20(IERC20 token, address from, address to, uint256 amount) internal {
-        (bool success, bytes memory data) = address(token).call(abi.encodeCall(token.transferFrom, (from, to, amount)));
+        (bool success, ) = address(token).call(abi.encodeCall(token.transferFrom, (from, to, amount)));
         if (!success) {
             revert TransferHelperERC20TransferFailed(address(token), to, amount);
         }

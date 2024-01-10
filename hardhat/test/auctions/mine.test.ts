@@ -11,6 +11,7 @@ import {
   setNextBlockTimestampToSettlement,
   simulateAnAuction,
 } from './auctionOperations'
+import { ethers } from 'hardhat'
 
 describe('Mine Auctions', () => {
   let auction: MineAuction
@@ -101,8 +102,23 @@ describe('Mine Auctions', () => {
   })
   describe('In settlement and before auction ends', () => {})
   describe('Auction ended', () => {})
+  describe('Auction view valid check', () => {
+    it('reverts when groupId is too large', async () => {
+      const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
+      await increase(DEFAULT_AUCTION_INTERVAL)
+      await expect(auction.getAuction(groupId + 1n, auctionId)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
+      await expect(auction.getAuctionGroup(groupId + 1n)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
+      await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
+      await expect(auction.getBid(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdTooLarge')
+    })
+  })
   describe('At any time', () => {
     it('reverts when bid amount is zero', async () => {})
+    it('revert when claim amount is too large', async () => {
+      const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
+      await increase(DEFAULT_AUCTION_INTERVAL)
+      await expect(auction.claim(groupId, auctionId, ethers.MaxUint256)).to.be.revertedWithCustomError(auction, 'AuctionInvalidClaimAmount')
+    })
     it('allows to claim', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
       await increase(DEFAULT_AUCTION_INTERVAL)
