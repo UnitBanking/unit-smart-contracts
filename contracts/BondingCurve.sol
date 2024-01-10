@@ -22,6 +22,7 @@ import './UnitToken.sol';
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
  - TBD: collateral token burning mechanism
+ - add UTs for non reentrant funcs
  */
 
 contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
@@ -126,7 +127,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     /**
      * @inheritdoc IBondingCurve
      */
-    function burn(uint256 unitTokenAmount) external {
+    function burn(uint256 unitTokenAmount) external nonReentrant {
         unitToken.burnFrom(msg.sender, unitTokenAmount);
 
         collateralToken.transfer(msg.sender, _getWithdrawalAmount(unitTokenAmount));
@@ -135,7 +136,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     /**
      * @inheritdoc IBondingCurve
      */
-    function redeem(uint256 mineTokenAmount) external {
+    function redeem(uint256 mineTokenAmount) external nonReentrant {
         uint256 excessCollateralAmount = getExcessCollateralReserve();
         (uint256 userCollateralAmount, uint256 burnCollateralAmount) = _getRedemptionAmounts(
             mineTokenAmount,
