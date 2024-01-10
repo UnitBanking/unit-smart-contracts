@@ -186,9 +186,6 @@ contract MineAuction is Ownable, IMineAuction, Proxiable  {
         if (amount > claimable) {
             revert AuctionInvalidClaimAmount(amount);
         }
-        if (amount == 0) {
-            return;
-        }
         auctions[auctionGroupId][auctionId].claimed[bidder] += amount;
         mine.mint(to, amount);
         emit AuctionClaimed(auctionGroupId, auctionId, bidder, amount);
