@@ -19,6 +19,8 @@ abstract contract BondingCurveTestBase is Test {
     uint256 internal constant INITIAL_UNIT_VALUE = 1 wei;
     uint256 internal constant HIGH_RR = 4;
 
+    address internal constant COLLATERAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+
     CollateralERC20TokenTest public collateralERC20TokenTest;
     InflationOracleHarness public inflationOracle;
     EthUsdOracleMock public ethUsdOracle;
@@ -55,7 +57,7 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.initialize();
 
         // set up BondingCurve contract
-        bondingCurveImplementation = new BondingCurveHarness();
+        bondingCurveImplementation = new BondingCurveHarness(COLLATERAL_BURN_ADDRESS);
         bondingCurveProxyType = new Proxy(address(this));
 
         bondingCurveProxyType.upgradeToAndCall(

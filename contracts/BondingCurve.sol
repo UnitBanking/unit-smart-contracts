@@ -21,7 +21,6 @@ import './UnitToken.sol';
  - revisit `burn()` interface upon code integration
  - TBC: make REDEMPTION_DISCOUNT mutable
  - TBC: make oracles mutable
- - TBD: collateral token burning mechanism
  - add UTs for non reentrant funcs
  */
 
@@ -50,6 +49,8 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     uint256 public constant BASE_REDEMPTION_SPREAD = 100; // 0.01 or 1%
     uint256 public constant BASE_REDEMPTION_SPREAD_PRECISION = 10_000;
 
+    address public immutable COLLATERAL_BURN_ADDRESS;
+
     /**
      * ================ STATE VARIABLES ================
      */
@@ -72,8 +73,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * @dev This contract is meant to be used through a proxy. The constructor makes the implementation contract
      * uninitializable, which makes it unusable when called directly.
      */
-    constructor() {
+    constructor(address collateralBurnAddress) {
         initialized = true;
+        COLLATERAL_BURN_ADDRESS = collateralBurnAddress;
     }
 
     /**
@@ -145,7 +147,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
 
         mineToken.burnFrom(msg.sender, excessCollateralAmount == 0 ? 0 : mineTokenAmount);
         collateralToken.transfer(msg.sender, userCollateralAmount);
-        collateralToken.transfer(0x000000000000000000000000000000000000dEaD, burnCollateralAmount); // TODO: review and modify burning mechanism
+        collateralToken.transfer(COLLATERAL_BURN_ADDRESS, burnCollateralAmount);
     }
 
     /**
