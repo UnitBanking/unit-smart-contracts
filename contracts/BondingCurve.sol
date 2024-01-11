@@ -9,13 +9,12 @@ import './interfaces/IInflationOracle.sol';
 import './interfaces/IEthUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
-import './libraries/TransferHelper.sol';
+import './libraries/TransferUtils.sol';
 import './MineToken.sol';
 import './UnitToken.sol';
 
 /*
  TODOs:
- - replace all occurences of `IERC20.transferFrom` to a library call, which leverages OZ's `SafeERC20.safeTransferFrom`
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility (possibly convert all to public for improved testability)
  - revisit `burn()` interface upon code integration
@@ -25,7 +24,7 @@ import './UnitToken.sol';
  */
 
 contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
-    using TransferHelper for address;
+    using TransferUtils for address;
 
     /**
      * ================ CONSTANTS ================
@@ -120,7 +119,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
             revert BondingCurveReserveRatioTooLow();
         }
 
-        uint256 transferredCollateralAmount = TransferHelper.safeTransferFrom(
+        uint256 transferredCollateralAmount = TransferUtils.safeTransferFrom(
             collateralToken,
             msg.sender,
             address(this),
@@ -134,7 +133,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * @inheritdoc IBondingCurve
      */
     function burn(uint256 unitTokenAmount) external nonReentrant {
-        collateralToken.transfer(msg.sender, _getWithdrawalAmount(unitTokenAmount));
+        TransferUtils.safeTransfer(collateralToken, msg.sender, _getWithdrawalAmount(unitTokenAmount));
 
         unitToken.burnFrom(msg.sender, unitTokenAmount);
     }
@@ -150,8 +149,8 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         );
 
         mineToken.burnFrom(msg.sender, excessCollateralAmount == 0 ? 0 : mineTokenAmount);
-        collateralToken.transfer(msg.sender, userCollateralAmount);
-        collateralToken.transfer(COLLATERAL_BURN_ADDRESS, burnCollateralAmount);
+        TransferUtils.safeTransfer(collateralToken, msg.sender, userCollateralAmount);
+        TransferUtils.safeTransfer(collateralToken, COLLATERAL_BURN_ADDRESS, burnCollateralAmount);
     }
 
     /**
