@@ -134,9 +134,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * @inheritdoc IBondingCurve
      */
     function burn(uint256 unitTokenAmount) external nonReentrant {
-        unitToken.burnFrom(msg.sender, unitTokenAmount);
-
         collateralToken.transfer(msg.sender, _getWithdrawalAmount(unitTokenAmount));
+
+        unitToken.burnFrom(msg.sender, unitTokenAmount);
     }
 
     /**
