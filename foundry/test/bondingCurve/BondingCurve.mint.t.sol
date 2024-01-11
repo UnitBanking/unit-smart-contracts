@@ -5,7 +5,6 @@ pragma solidity 0.8.21;
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { Mintable } from '../../../contracts/abstracts/Mintable.sol';
-import { TestUtils } from './TestUtils.sol';
 
 contract BondingCurveMintTest is BondingCurveTestBase {
     function test_mint_SuccessfullyMintsUnitToken() public {

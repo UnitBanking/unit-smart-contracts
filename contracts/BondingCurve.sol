@@ -119,11 +119,15 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         if (_getReserveRatio() < HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
-        uint256 mintAmount = _getMintAmount(collateralAmountIn);
 
-        collateralToken.transferFrom(msg.sender, address(this), collateralAmountIn);
+        uint256 transferredCollateralAmount = TransferHelper.safeTransferFrom(
+            collateralToken,
+            msg.sender,
+            address(this),
+            collateralAmountIn
+        );
 
-        unitToken.mint(receiver, mintAmount); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
+        unitToken.mint(receiver, _getMintAmount(transferredCollateralAmount)); // TODO: Should the Unit token `mint` function return a bool for backwards compatibility?
     }
 
     /**
@@ -180,7 +184,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
 
     // P(t) = min(IP(t)/EP(t), BalanceETH(t)/SupplyUnit(t))
     function getUnitEthPrice() external view returns (uint256) {
-        return _getUnitEthPrice();
+        return _getUnitEthPrice(0);
     }
 
     // RR(t) = (EP(t) * BalanceETH(t)) / (IP(t) * SupplyUnit(t))
@@ -221,7 +225,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
             revert BondingCurveReserveRatioTooLow();
         }
 
-        return _getMintAmount(collateralAmount);
+        return _getQuoteMintAmount(collateralAmount);
     }
 
     function quoteBurn(uint256 unitTokenAmount) external view returns (uint256) {
@@ -237,12 +241,28 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      */
 
     /**
-     * @return UNIT token amount that should be minted for the provided `collateralAmountIn`.
+     * @notice Calculates the amount of UNIT token that should be minted for the collateral amount that has already been
+     * transferred for minting.
+     * @param collateralAmountIn Collateral token amount transferred.
+     * @return UNIT token amount that should be minted for `collateralAmountIn`.
      */
     function _getMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
         return
             (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
-            ((_getUnitEthPrice() * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+            ((_getUnitEthPrice(collateralAmountIn) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+    }
+
+    /**
+     * @notice Calculates the amount of UNIT token that would be minted for the provided collateral amount in a mint scenario.
+     * @dev This function must be used only in a quote scenario, when no collateral tokens have been transferred in the call.
+     * @param collateralAmountIn Collateral token amount that can potentially be provided and should be used for quoting
+     * UNIT token amount.
+     * @return UNIT token amount that would be minted for `collateralAmountIn`.
+     */
+    function _getQuoteMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
+        return
+            (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
+            ((_getUnitEthPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
     }
 
     /**
@@ -250,7 +270,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      */
     function _getWithdrawalAmount(uint256 unitTokenAmount) internal view returns (uint256) {
         return
-            (unitTokenAmount * (_getUnitEthPrice() * (SPREAD_PRECISION - getSpread()))) /
+            (unitTokenAmount * (_getUnitEthPrice(0) * (SPREAD_PRECISION - getSpread()))) /
             SPREAD_PRECISION /
             UNITUSD_PRICE_PRECISION;
     }
@@ -293,16 +313,19 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     }
 
     /**
+     * @param transferredCollateralAmount Collateral token amount that was transferred in the current call context
+     * and should not be included in price calculation.
      * @return UNIT price in ETH in precision that matches `UNITUSD_PRICE_PRECISION`.
      */
-    function _getUnitEthPrice() internal view returns (uint256) {
+    function _getUnitEthPrice(uint256 transferredCollateralAmount) internal view returns (uint256) {
         uint256 unitTotalSupply = unitToken.totalSupply();
         if (unitTotalSupply > 0) {
             return
                 Math.min(
                     (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * ETHUSD_PRICE_PRECISION) /
                         ethUsdOracle.getEthUsdPrice(),
-                    (collateralToken.balanceOf(address(this)) * UNITUSD_PRICE_PRECISION) / unitTotalSupply
+                    ((collateralToken.balanceOf(address(this)) - transferredCollateralAmount) *
+                        UNITUSD_PRICE_PRECISION) / unitTotalSupply
                 );
         } else {
             return
