@@ -18,10 +18,8 @@ contract UnitAuctionTest is Test {
     function setUp() public {
         // // set up wallet balance
         // vm.deal(wallet, 10 ether);
-
         // // set up block timestamp
         // vm.warp(START_TIMESTAMP);
-
         // proxy = new Proxy(address(this));
         // unitAuctionImplementation = new UnitAuction();
     }
