@@ -6,6 +6,7 @@ import { Test } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
 import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
+import { CollateralERC20TokenTest } from '../../../contracts/test/CollateralERC20TokenTest.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 import { UnitToken } from '../../../contracts/UnitToken.sol';
@@ -14,10 +15,13 @@ import { Proxy } from '../../../contracts/Proxy.sol';
 abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
     uint256 internal constant START_TIMESTAMP = 1699023595;
-    uint256 internal constant INITIAL_ETH_VALUE = 5 wei;
+    uint256 internal constant INITIAL_COLLATERAL_TOKEN_VALUE = 5 wei;
     uint256 internal constant INITIAL_UNIT_VALUE = 1 wei;
     uint256 internal constant HIGH_RR = 4;
 
+    address internal constant COLLATERAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+
+    CollateralERC20TokenTest public collateralERC20TokenTest;
     InflationOracleHarness public inflationOracle;
     EthUsdOracleMock public ethUsdOracle;
     UnitToken public unitToken;
@@ -36,6 +40,9 @@ abstract contract BondingCurveTestBase is Test {
         // set up block timestamp
         vm.warp(START_TIMESTAMP);
 
+        // set up collateral token
+        collateralERC20TokenTest = new CollateralERC20TokenTest();
+
         // set up oracle contracts
         inflationOracle = new InflationOracleHarness();
         inflationOracle.setPriceIndexTwentyYearsAgo(77);
@@ -50,13 +57,14 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.initialize();
 
         // set up BondingCurve contract
-        bondingCurveImplementation = new BondingCurveHarness();
+        bondingCurveImplementation = new BondingCurveHarness(COLLATERAL_BURN_ADDRESS);
         bondingCurveProxyType = new Proxy(address(this));
 
         bondingCurveProxyType.upgradeToAndCall(
             address(bondingCurveImplementation),
             abi.encodeWithSelector(
                 IBondingCurve.initialize.selector,
+                address(collateralERC20TokenTest),
                 address(unitToken),
                 address(mineToken),
                 inflationOracle,
@@ -71,25 +79,27 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.setMinter(wallet, true);
         mineToken.setBurner(address(bondingCurveProxy), true);
 
-        vm.startPrank(wallet);
-        payable(address(bondingCurveProxy)).transfer(INITIAL_ETH_VALUE);
-        vm.stopPrank();
+        // send initial collateral token amount to bondingCurveProxy contract
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20TokenTest.mint(INITIAL_COLLATERAL_TOKEN_VALUE);
         vm.prank(address(bondingCurveProxy));
         unitToken.mint(wallet, INITIAL_UNIT_VALUE);
     }
 
-    function _createUserAndMintUnit(uint256 etherValue) internal returns (address user) {
+    function _createUserAndMintUnit(uint256 collateralAmountIn) internal returns (address user) {
         // Arrange
         user = vm.addr(2);
-        uint256 userEthBalance = 100 ether;
-        vm.deal(user, userEthBalance);
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.startPrank(user);
+        collateralERC20TokenTest.mint(userCollateralBalance);
+        collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
+        vm.stopPrank();
+
         vm.warp(START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);
-        bondingCurveProxy.mint{ value: etherValue }(user);
-
-        return user;
+        bondingCurveProxy.mint(user, collateralAmountIn);
     }
 
     function _mintMineToken(address receiver, uint256 value) internal {
@@ -98,10 +108,10 @@ abstract contract BondingCurveTestBase is Test {
     }
 
     function _createUserAndMintUnitAndMineTokens(
-        uint256 etherValue,
+        uint256 collateralAmount,
         uint256 mineTokenAmount
     ) internal returns (address user) {
-        user = _createUserAndMintUnit(etherValue);
+        user = _createUserAndMintUnit(collateralAmount);
         _mintMineToken(user, mineTokenAmount);
     }
 }

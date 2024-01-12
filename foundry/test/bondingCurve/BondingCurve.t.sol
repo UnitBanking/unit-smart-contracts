@@ -117,39 +117,39 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         uint256 reserveRatio = bondingCurveProxy.getReserveRatio();
 
         // Assert
-        assertEq(reserveRatio, INITIAL_ETH_VALUE / INITIAL_UNIT_VALUE);
+        assertEq(reserveRatio, INITIAL_COLLATERAL_TOKEN_VALUE / INITIAL_UNIT_VALUE);
     }
 
     /**
-     * ================ getExcessEthReserve() ================
+     * ================ getExcessCollateralReserve() ================
      */
 
-    function test_getExcessEthReserve_ReturnsEE() public {
+    function test_getExcessCollateralReserve_ReturnsEE() public {
         // Arrange
-        _createUserAndMintUnit(1 ether);
+        _createUserAndMintUnit(1e18);
         uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
             ethUsdOracle.getEthUsdPrice();
 
         // Act
-        uint256 excessEth = bondingCurveProxy.getExcessEthReserve();
+        uint256 excessCollateral = bondingCurveProxy.getExcessCollateralReserve();
 
         // Assert
-        assertEq(excessEth, 999000999001004);
-        assertGe(address(bondingCurveProxy).balance, unitEthValue);
+        assertEq(excessCollateral, 999000999001004);
+        assertGe(collateralERC20TokenTest.balanceOf(address(bondingCurveProxy)), unitEthValue);
     }
 
-    function test_getExcessEthReserve_ReturnsZero() public {
+    function test_getExcessCollateralReserve_ReturnsZero() public {
         // Arrange
-        _createUserAndMintUnit(1 ether);
+        _createUserAndMintUnit(1e18);
         ethUsdOracle.setEthUsdPrice(1e16);
         uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
             ethUsdOracle.getEthUsdPrice();
 
         // Act
-        uint256 excessEth = bondingCurveProxy.getExcessEthReserve();
+        uint256 excessCollateral = bondingCurveProxy.getExcessCollateralReserve();
 
         // Assert
-        assertEq(excessEth, 0);
+        assertEq(excessCollateral, 0);
         assertLt(address(bondingCurveProxy).balance, unitEthValue);
     }
 
@@ -160,24 +160,24 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_quoteMint_ReturnsQuotes() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
-        uint256 userEthBalance = 100 ether;
-        vm.deal(user, userEthBalance);
+        uint256 collateralAmount = 1e18;
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.deal(user, userCollateralBalance);
         vm.warp(START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);
-        uint256 quotes = bondingCurveProxy.quoteMint(etherValue);
+        uint256 quotes = bondingCurveProxy.quoteMint(collateralAmount);
 
         // Assert
         assertEq(quotes, 998382904467586844); //0.998382904467586844 UNIT
     }
 
-    function test_quoteMint_ReturnsQuotesFor0Eth() public {
+    function test_quoteMint_ReturnsQuotesFor0Collateral() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 userEthBalance = 100 ether;
-        vm.deal(user, userEthBalance);
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.deal(user, userCollateralBalance);
         vm.warp(START_TIMESTAMP + 10 days);
 
         // Act
@@ -191,17 +191,23 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_quoteMint_RevertWhenReserveRatioBelowHighRR() public {
         // Arrange
         address user = vm.addr(2);
-        uint256 etherValue = 1 ether;
-        uint256 userEthBalance = 100 ether;
-        vm.deal(user, userEthBalance);
+        uint256 collateralAmount = 1e18;
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.startPrank(user);
+        collateralERC20TokenTest.mint(userCollateralBalance);
+        collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
+        vm.stopPrank();
+
         vm.warp(START_TIMESTAMP + 10 days);
+
+        uint256 bondingCurveCollateralBalance = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         vm.prank(address(bondingCurveProxy));
-        payable(address(0)).transfer(address(bondingCurveProxy).balance); // remove ETH form BondingCurve to lower RR
+        collateralERC20TokenTest.burn(bondingCurveCollateralBalance); // remove collateral token form BondingCurve to lower RR
 
         // Act && Assert
         vm.prank(user);
         vm.expectRevert(IBondingCurve.BondingCurveReserveRatioTooLow.selector);
-        bondingCurveProxy.quoteMint(etherValue);
+        bondingCurveProxy.quoteMint(collateralAmount);
     }
 
     /**
@@ -210,8 +216,8 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_quoteBurn_ReturnsQuotes() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 burnAmount = 499191452233793422;
 
         // Act
@@ -224,8 +230,8 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_quoteBurn_ReturnsQuotesFor0Tokens() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
 
         // Act
         vm.prank(user);
@@ -242,7 +248,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_quoteRedeem_ReturnsQuotes() public {
         // Arrange
         uint256 mineTokenAmount = 1e18;
-        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
 
         // Act
         vm.prank(user);
@@ -256,7 +262,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_quoteRedeem_ReturnsQuotesFor0Token() public {
         // Arrange
         uint256 mineTokenAmount = 1e18;
-        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
 
         // Act
         vm.prank(user);

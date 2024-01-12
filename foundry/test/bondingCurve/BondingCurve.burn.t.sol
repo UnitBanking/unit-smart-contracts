@@ -8,13 +8,13 @@ import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 contract BondingCurveBurnTest is BondingCurveTestBase {
     function test_burn_SuccessfullyBurnsUnitToken() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 unitTokenBalanceBefore = unitToken.balanceOf(user);
-        uint256 userEthBalanceBefore = user.balance;
-        uint256 bondingCurveEthBalanceBefore = address(bondingCurveProxy).balance;
+        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         uint256 burnAmount = 499191452233793422; // 998382904467586844/2
-        uint256 ethWithdrawnAmount = 499000999000999000;
+        uint256 collateralWithdrawnAmount = 499000999000999000;
         vm.prank(user);
         unitToken.approve(address(bondingCurveProxy), 998382904467586844);
 
@@ -24,20 +24,20 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
         // Assert
         uint256 unitTokenBalanceAfter = unitToken.balanceOf(user);
-        uint256 userEthBalanceAfter = user.balance;
-        uint256 bondingCurveEthBalanceAfter = address(bondingCurveProxy).balance;
+        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore - burnAmount);
-        assertEq(userEthBalanceAfter - userEthBalanceBefore, ethWithdrawnAmount);
-        assertEq(bondingCurveEthBalanceBefore - bondingCurveEthBalanceAfter, ethWithdrawnAmount);
+        assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralWithdrawnAmount);
+        assertEq(bondingCurveCollateralBalanceBefore - bondingCurveCollateralBalanceAfter, collateralWithdrawnAmount);
     }
 
     function test_burn_Burns0UnitToken() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 unitTokenBalanceBefore = unitToken.balanceOf(user);
-        uint256 userEthBalanceBefore = user.balance;
-        uint256 bondingCurveEthBalanceBefore = address(bondingCurveProxy).balance;
+        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
 
         // Act
         vm.prank(user);
@@ -45,17 +45,17 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
         // Assert
         uint256 unitTokenBalanceAfter = unitToken.balanceOf(user);
-        uint256 userEthBalanceAfter = user.balance;
-        uint256 bondingCurveEthBalanceAfter = address(bondingCurveProxy).balance;
+        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore);
-        assertEq(userEthBalanceBefore, userEthBalanceAfter);
-        assertEq(bondingCurveEthBalanceBefore, bondingCurveEthBalanceAfter);
+        assertEq(userCollateralBalanceBefore, userCollateralBalanceAfter);
+        assertEq(bondingCurveCollateralBalanceBefore, bondingCurveCollateralBalanceAfter);
     }
 
     function test_burn_RevertsIfUserTriesToBurnMoreThanUnitBalance() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 userUnitBalance = unitToken.balanceOf(user);
         uint256 additionalUnitAmount = 1;
         uint256 burnAmount = userUnitBalance + additionalUnitAmount;
@@ -74,8 +74,8 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
     function test_burn_RevertsIfUserTriesToBurnMoreThanUnitTotalSupply() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 userUnitBalance = unitToken.balanceOf(user);
         uint256 burnAmount = unitToken.totalSupply() + 1;
         vm.prank(user);
@@ -91,8 +91,8 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
     function test_burn_RevertsIfUserTriesToBurnMoreThanUnitAllowance() public {
         // Arrange
-        uint256 etherValue = 1 ether;
-        address user = _createUserAndMintUnit(etherValue);
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
         uint256 userUnitBalance = unitToken.balanceOf(user);
         uint256 allowedAmount = userUnitBalance - 1;
         uint256 burnAmount = allowedAmount + 1;
