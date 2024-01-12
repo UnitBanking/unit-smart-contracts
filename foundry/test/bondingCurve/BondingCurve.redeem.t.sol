@@ -6,12 +6,12 @@ import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
 import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 
 contract BondingCurveRedeemTest is BondingCurveTestBase {
-    function test_redeem_SuccessfullyRedeemsEth() public {
+    function test_redeem_SuccessfullyRedeemsCollateral() public {
         // Arrange
         uint256 mineTokenAmount = 1e18;
-        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
-        uint256 userEthBalanceBefore = user.balance;
-        uint256 bondingCurveEthBalanceBefore = address(bondingCurveProxy).balance;
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
+        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
@@ -21,21 +21,21 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         bondingCurveProxy.redeem(mineTokenAmount);
 
         // Assert
-        uint256 userEthBalanceAfter = user.balance;
-        uint256 bondingCurveEthBalanceAfter = address(bondingCurveProxy).balance;
+        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyAfter = mineToken.totalSupply();
         assertEq(mineToken.balanceOf(user), 0);
-        assertEq(userEthBalanceAfter, userEthBalanceBefore + 494505494505496);
-        assertEq(bondingCurveEthBalanceBefore, bondingCurveEthBalanceAfter + 989010989010993);
+        assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore + 494505494505496);
+        assertEq(bondingCurveCollateralBalanceBefore, bondingCurveCollateralBalanceAfter + 989010989010993);
         assertEq(mineTotalSupplyAfter, mineTotalSupplyBefore - mineTokenAmount);
     }
 
-    function test_redeem_SuccessfullySkipsRedemptionDueToNoExcessEth() public {
+    function test_redeem_SuccessfullySkipsRedemptionDueToNoExcessCollateral() public {
         // Arrange
         uint256 mineTokenAmount = 1e8 * 1e18;
-        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
-        uint256 userEthBalanceBefore = user.balance;
-        uint256 bondingCurveEthBalanceBefore = address(bondingCurveProxy).balance;
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
+        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
@@ -46,22 +46,22 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         bondingCurveProxy.redeem(mineTokenAmount);
 
         // Assert
-        uint256 userEthBalanceAfter = user.balance;
-        uint256 bondingCurveEthBalanceAfter = address(bondingCurveProxy).balance;
+        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyAfter = mineToken.totalSupply();
         assertEq(mineToken.balanceOf(user), mineTokenAmount);
-        assertEq(userEthBalanceAfter, userEthBalanceBefore);
-        assertEq(bondingCurveEthBalanceAfter, bondingCurveEthBalanceBefore);
+        assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore);
+        assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore);
         assertEq(mineTotalSupplyAfter, mineTotalSupplyBefore);
     }
 
     function test_redeem_Redeems0MineTokens() public {
         // Arrange
         uint256 mineTokenAmount = 1e8 * 1e18;
-        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
-        uint256 bondingCurveEthBalanceBefore = address(bondingCurveProxy).balance;
-        uint256 userEthBalanceBefore = user.balance;
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
 
@@ -72,18 +72,18 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         // Assert
         uint256 userMineBalanceAfter = mineToken.balanceOf(user);
         uint256 mineTotalSupplyAfter = mineToken.totalSupply();
-        uint256 bondingCurveEthBalanceAfter = address(bondingCurveProxy).balance;
-        uint256 userEthBalanceAfter = user.balance;
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
         assertEq(userMineBalanceAfter, mineTokenAmount);
         assertEq(mineTotalSupplyAfter, mineTotalSupplyBefore);
-        assertEq(bondingCurveEthBalanceAfter, bondingCurveEthBalanceBefore);
-        assertEq(userEthBalanceAfter, userEthBalanceBefore);
+        assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore);
+        assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore);
     }
 
     function test_redeem_RevertsIfUserTriesToRedeemMoreThanMineBalance() public {
         // Arrange
         uint256 mineTokenAmount = 1e8 * 1e18;
-        address user = _createUserAndMintUnitAndMineTokens(1 ether, mineTokenAmount);
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
         uint256 userMineBalance = mineToken.balanceOf(user);
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), userMineBalance + 1);
