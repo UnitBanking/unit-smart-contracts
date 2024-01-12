@@ -210,6 +210,15 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     }
 
     /**
+     * @inheritdoc IBondingCurve
+     * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
+     */
+    function getMintPrice() external view returns (uint256) {
+        return ((_getUnitEthPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
+          (1 ether * UNITUSD_PRICE_PRECISION);
+    }
+
+    /**
      * ================ HELPER READ-ONLY FUNCTIONS ================
      *
      * The following functions are included to help determine the amount of tokens the end-user will receive in minting,

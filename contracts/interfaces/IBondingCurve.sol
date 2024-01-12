@@ -78,6 +78,11 @@ interface IBondingCurve {
     function updateInternals() external;
 
     /**
+     * @notice Returns the current UNIT price in ETH, which is used when minting UNIT.
+     */
+    function getMintPrice() external view returns (uint256);
+
+    /**
      * ================ GETTERS ================
      */
 
