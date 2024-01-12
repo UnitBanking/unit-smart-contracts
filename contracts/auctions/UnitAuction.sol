@@ -10,9 +10,9 @@ import '../UnitToken.sol';
 
 contract UnitAuction is Proxiable, Ownable {
     using TransferUtils for address;
-    error UnitAuctionRRTooHigh();
-    error UnitAuctionRRNotIncreased();
-    error UnitAuctionTerminated();
+    error UnitAuctionInitialReserveRatioOutOfRange(uint256 reserveRatio);
+    error UnitAuctionResultingReserveRatioOutOfRange(uint256 reserveRatio);
+    error UnitAuctionReserveRatioNotIncreased();
     error UnitAuctionNoDirectTransfers();
 
     uint256 public constant CRITICAL_RR = 1;
@@ -31,16 +31,14 @@ contract UnitAuction is Proxiable, Ownable {
      * ================ AUCTION STATE ================
      */
 
-    enum AuctionVariant {
-        None,
-        Contraction,
-        Expansion
-    }
+    uint8 public constant AUCTION_VARIANT_NONE = 1;
+    uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
+    uint8 public constant AUCTION_VARIANT_EXPANSION = 3;
 
     struct AuctionState {
         uint32 startTime;
         uint216 startPrice;
-        AuctionVariant variant;
+        uint8 variant;
     }
 
     AuctionState public auctionState;
@@ -90,74 +88,63 @@ contract UnitAuction is Proxiable, Ownable {
         startPriceBuffer = _startPriceBuffer;
     }
 
-    function refreshState() public {
-        uint256 reserveRatio = bondingCurve.getReserveRatio();
-        AuctionState memory _auctionState = auctionState;
+    /**
+     * @notice Updates the auction state in storage and returns a copy of it in memory.
+     */
+    function refreshState() public returns (uint256 reserveRatio, AuctionState memory _auctionState) {
+        reserveRatio = bondingCurve.getReserveRatio();
+        _auctionState = auctionState;
 
-        if (_auctionState.variant == AuctionVariant.Contraction) {
+        if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
             if (!inContractionRange(reserveRatio)) {
                 if (inExpansionRange(reserveRatio)) {
-                    _startExpansionAuction();
+                    _auctionState = _startExpansionAuction();
                 } else {
-                    _terminateAuction();
+                    _auctionState = _terminateAuction();
                 }
+            } else if (block.timestamp - _auctionState.startTime > auctionMaxDuration) {
+                _auctionState = _startContractionAuction();
             }
-
-            if (block.timestamp - _auctionState.startTime > auctionMaxDuration) {
-                _startContractionAuction();
-            }
-        }
-
-        if (_auctionState.variant == AuctionVariant.Expansion) {
+        } else if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
             if (!inExpansionRange(reserveRatio)) {
                 if (inContractionRange(reserveRatio)) {
-                    _startContractionAuction();
+                    _auctionState = _startContractionAuction();
                 } else {
-                    _terminateAuction();
+                    _auctionState = _terminateAuction();
                 }
+            } else if (block.timestamp - _auctionState.startTime > auctionMaxDuration) {
+                _auctionState = _startExpansionAuction();
             }
-
-            if (block.timestamp - _auctionState.startTime > auctionMaxDuration) {
-                _startExpansionAuction();
-            }
-        }
-
-        if (inContractionRange(reserveRatio)) {
-            _startContractionAuction();
+        } else if (inContractionRange(reserveRatio)) {
+            _auctionState = _startContractionAuction();
         } else if (inExpansionRange(reserveRatio)) {
-            _startExpansionAuction();
+            _auctionState = _startExpansionAuction();
         }
     }
 
     /**
      * @notice Bids in the UNIT contraction auction.
-     * @param unitAmount Unit token amount to be sold for collateral token
+     * @param unitAmount Unit token amount to be sold for collateral token.
      */
     function sellUnit(uint256 unitAmount) external {
-        uint256 reserveRatioBefore = bondingCurve.getReserveRatio();
-        // Check beforeRR
-        if (reserveRatioBefore > LOW_RR) {
-            revert UnitAuctionRRTooHigh();
-        }
-        if (block.timestamp - auctionState.startTime > auctionMaxDuration) {
-            revert UnitAuctionTerminated();
+        (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
+        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        uint256 currentPrice = (auctionState.startTime *
-            99 ** ((block.timestamp - auctionState.startTime) / 90 seconds)) / 100;
+        uint256 currentPrice = (_auctionState.startPrice *
+            99 ** ((block.timestamp - _auctionState.startTime) / 90 seconds)) / 100;
         uint256 collateralAmount = unitAmount * currentPrice;
 
         unitToken.burnFrom(msg.sender, unitAmount);
         TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
-        // Check afterRR
         if (reserveRatioAfter > bondingCurve.HIGH_RR()) {
-            revert UnitAuctionRRTooHigh();
+            revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
-        // Check if afterRR > beforeRR
         if (reserveRatioAfter <= reserveRatioBefore) {
-            revert UnitAuctionRRNotIncreased();
+            revert UnitAuctionReserveRatioNotIncreased();
         }
     }
 
@@ -167,24 +154,27 @@ contract UnitAuction is Proxiable, Ownable {
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
-    function _startContractionAuction() internal {
-        auctionState = AuctionState(
+    function _startContractionAuction() internal returns (AuctionState memory _auctionState) {
+        _auctionState = AuctionState(
             uint32(block.timestamp), // TODO: Confirm we want to do this
             uint216((bondingCurve.getMintPrice() * startPriceBuffer) / START_PRICE_BUFFER_PRECISION), // TODO: Refactor casting here
-            AuctionVariant.Contraction
+            AUCTION_VARIANT_CONTRACTION
         );
+        auctionState = _auctionState;
     }
 
-    function _startExpansionAuction() internal {
-        auctionState = AuctionState(
+    function _startExpansionAuction() internal returns (AuctionState memory _auctionState) {
+        _auctionState = AuctionState(
             uint32(block.timestamp),
             0, // TODO: add price formula
-            AuctionVariant.Expansion
+            AUCTION_VARIANT_EXPANSION
         );
+        auctionState = _auctionState;
     }
 
-    function _terminateAuction() internal {
-        auctionState.startTime = 0;
+    function _terminateAuction() internal returns (AuctionState memory _auctionState) {
+        _auctionState = AuctionState(0, 0, AUCTION_VARIANT_NONE);
+        auctionState = _auctionState;
     }
 
     function inContractionRange(uint256 reserveRatio) private pure returns (bool) {
