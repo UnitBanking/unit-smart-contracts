@@ -3,6 +3,7 @@
 pragma solidity 0.8.21;
 
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
+import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 
 contract BondingCurveHarnessTest is BondingCurveTestBase {
     /**
@@ -116,39 +117,159 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         uint256 reserveRatio = bondingCurveProxy.getReserveRatio();
 
         // Assert
-        assertEq(reserveRatio, INITIAL_ETH_VALUE / INITIAL_UNIT_VALUE);
+        assertEq(reserveRatio, INITIAL_COLLATERAL_TOKEN_VALUE / INITIAL_UNIT_VALUE);
     }
 
     /**
-     * ================ getExcessEthReserve() ================
+     * ================ getExcessCollateralReserve() ================
      */
 
-    function test_getExcessEthReserve_ReturnsEE() public {
+    function test_getExcessCollateralReserve_ReturnsEE() public {
         // Arrange
-        _createUserAndMintUnit(1 ether);
+        _createUserAndMintUnit(1e18);
         uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
             ethUsdOracle.getEthUsdPrice();
 
         // Act
-        uint256 excessEth = bondingCurveProxy.getExcessEthReserve();
+        uint256 excessCollateral = bondingCurveProxy.getExcessCollateralReserve();
 
         // Assert
-        assertEq(excessEth, 999000999001004);
-        assertGe(address(bondingCurveProxy).balance, unitEthValue);
+        assertEq(excessCollateral, 999000999001004);
+        assertGe(collateralERC20TokenTest.balanceOf(address(bondingCurveProxy)), unitEthValue);
     }
 
-    function test_getExcessEthReserve_ReturnsZero() public {
+    function test_getExcessCollateralReserve_ReturnsZero() public {
         // Arrange
-        _createUserAndMintUnit(1 ether);
+        _createUserAndMintUnit(1e18);
         ethUsdOracle.setEthUsdPrice(1e16);
         uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
             ethUsdOracle.getEthUsdPrice();
 
         // Act
-        uint256 excessEth = bondingCurveProxy.getExcessEthReserve();
+        uint256 excessCollateral = bondingCurveProxy.getExcessCollateralReserve();
 
         // Assert
-        assertEq(excessEth, 0);
+        assertEq(excessCollateral, 0);
         assertLt(address(bondingCurveProxy).balance, unitEthValue);
+    }
+
+    /**
+     * ================ quoteMint() ================
+     */
+
+    function test_quoteMint_ReturnsQuotes() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 collateralAmount = 1e18;
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.deal(user, userCollateralBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteMint(collateralAmount);
+
+        // Assert
+        assertEq(quotes, 998382904467586844); //0.998382904467586844 UNIT
+    }
+
+    function test_quoteMint_ReturnsQuotesFor0Collateral() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.deal(user, userCollateralBalance);
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteMint(0);
+
+        // Assert
+        assertEq(quotes, 0);
+    }
+
+    function test_quoteMint_RevertWhenReserveRatioBelowHighRR() public {
+        // Arrange
+        address user = vm.addr(2);
+        uint256 collateralAmount = 1e18;
+        uint256 userCollateralBalance = 100 * 1e18;
+        vm.startPrank(user);
+        collateralERC20TokenTest.mint(userCollateralBalance);
+        collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
+        vm.stopPrank();
+
+        vm.warp(START_TIMESTAMP + 10 days);
+
+        uint256 bondingCurveCollateralBalance = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20TokenTest.burn(bondingCurveCollateralBalance); // remove collateral token form BondingCurve to lower RR
+
+        // Act && Assert
+        vm.prank(user);
+        vm.expectRevert(IBondingCurve.BondingCurveReserveRatioTooLow.selector);
+        bondingCurveProxy.quoteMint(collateralAmount);
+    }
+
+    /**
+     * ================ quoteBurn() ================
+     */
+
+    function test_quoteBurn_ReturnsQuotes() public {
+        // Arrange
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
+        uint256 burnAmount = 499191452233793422;
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteBurn(burnAmount);
+
+        // Assert
+        assertEq(quotes, 499000999000999000);
+    }
+
+    function test_quoteBurn_ReturnsQuotesFor0Tokens() public {
+        // Arrange
+        uint256 collateralAmount = 1e18;
+        address user = _createUserAndMintUnit(collateralAmount);
+
+        // Act
+        vm.prank(user);
+        uint256 quotes = bondingCurveProxy.quoteBurn(0);
+
+        // Assert
+        assertEq(quotes, 0);
+    }
+
+    /**
+     * ================ quoteRedeem() ================
+     */
+
+    function test_quoteRedeem_ReturnsQuotes() public {
+        // Arrange
+        uint256 mineTokenAmount = 1e18;
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
+
+        // Act
+        vm.prank(user);
+        (uint256 userAmount, uint256 burnAmount) = bondingCurveProxy.quoteRedeem(mineTokenAmount);
+
+        // Assert
+        assertEq(userAmount, 494505494505496);
+        assertEq(burnAmount, 494505494505497);
+    }
+
+    function test_quoteRedeem_ReturnsQuotesFor0Token() public {
+        // Arrange
+        uint256 mineTokenAmount = 1e18;
+        address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
+
+        // Act
+        vm.prank(user);
+        (uint256 userAmount, uint256 burnAmount) = bondingCurveProxy.quoteRedeem(0);
+
+        // Assert
+        assertEq(userAmount, 0);
+        assertEq(burnAmount, 0);
     }
 }

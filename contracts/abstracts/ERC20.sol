@@ -97,7 +97,7 @@ abstract contract ERC20 is IERC20 {
         uint256 currentAllowance = allowance[owner][spender];
         if (currentAllowance != type(uint256).max) {
             if (currentAllowance < value) {
-                revert ERC20InsufficientAllowance(msg.sender, currentAllowance, value);
+                revert ERC20InsufficientAllowance(spender, currentAllowance, value);
             }
             unchecked {
                 // Overflow not possible: value <= currentAllowance < type(uint256).max.

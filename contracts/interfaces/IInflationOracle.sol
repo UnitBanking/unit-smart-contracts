@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.21;
 
+// The FED's report presents the price index with 3 decimal places (see https://fred.stlouisfed.org/series/PCEPI).
+// We are including two additional digits of precision as a precaution.
 uint256 constant PRICE_INDEX_PRECISION = 100_000;
 
 interface IInflationOracle {

@@ -15,7 +15,7 @@ interface IBondingCurve {
     /**
      * @dev Cannot mint due to too low reserve ratio.
      */
-    error BondingCurveMintDisabledDueToTooLowRR();
+    error BondingCurveReserveRatioTooLow();
 
     /**
      * @dev Returned when the passed UNIT token does not have `expectedPrecision`.
@@ -30,12 +30,14 @@ interface IBondingCurve {
      * @notice Initializes the proxy contract's.
      * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {ethUsdOracle}.
      * @dev Calls Proxiable.initialize() at the end to set `initialized` flag.
+     * @param _collateralToken Address of the token used as UNIT's stabilization collateral.
      * @param _unitToken UNIT token address.
      * @param _mineToken MINE token address.
      * @param _inflationOracle Inflation oracle.
      * @param _ethUsdOracle ETH-USD price oracle.
      */
     function initialize(
+        IERC20 _collateralToken,
         UnitToken _unitToken,
         MineToken _mineToken,
         IInflationOracle _inflationOracle,
@@ -43,14 +45,14 @@ interface IBondingCurve {
     ) external;
 
     /**
-     * @notice Creates UNIT token and assigns it to `receiver`. The amount created is proportional to the collateral token
-     * amount passed and depends on the UNIT price expressed in collateral token and the spread.
-     * Note that there is an edge case, where the caller passes a non-zero, albeit small, amount and due to market conditions
-     * and rounding they may receive zero tokens in return.
+     * @notice Creates UNIT token and assigns it to `receiver`. The amount created is proportional to the
+     * `collateralAmountIn` and depends on the UNIT price expressed in collateral token and the spread.
+     * Note that there is an edge case, where the caller passes a non-zero, albeit small, `collateralAmountIn`
+     * and due to market conditions and rounding they may receive zero tokens in return.
      * @dev This function can only by called by UNIT token minter. See {UnitToken-mint}.
      * @param receiver The receiver of minted UNIT tokens.
      */
-    function mint(address receiver) external payable;
+    function mint(address receiver, uint256 collateralAmountIn) external;
 
     /**
      * @notice Burns UNIT tokens and transfers a proportional amount of the collateral token to the caller. The returned amount
@@ -85,10 +87,5 @@ interface IBondingCurve {
 
     function getReserveRatio() external view returns (uint256);
 
-    function getExcessEthReserve() external view returns (uint256);
-
-    /**
-     * @notice Returns the current UNIT price in ETH, which is used when minting UNIT.
-     */
-    function getMintPrice() external view returns (uint256);
+    function getExcessCollateralReserve() external view returns (uint256);
 }
