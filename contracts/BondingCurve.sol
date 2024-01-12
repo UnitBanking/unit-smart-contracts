@@ -214,8 +214,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
      */
     function getMintPrice() external view returns (uint256) {
-        return ((_getUnitEthPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
-          (1 ether * UNITUSD_PRICE_PRECISION);
+        return
+            ((_getUnitEthPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
+            (1 ether * UNITUSD_PRICE_PRECISION);
     }
 
     /**

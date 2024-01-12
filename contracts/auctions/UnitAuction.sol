@@ -4,12 +4,12 @@ pragma solidity 0.8.21;
 
 import '../abstracts/Proxiable.sol';
 import '../abstracts/Ownable.sol';
-import '../libraries/TransferHelper.sol';
+import '../libraries/TransferUtils.sol';
 import '../BondingCurve.sol';
 import '../UnitToken.sol';
 
 contract UnitAuction is Proxiable, Ownable {
-    using TransferHelper for address;
+    using TransferUtils for address;
     error UnitAuctionRRTooHigh();
     error UnitAuctionRRNotIncreased();
     error UnitAuctionTerminated();
@@ -148,7 +148,7 @@ contract UnitAuction is Proxiable, Ownable {
         uint256 collateralAmount = unitAmount * currentPrice;
 
         unitToken.burnFrom(msg.sender, unitAmount);
-        msg.sender.transferEth(collateralAmount); // TODO: change to collateral ERC20 token
+        TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
         // Check afterRR
