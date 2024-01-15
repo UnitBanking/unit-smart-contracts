@@ -16,7 +16,6 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant AUCTIONABLE_NUMERATOR = 8000;
     uint256 constant AUCTIONABLE_DENOMINATOR = 10000;
 
-
     BondingCurve public bondingCurve;
     MineToken public mine;
     IERC20 public bidToken;
