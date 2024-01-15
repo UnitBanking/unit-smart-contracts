@@ -1,5 +1,10 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { DEFAULT_AUCTION_INTERVAL, DEFAULT_SETTLE_TIME, mineAuctionFixture } from '../fixtures/deployMineAuctionFixture'
+import {
+  DEFAULT_BID_TIME,
+  DEFAULT_AUCTION_INTERVAL,
+  DEFAULT_SETTLE_TIME,
+  mineAuctionFixture,
+} from '../fixtures/deployMineAuctionFixture'
 import { expect } from 'chai'
 import { getLatestBlock } from '../utils'
 import { type MineToken, type IERC20, type MineAuction } from '../../build/types'
@@ -34,11 +39,7 @@ describe('Mine Auctions', () => {
     beforeEach(async () => {
       const block = await getLatestBlock(owner)
       await setNextBlockTimestampToSettlement(auction, owner)
-      await auction.setAuctionGroup(
-        block.timestamp + DEFAULT_AUCTION_INTERVAL + 10,
-        DEFAULT_SETTLE_TIME,
-        DEFAULT_AUCTION_INTERVAL
-      )
+      await auction.setAuctionGroup(block.timestamp + DEFAULT_BID_TIME + 10, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     })
 
     it('reverts when bid', async () => {
@@ -49,19 +50,22 @@ describe('Mine Auctions', () => {
     })
 
     it('allows to change auction group settings', async () => {
+      await ethers.provider.send('evm_mine')
       const block = await getLatestBlock(owner)
-      const newStartTime = BigInt(block.timestamp) + 1n
-      await setNextBlockTimestamp(newStartTime)
+      const newStartTime = BigInt(block.timestamp) + 100n
 
-      const newInterval = 2 * 60 * 60
+      const newBidTime = 2 * 60 * 60
       const newSettle = 60 * 30
-      await expect(auction.setAuctionGroup(newStartTime, newSettle, newInterval))
+
+      await expect(auction.setAuctionGroup(newStartTime, newSettle, newBidTime))
         .to.emit(auction, 'AuctionGroupSet')
-        .withArgs(2, newStartTime, newSettle, newInterval)
-      const [startTime, settleTime, interval] = await auction.getCurrentAuctionGroup()
+        .withArgs(2, newStartTime, newSettle, newBidTime)
+      const [startTime, settleTime, bidTime] = await auction.getAuctionGroup(
+        (await auction.getAuctionGroupCount()) - 1n
+      )
       expect(startTime).to.equal(newStartTime)
       expect(settleTime).to.equal(newSettle)
-      expect(interval).to.equal(newInterval)
+      expect(bidTime).to.equal(newBidTime)
     })
   })
 
@@ -72,9 +76,10 @@ describe('Mine Auctions', () => {
       const block = await getLatestBlock(owner)
       const currentAuctionId = await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
       auctionId = currentAuctionId + 1n
-      const [startTime, , interval] = await auction.getCurrentAuctionGroup()
-      auctionStartTime = startTime + auctionId * interval
+      const [startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
+      auctionStartTime = startTime + auctionId * (settleTime + bidTime)
       await setNextBlockTimestamp(auctionStartTime)
+      await ethers.provider.send('evm_mine')
     })
 
     it('can bid', async () => {
@@ -108,7 +113,7 @@ describe('Mine Auctions', () => {
   describe('Auction view valid check', () => {
     it('reverts when groupId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
-      await increase(DEFAULT_AUCTION_INTERVAL)
+      await increase(DEFAULT_BID_TIME + DEFAULT_SETTLE_TIME)
       await expect(auction.getAuction(groupId + 1n, auctionId)).to.be.revertedWithCustomError(
         auction,
         'AuctionAuctionGroupIdTooLarge'
@@ -209,22 +214,25 @@ describe('Mine Auctions', () => {
     await setNextBlockTimestampToSettlement(auction, owner)
     const [startTime, ,] = await auction.getCurrentAuctionGroup()
     const newStartTime = startTime + BigInt(DEFAULT_AUCTION_INTERVAL) * (auctionId0 + 2n)
-    await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_AUCTION_INTERVAL)
+    await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     await expect(auction.bid(0, 1)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
     // increase to new start time left boundary
     await setNextBlockTimestamp(newStartTime)
+    await ethers.provider.send('evm_mine')
+
     // console.log(new Date(Number(newStartTime) * 1000))
 
-    const groupId1 = await auction.currentAuctionGroupId()
+    const groupId2 = await auction.currentAuctionGroupId()
+    expect(groupId2).to.equal(1)
     const auctionId1 = await getBiddingAuctionIdAt(newStartTime, auction)
     await expect(auction.bid(auctionId1, 100))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId1, auctionId1, owner.address, 100n)
+      .withArgs(groupId2, auctionId1, owner.address, 100n)
     await expect(auction.connect(other).bid(auctionId1, 101))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId1, auctionId1, other.address, 101n)
+      .withArgs(groupId2, auctionId1, other.address, 101n)
     await expect(auction.connect(another).bid(auctionId1, 101))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId1, auctionId1, another.address, 101n)
+      .withArgs(groupId2, auctionId1, another.address, 101n)
   })
 })

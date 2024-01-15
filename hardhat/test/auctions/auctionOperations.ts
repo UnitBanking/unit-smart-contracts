@@ -3,6 +3,7 @@ import { getLatestBlock } from '../utils'
 import { type MineAuction } from '../../build/types'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { DEFAULT_AUCTION_INTERVAL, DEFAULT_SETTLE_TIME } from '../fixtures/deployMineAuctionFixture'
+import { ethers } from 'hardhat'
 
 export async function simulateAnAuction(
   auction: MineAuction,
@@ -53,7 +54,8 @@ export async function getAuctionIdsAt(
 }
 
 export async function getBiddingAuctionIdAt(timestamp: bigint, auction: MineAuction) {
-  const [startTime, settleTime, interval] = await auction.getCurrentAuctionGroup()
+  const [startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
+  const interval = settleTime + bidTime
   if (timestamp < startTime) {
     throw new Error('given timestamp is before first auction start time')
   }
@@ -72,7 +74,9 @@ export async function getBiddingAuctionIdAtLatestBlock(auction: MineAuction, own
 
 export async function setNextBlockTimestampToSettlement(auction: MineAuction, owner: HardhatEthersSigner) {
   const block = await getLatestBlock(owner)
-  const [startTime, settleTime, interval] = await auction.getCurrentAuctionGroup()
+  const [startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
+  const interval = bidTime + settleTime
   const auctionId = (BigInt(block.timestamp) - startTime) / interval
   await setNextBlockTimestamp(auctionId * interval + interval - settleTime)
+  await ethers.provider.send('evm_mine')
 }

@@ -4,6 +4,7 @@ import { type MineAuction, type Proxy, MineAuction__factory, type BaseToken, typ
 import { deployBaseTokenFixture } from './deployBaseTokenTestFixture'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from './deployMineFixture'
+import { getLatestBlock } from '../utils'
 
 interface MineAuctionFixtureReturnType {
   auction: MineAuction
@@ -16,7 +17,8 @@ interface MineAuctionFixtureReturnType {
 }
 
 export const DEFAULT_SETTLE_TIME = 1 * 60 * 60
-export const DEFAULT_AUCTION_INTERVAL = 24 * 60 * 60
+export const DEFAULT_BID_TIME = 23 * 60 * 60
+export const DEFAULT_AUCTION_INTERVAL = DEFAULT_SETTLE_TIME + DEFAULT_BID_TIME
 
 export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType> {
   const [owner, other, another] = await ethers.getSigners()
@@ -30,11 +32,13 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
   const bidTokenAddress = await base.getAddress()
 
   const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
+  const block = await getLatestBlock(owner)
 
-  const initialize = factory.interface.encodeFunctionData('initialize(address,address,address)', [
+  const initialize = factory.interface.encodeFunctionData('initialize(address,address,address, uint256)', [
     dummyBondingCurve,
     mineAddress,
     bidTokenAddress,
+    block.timestamp,
   ])
   const proxy = await ethers.deployContract('Proxy', [owner.address], { signer: owner })
   await proxy.upgradeToAndCall(auctionAddress, initialize)
