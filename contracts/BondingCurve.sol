@@ -34,9 +34,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     UD60x18 private constant TWENTY_YEARS_UD60x18 = UD60x18.wrap(20 * uUNIT);
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
 
-    uint256 public constant HIGH_RR = 4; // High reserve ratio (RR). (HighRR, TargetRR): normal $UNIT mint/redeem, no auction
+    uint256 public constant HIGH_RR = 4; // High reserve ratio (RR)
 
-    uint256 public constant BASE_SPREAD = 10; // 0.1%
+    uint256 public constant BASE_SPREAD = 10; // 0.001 or 0.1%
     uint256 public constant SPREAD_PRECISION = 10_000;
 
     uint256 public constant UNITUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision
@@ -73,8 +73,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * uninitializable, which makes it unusable when called directly.
      */
     constructor(address collateralBurnAddress) {
-        initialized = true;
         COLLATERAL_BURN_ADDRESS = collateralBurnAddress;
+
+        super.initialize();
     }
 
     /**
@@ -108,7 +109,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
 
         updateInternals();
 
-        Proxiable.initialize();
+        super.initialize();
     }
 
     /**

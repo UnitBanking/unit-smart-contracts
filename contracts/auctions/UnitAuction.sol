@@ -8,6 +8,12 @@ import '../libraries/TransferUtils.sol';
 import '../BondingCurve.sol';
 import '../UnitToken.sol';
 
+/*
+TODO:
+- AuctionState struct packing to be confirmed
+- implement the invariant in expansion auction: Unit auction price >= RedeemPrice
+*/
+
 contract UnitAuction is Proxiable, Ownable {
     using TransferUtils for address;
     error UnitAuctionInitialReserveRatioOutOfRange(uint256 reserveRatio);
@@ -19,12 +25,14 @@ contract UnitAuction is Proxiable, Ownable {
     uint256 public constant LOW_RR = 3;
     uint256 public constant TARGET_RR = 5;
 
-    uint256 public constant START_PRICE_BUFFER_PRECISION = 100;
+    uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110% TODO: This is TBC
+    uint256 public constant START_PRICE_BUFFER_PRECISION = 10_000;
 
     BondingCurve public immutable bondingCurve;
     UnitToken public immutable unitToken;
 
-    uint256 public auctionMaxDuration;
+    uint256 public contractionAuctionMaxDuration;
+    uint256 public expansionAuctionMaxDuration;
     uint256 public startPriceBuffer;
 
     /**
@@ -55,7 +63,7 @@ contract UnitAuction is Proxiable, Ownable {
         bondingCurve = _bondingCurve;
         unitToken = _unitToken;
 
-        initialized = true;
+        super.initialize();
     }
 
     /**
@@ -68,16 +76,27 @@ contract UnitAuction is Proxiable, Ownable {
 
     function initialize() public override {
         _setOwner(msg.sender);
-        auctionMaxDuration = 2 hours;
+        contractionAuctionMaxDuration = 2 hours;
+        expansionAuctionMaxDuration = 23 hours;
+        startPriceBuffer = START_PRICE_BUFFER;
+
         super.initialize();
     }
 
     /**
-     * @notice Sets `auctionMaxDuration`.
-     * @param _auctionMaxDuration New max duration of Unit auction.
+     * @notice Sets `contractionAuctionMaxDuration`.
+     * @param _maxDuration New max duration of a Unit contraction auction.
      */
-    function setAuctionMaxDuration(uint256 _auctionMaxDuration) external onlyOwner {
-        auctionMaxDuration = _auctionMaxDuration;
+    function setContractionAuctionMaxDuration(uint256 _maxDuration) external onlyOwner {
+        contractionAuctionMaxDuration = _maxDuration;
+    }
+
+    /**
+     * @notice Sets `contractionAuctionMaxDuration`.
+     * @param _maxDuration New max duration of a Unit contraction auction.
+     */
+    function setExpansionAuctionMaxDuration(uint256 _maxDuration) external onlyOwner {
+        expansionAuctionMaxDuration = _maxDuration;
     }
 
     /**
@@ -90,6 +109,8 @@ contract UnitAuction is Proxiable, Ownable {
 
     /**
      * @notice Updates the auction state in storage and returns a copy of it in memory.
+     * @return reserveRatio Current UNIT reserve ratio.
+     * @return _auctionState Current auction state.
      */
     function refreshState() public returns (uint256 reserveRatio, AuctionState memory _auctionState) {
         reserveRatio = bondingCurve.getReserveRatio();
@@ -102,7 +123,7 @@ contract UnitAuction is Proxiable, Ownable {
                 } else {
                     _auctionState = _terminateAuction();
                 }
-            } else if (block.timestamp - _auctionState.startTime > auctionMaxDuration) {
+            } else if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
                 _auctionState = _startContractionAuction();
             }
         } else if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
@@ -112,7 +133,7 @@ contract UnitAuction is Proxiable, Ownable {
                 } else {
                     _auctionState = _terminateAuction();
                 }
-            } else if (block.timestamp - _auctionState.startTime > auctionMaxDuration) {
+            } else if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
                 _auctionState = _startExpansionAuction();
             }
         } else if (inContractionRange(reserveRatio)) {
@@ -134,21 +155,42 @@ contract UnitAuction is Proxiable, Ownable {
 
         uint256 currentPrice = (_auctionState.startPrice *
             99 ** ((block.timestamp - _auctionState.startTime) / 90 seconds)) / 100;
-        uint256 collateralAmount = unitAmount * currentPrice;
+        uint256 collateralAmount = unitAmount * currentPrice; // TODO: Double check precision here
 
         unitToken.burnFrom(msg.sender, unitAmount);
         TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
-        if (reserveRatioAfter > bondingCurve.HIGH_RR()) {
-            revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
-        }
         if (reserveRatioAfter <= reserveRatioBefore) {
             revert UnitAuctionReserveRatioNotIncreased();
         }
+        if (inExpansionRange(reserveRatioAfter)) {
+            revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
+        }
     }
 
-    function buyUnit(uint256 collateralAmount) external {}
+    function buyUnit(uint256 collateralAmount) external {
+        (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
+        if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
+        }
+
+        collateralAmount = TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
+
+        uint256 currentPrice = (_auctionState.startPrice *
+            999 ** ((block.timestamp - _auctionState.startTime) / 1800 seconds)) / 1000;
+        uint256 unitAmount = collateralAmount * currentPrice; // TODO: Double check precision here
+
+        unitToken.mint(msg.sender, unitAmount);
+
+        uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
+        if (reserveRatioAfter <= reserveRatioBefore) {
+            revert UnitAuctionReserveRatioNotIncreased();
+        }
+        if (!inExpansionRange(reserveRatioAfter)) {
+            revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
+        }
+    }
 
     /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
@@ -157,7 +199,7 @@ contract UnitAuction is Proxiable, Ownable {
     function _startContractionAuction() internal returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
             uint32(block.timestamp), // TODO: Confirm we want to do this
-            uint216((bondingCurve.getMintPrice() * startPriceBuffer) / START_PRICE_BUFFER_PRECISION), // TODO: Refactor casting here
+            uint216((bondingCurve.getMintPrice() * startPriceBuffer) / START_PRICE_BUFFER_PRECISION),
             AUCTION_VARIANT_CONTRACTION
         );
         auctionState = _auctionState;
@@ -166,7 +208,7 @@ contract UnitAuction is Proxiable, Ownable {
     function _startExpansionAuction() internal returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
             uint32(block.timestamp),
-            0, // TODO: add price formula
+            uint216(bondingCurve.getMintPrice()), // TODO: Do we also need an expansion auction start price multiplier?
             AUCTION_VARIANT_EXPANSION
         );
         auctionState = _auctionState;
