@@ -127,30 +127,30 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_getExcessCollateralReserve_ReturnsEE() public {
         // Arrange
         _createUserAndMintUnit(1e18);
-        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
-            ethUsdOracle.getEthUsdPrice();
+        uint256 unitCollateralValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
+            collateralUsdOracle.getCollateralUsdPrice();
 
         // Act
         uint256 excessCollateral = bondingCurveProxy.getExcessCollateralReserve();
 
         // Assert
         assertEq(excessCollateral, 999000999001004);
-        assertGe(collateralERC20TokenTest.balanceOf(address(bondingCurveProxy)), unitEthValue);
+        assertGe(collateralERC20TokenTest.balanceOf(address(bondingCurveProxy)), unitCollateralValue);
     }
 
     function test_getExcessCollateralReserve_ReturnsZero() public {
         // Arrange
         _createUserAndMintUnit(1e18);
-        ethUsdOracle.setEthUsdPrice(1e16);
-        uint256 unitEthValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
-            ethUsdOracle.getEthUsdPrice();
+        collateralUsdOracle.setCollateralUsdPrice(1e16);
+        uint256 unitCollateralValue = (unitToken.totalSupply() * bondingCurveProxy.getUnitUsdPrice()) /
+            collateralUsdOracle.getCollateralUsdPrice();
 
         // Act
         uint256 excessCollateral = bondingCurveProxy.getExcessCollateralReserve();
 
         // Assert
         assertEq(excessCollateral, 0);
-        assertLt(address(bondingCurveProxy).balance, unitEthValue);
+        assertLt(address(bondingCurveProxy).balance, unitCollateralValue);
     }
 
     /**

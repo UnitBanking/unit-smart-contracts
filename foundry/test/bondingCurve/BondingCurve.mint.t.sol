@@ -172,7 +172,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         vm.startPrank(address(bondingCurveProxy));
         collateralERC20TokenTest.mint(
-            type(uint256).max / ethUsdOracle.getEthUsdPrice() - INITIAL_COLLATERAL_TOKEN_VALUE
+            type(uint256).max / collateralUsdOracle.getCollateralUsdPrice() - INITIAL_COLLATERAL_TOKEN_VALUE
         );
         vm.stopPrank();
 

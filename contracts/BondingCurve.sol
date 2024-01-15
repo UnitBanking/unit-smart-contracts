@@ -6,7 +6,7 @@ import './interfaces/IBondingCurve.sol';
 import './abstracts/Proxiable.sol';
 import './abstracts/ReentrancyGuard.sol';
 import './interfaces/IInflationOracle.sol';
-import './interfaces/IEthUsdOracle.sol';
+import './interfaces/ICollateralUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
 import './libraries/TransferUtils.sol';
@@ -40,7 +40,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     uint256 public constant SPREAD_PRECISION = 10_000;
 
     uint256 public constant UNITUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision
-    uint256 public constant ETHUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision or UNITUSD_PRICE_PRECISION (which must be the same)
+    uint256 public constant COLLATERALUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision or UNITUSD_PRICE_PRECISION (which both must be the same)
 
     uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
     uint256 public constant REDEMPTION_DISCOUNT_PRECISION = 10_000;
@@ -59,8 +59,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     uint256 public lastOracleUpdateTimestamp; // t'
 
     IERC20 public collateralToken;
+    uint256 collateralTokenDecimals;
     IInflationOracle public inflationOracle;
-    IEthUsdOracle public ethUsdOracle;
+    ICollateralUsdOracle public collateralUsdOracle;
     UnitToken public unitToken;
     MineToken public mineToken;
 
@@ -92,7 +93,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         UnitToken _unitToken,
         MineToken _mineToken,
         IInflationOracle _inflationOracle,
-        IEthUsdOracle _ethUsdOracle
+        ICollateralUsdOracle _collateralUsdOracle
     ) external {
         uint256 unitTokenPrecision = 10 ** _unitToken.decimals();
         if (unitTokenPrecision != UNITUSD_PRICE_PRECISION) {
@@ -102,10 +103,11 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         lastUnitUsdPrice = UNIT; // 1
 
         collateralToken = _collateralToken;
+        collateralTokenDecimals = _collateralToken.decimals();
         unitToken = _unitToken;
         mineToken = _mineToken;
         inflationOracle = _inflationOracle;
-        ethUsdOracle = _ethUsdOracle;
+        collateralUsdOracle = _collateralUsdOracle;
 
         updateInternals();
 
@@ -182,12 +184,12 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         return _getUnitUsdPriceForTimestamp(block.timestamp).unwrap();
     }
 
-    // P(t) = min(IP(t)/EP(t), BalanceETH(t)/SupplyUnit(t))
-    function getUnitEthPrice() external view returns (uint256) {
-        return _getUnitEthPrice(0);
+    // P(t) = min(IP(t)/EP(t), BalanceCollateral(t)/SupplyUnit(t))
+    function getUnitCollateralPrice() external view returns (uint256) {
+        return _getUnitCollateralPrice(0);
     }
 
-    // RR(t) = (EP(t) * BalanceETH(t)) / (IP(t) * SupplyUnit(t))
+    // RR(t) = (EP(t) * BalanceCollateral(t)) / (IP(t) * SupplyUnit(t))
     function getReserveRatio() public view returns (uint256) {
         return _getReserveRatio();
     }
@@ -197,15 +199,16 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     }
 
     function getExcessCollateralReserve() public view returns (uint256) {
-        uint256 unitEthValue = (unitToken.totalSupply() * getUnitUsdPrice()) / ethUsdOracle.getEthUsdPrice();
+        uint256 unitCollateralValue = (unitToken.totalSupply() * getUnitUsdPrice()) /
+            collateralUsdOracle.getCollateralUsdPrice();
         uint256 collateralAmount = collateralToken.balanceOf(address(this));
 
-        if (collateralAmount < unitEthValue) {
+        if (collateralAmount < unitCollateralValue) {
             return 0;
         } else {
             unchecked {
-                // Overflow not possible: collateralAmount >= unitEthValue.
-                return collateralAmount - unitEthValue;
+                // Overflow not possible: collateralAmount >= unitCollateralValue.
+                return collateralAmount - unitCollateralValue;
             }
         }
     }
@@ -216,8 +219,8 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      */
     function getMintPrice() external view returns (uint256) {
         return
-            ((_getUnitEthPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
-            (1 ether * UNITUSD_PRICE_PRECISION);
+            ((_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
+            ((10 ** collateralTokenDecimals) * UNITUSD_PRICE_PRECISION);
     }
 
     /**
@@ -259,7 +262,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     function _getMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
         return
             (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
-            ((_getUnitEthPrice(collateralAmountIn) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+            ((_getUnitCollateralPrice(collateralAmountIn) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
     }
 
     /**
@@ -272,7 +275,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     function _getQuoteMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
         return
             (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
-            ((_getUnitEthPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
+            ((_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
     }
 
     /**
@@ -280,7 +283,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      */
     function _getWithdrawalAmount(uint256 unitTokenAmount) internal view returns (uint256) {
         return
-            (unitTokenAmount * (_getUnitEthPrice(0) * (SPREAD_PRECISION - getSpread()))) /
+            (unitTokenAmount * (_getUnitCollateralPrice(0) * (SPREAD_PRECISION - getSpread()))) /
             SPREAD_PRECISION /
             UNITUSD_PRICE_PRECISION;
     }
@@ -325,22 +328,22 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     /**
      * @param transferredCollateralAmount Collateral token amount that was transferred in the current call context
      * and should not be included in price calculation.
-     * @return UNIT price in ETH in precision that matches `UNITUSD_PRICE_PRECISION`.
+     * @return UNIT price in collateral token in precision that matches `UNITUSD_PRICE_PRECISION`.
      */
-    function _getUnitEthPrice(uint256 transferredCollateralAmount) internal view returns (uint256) {
+    function _getUnitCollateralPrice(uint256 transferredCollateralAmount) internal view returns (uint256) {
         uint256 unitTotalSupply = unitToken.totalSupply();
         if (unitTotalSupply > 0) {
             return
                 Math.min(
-                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * ETHUSD_PRICE_PRECISION) /
-                        ethUsdOracle.getEthUsdPrice(),
+                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * COLLATERALUSD_PRICE_PRECISION) /
+                        collateralUsdOracle.getCollateralUsdPrice(),
                     ((collateralToken.balanceOf(address(this)) - transferredCollateralAmount) *
                         UNITUSD_PRICE_PRECISION) / unitTotalSupply
                 );
         } else {
             return
-                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * ETHUSD_PRICE_PRECISION) /
-                ethUsdOracle.getEthUsdPrice();
+                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * COLLATERALUSD_PRICE_PRECISION) /
+                collateralUsdOracle.getCollateralUsdPrice();
         }
     }
 
@@ -350,7 +353,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
 
         if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
-                (ethUsdOracle.getEthUsdPrice() * collateralToken.balanceOf(address(this))) / // TODO: can do unchecked subtraction (gas optimization)
+                (collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) / // TODO: can do unchecked subtraction (gas optimization)
                 (unitUsdPrice * unitTokenTotalSupply);
         }
     }

@@ -5,7 +5,7 @@ pragma solidity 0.8.21;
 import { Test } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
-import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
+import { CollateralUsdOracleMock } from '../../../contracts/test/CollateralUsdOracleMock.sol';
 import { CollateralERC20TokenTest } from '../../../contracts/test/CollateralERC20TokenTest.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
@@ -23,7 +23,7 @@ abstract contract BondingCurveTestBase is Test {
 
     CollateralERC20TokenTest public collateralERC20TokenTest;
     InflationOracleHarness public inflationOracle;
-    EthUsdOracleMock public ethUsdOracle;
+    CollateralUsdOracleMock public collateralUsdOracle;
     UnitToken public unitToken;
     MineToken public mineToken;
 
@@ -47,7 +47,7 @@ abstract contract BondingCurveTestBase is Test {
         inflationOracle = new InflationOracleHarness();
         inflationOracle.setPriceIndexTwentyYearsAgo(77);
         inflationOracle.setLatestPriceIndex(121);
-        ethUsdOracle = new EthUsdOracleMock();
+        collateralUsdOracle = new CollateralUsdOracleMock();
 
         // set up Unit token contract
         unitToken = new UnitToken(); // TODO: use Proxy
@@ -68,7 +68,7 @@ abstract contract BondingCurveTestBase is Test {
                 address(unitToken),
                 address(mineToken),
                 inflationOracle,
-                ethUsdOracle
+                collateralUsdOracle
             )
         );
 

@@ -39,7 +39,7 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
-        ethUsdOracle.setEthUsdPrice(1e16);
+        collateralUsdOracle.setCollateralUsdPrice(1e16);
 
         // Act
         vm.prank(user);

@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import '../interfaces/IERC20.sol';
 import '../interfaces/IInflationOracle.sol';
-import '../interfaces/IEthUsdOracle.sol';
+import '../interfaces/ICollateralUsdOracle.sol';
 import '../BondingCurve.sol';
 import { unwrap } from '@prb/math/src/UD60x18.sol';
 

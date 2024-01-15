@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import './IInflationOracle.sol';
-import './IEthUsdOracle.sol';
+import './ICollateralUsdOracle.sol';
 import '../MineToken.sol';
 import '../UnitToken.sol';
 
@@ -28,20 +28,20 @@ interface IBondingCurve {
 
     /**
      * @notice Initializes the proxy contract's.
-     * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {ethUsdOracle}.
+     * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {collateralUsdOracle}.
      * @dev Calls Proxiable.initialize() at the end to set `initialized` flag.
      * @param _collateralToken Address of the token used as UNIT's stabilization collateral.
      * @param _unitToken UNIT token address.
      * @param _mineToken MINE token address.
      * @param _inflationOracle Inflation oracle.
-     * @param _ethUsdOracle ETH-USD price oracle.
+     * @param _collateralUsdOracle Collateral Token-USD price oracle.
      */
     function initialize(
         IERC20 _collateralToken,
         UnitToken _unitToken,
         MineToken _mineToken,
         IInflationOracle _inflationOracle,
-        IEthUsdOracle _ethUsdOracle
+        ICollateralUsdOracle _collateralUsdOracle
     ) external;
 
     /**
@@ -78,7 +78,7 @@ interface IBondingCurve {
     function updateInternals() external;
 
     /**
-     * @notice Returns the current UNIT price in ETH, which is used when minting UNIT.
+     * @notice Returns the current UNIT price in collateral token, which is used when minting UNIT.
      */
     function getMintPrice() external view returns (uint256);
 
@@ -88,7 +88,7 @@ interface IBondingCurve {
 
     function getUnitUsdPrice() external view returns (uint256);
 
-    function getUnitEthPrice() external view returns (uint256);
+    function getUnitCollateralPrice() external view returns (uint256);
 
     function getReserveRatio() external view returns (uint256);
 
