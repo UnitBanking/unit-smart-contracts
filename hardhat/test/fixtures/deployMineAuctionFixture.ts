@@ -49,7 +49,7 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
 
   await base.mint(other.address, 10000n * 10n ** (await base.decimals()))
   await base.mint(another.address, 10000n * 10n ** (await base.decimals()))
-  await base.approve(proxyAddress, ethers.MaxUint256)
+  await base.connect(owner).approve(proxyAddress, ethers.MaxUint256)
   await base.connect(other).approve(proxyAddress, ethers.MaxUint256)
   await base.connect(another).approve(proxyAddress, ethers.MaxUint256)
   return { auction: proxyAuction, proxy, token: base, mine, owner, other, another }

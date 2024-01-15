@@ -126,15 +126,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
         uint256 auctionGroupId = currentAuctionGroupId();
 
-        auctions[auctionGroupId][auctionId].totalBidAmount += amount;
-        auctions[auctionGroupId][auctionId].bid[msg.sender] += amount;
-
         if (auctions[auctionGroupId][auctionId].rewardAmount == 0) {
             auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount();
         }
 
-        TransferHelper.safeTransferFrom(bidToken, msg.sender, address(bondingCurve), amount);
-        emit AuctionBid(auctionGroupId, auctionId, msg.sender, amount);
+        uint256 transferAmount = TransferHelper.safeTransferFrom(bidToken, msg.sender, address(bondingCurve), amount);
+        auctions[auctionGroupId][auctionId].totalBidAmount += transferAmount;
+        auctions[auctionGroupId][auctionId].bid[msg.sender] += transferAmount;
+        emit AuctionBid(auctionGroupId, auctionId, msg.sender, transferAmount);
     }
 
     function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external override {
