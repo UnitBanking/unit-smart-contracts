@@ -17,10 +17,12 @@ library TransferUtils {
     }
 
     function safeTransfer(IERC20 token, address to, uint256 amount) internal returns (uint256) {
+        uint256 balanceBefore = token.balanceOf(to);
         (bool success, ) = address(token).call(abi.encodeCall(token.transfer, (to, amount)));
         if (!success) {
             revert TransferUtilsERC20TransferFailed(address(token), to, amount);
         }
-        return amount;
+        uint256 balanceAfter = token.balanceOf(to);
+        return balanceAfter - balanceBefore;
     }
 }

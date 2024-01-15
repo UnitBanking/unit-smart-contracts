@@ -6,9 +6,9 @@ import './interfaces/IMineAuction.sol';
 import './interfaces/IERC20.sol';
 import './abstracts/Ownable.sol';
 import './abstracts/Proxiable.sol';
-import './libraries/TransferHelper.sol';
 import './MineToken.sol';
 import './abstracts/Pausable.sol';
+import './libraries/TransferUtils.sol';
 
 contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
@@ -130,7 +130,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount();
         }
 
-        uint256 transferAmount = TransferHelper.safeTransferFrom(bidToken, msg.sender, address(bondingCurve), amount);
+        uint256 transferAmount = TransferUtils.safeTransferFrom(bidToken, msg.sender, address(bondingCurve), amount);
         auctions[auctionGroupId][auctionId].totalBidAmount += transferAmount;
         auctions[auctionGroupId][auctionId].bid[msg.sender] += transferAmount;
         emit AuctionBid(auctionGroupId, auctionId, msg.sender, transferAmount);
