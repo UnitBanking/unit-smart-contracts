@@ -16,6 +16,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable {
     uint256 constant AUCTIONABLE_NUMERATOR = 8000;
     uint256 constant AUCTIONABLE_DENOMINATOR = 10000;
 
+
     BondingCurve public bondingCurve;
     MineToken public mine;
     IERC20 public bidToken;
@@ -39,9 +40,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable {
         Proxiable.initialize();
     }
 
-    function setIntialAuctionTime(uint256 _initialAuctionTime) external override onlyOwner {
-        initialAuctionTime = _initialAuctionTime;
-        emit InitialAuctionTimeSet(_initialAuctionTime);
+    function setMine(address _mine) external onlyOwner {
+        mine = MineToken(_mine);
+        //Todo:  use prb math
+        totalAuctionableAmount = (mine.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
+    }
+
+    function setBidToken(address _bidToken) external onlyOwner {
+        bidToken = IERC20(_bidToken);
     }
 
     function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 interval) external override onlyOwner {
