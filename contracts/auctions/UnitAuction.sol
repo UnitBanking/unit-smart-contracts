@@ -13,6 +13,7 @@ import '../interfaces/IUnitAuction.sol';
 TODO:
 - AuctionState struct packing to be confirmed
 - implement the invariant in expansion auction: Unit auction price >= RedeemPrice
+- !IMPORTANT! gas tests
 */
 
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {

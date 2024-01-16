@@ -137,13 +137,19 @@ contract UnitAuctionTest is UnitAuctionTestBase {
      */
 
     function test_startContractionAuction_SuccessfullyStarts() public {
-        // Arrnage & Act
+        // Arrnage
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+
+        // Act
         unitAuctionProxy.exposed_startContractionAuction();
 
         // Assert
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
-        assertNotEq(startTime, 0);
-        assertNotEq(startPrice, 0);
+        assertEq(startTime, block.timestamp);
+        assertEq(startPrice, price);
         assertEq(variant, 2);
     }
 
@@ -152,13 +158,16 @@ contract UnitAuctionTest is UnitAuctionTestBase {
      */
 
     function test_startExpansionAuction_SuccessfullyStarts() public {
-        // Arrnage & Act
+        // Arrnage
+        uint256 price = bondingCurve.getMintPrice();
+
+        // Act
         unitAuctionProxy.exposed_startExpansionAuction();
 
         // Assert
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
-        assertNotEq(startTime, 0);
-        assertNotEq(startPrice, 0);
+        assertEq(startTime, block.timestamp);
+        assertEq(startPrice, price);
         assertEq(variant, 3);
     }
 
