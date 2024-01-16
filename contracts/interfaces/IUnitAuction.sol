@@ -23,11 +23,6 @@ interface IUnitAuction {
     error UnitAuctionReserveRatioNotIncreased();
 
     /**
-     * @dev No direct ETH transfer to this contract is allowed.
-     */
-    error UnitAuctionNoDirectTransfers();
-
-    /**
      * ================ CORE FUNCTIONALITY ================
      */
 

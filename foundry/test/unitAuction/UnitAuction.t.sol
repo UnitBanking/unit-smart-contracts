@@ -4,9 +4,7 @@ pragma solidity 0.8.21;
 
 import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
-import { IUnitAuction } from '../../../contracts/interfaces/IUnitAuction.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
-import 'forge-std/console.sol';
 
 contract UnitAuctionTest is UnitAuctionTestBase {
     function test_constructor_stateVariablesSetCorrectly() public {
@@ -19,19 +17,21 @@ contract UnitAuctionTest is UnitAuctionTestBase {
     function test_receive_NoDirectTransfer() public {
         // Arrange
         address user = _createUserAndMintUnitToken(1e18);
+        uint256 balanceBefore = address(unitAuctionProxy).balance;
 
-        // Act & Assert
+        // Act
         vm.deal(user, 10 ether);
-        console.log(address(unitAuctionProxy).balance);
-        vm.startPrank(user);
-        // vm.expectRevert(IUnitAuction.UnitAuctionNoDirectTransfers.selector);
+        vm.prank(user);
         bool success = TestUtils.sendEth(address(unitAuctionProxy), 1 ether);
-        console.log(success);
-        vm.stopPrank();
-        console.log(address(unitAuctionProxy).balance);
+
+        // Assert
+        uint256 balanceAfter = address(unitAuctionProxy).balance;
+        assertEq(success, false);
+        assertEq(balanceAfter, balanceBefore);
     }
 
     function test_initialize_stateVariablesSetCorrectly() public {
+        // Arrange & Act & Assert
         assertEq(unitAuctionProxy.owner(), 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496);
         assertEq(unitAuctionProxy.contractionAuctionMaxDuration(), 2 hours);
         assertEq(unitAuctionProxy.expansionAuctionMaxDuration(), 23 hours);
@@ -139,11 +139,11 @@ contract UnitAuctionTest is UnitAuctionTestBase {
     function test_startContractionAuction_SuccessfullyStarts() public {
         // Arrnage & Act
         unitAuctionProxy.exposed_startContractionAuction();
-        console.log(bondingCurve.getMintPrice());
+
         // Assert
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
         assertNotEq(startTime, 0);
-        // assertNotEq(startPrice, 0);
+        assertNotEq(startPrice, 0);
         assertEq(variant, 2);
     }
 
@@ -158,7 +158,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // Assert
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
         assertNotEq(startTime, 0);
-        // assertNotEq(startPrice, 0);
+        assertNotEq(startPrice, 0);
         assertEq(variant, 3);
     }
 

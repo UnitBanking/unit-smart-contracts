@@ -83,8 +83,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * ================ EXTERNAL & PUBLIC FUNCTIONS ================
      */
 
-    receive() external payable {}
-
     /**
      * @inheritdoc IBondingCurve
      */
@@ -218,9 +216,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
      */
     function getMintPrice() external view returns (uint256) {
-        return
-            ((_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION) /
-            ((10 ** collateralTokenDecimals) * UNITUSD_PRICE_PRECISION);
+        return (_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION;
     }
 
     /**

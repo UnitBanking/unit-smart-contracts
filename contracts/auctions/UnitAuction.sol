@@ -67,10 +67,6 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * ================ EXTERNAL & PUBLIC FUNCTIONS ================
      */
 
-    receive() external payable {
-        revert UnitAuctionNoDirectTransfers();
-    }
-
     function initialize() public override {
         _setOwner(msg.sender);
         contractionAuctionMaxDuration = 2 hours;
