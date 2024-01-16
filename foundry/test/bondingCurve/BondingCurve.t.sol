@@ -4,6 +4,7 @@ pragma solidity 0.8.21;
 
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
+import { TestUtils } from '../utils/TestUtils.t.sol';
 
 contract BondingCurveHarnessTest is BondingCurveTestBase {
     /**
@@ -12,7 +13,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getUnitUsdPriceForTimestamp_10Days() public {
         // Arrange
-        uint256 currentTimestamp = START_TIMESTAMP + 10 days;
+        uint256 currentTimestamp = TestUtils.START_TIMESTAMP + 10 days;
         vm.warp(currentTimestamp);
 
         // Act
@@ -25,7 +26,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getUnitUsdPriceForTimestamp_1Month() public {
         // Arrange
-        uint256 currentTimestamp = START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
+        uint256 currentTimestamp = TestUtils.START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
         vm.warp(currentTimestamp);
 
         // Act
@@ -38,7 +39,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getUnitUsdPriceForTimestamp_1MonthAnd1Day() public {
         // Arrange
-        uint256 currentTimestamp = START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
+        uint256 currentTimestamp = TestUtils.START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
         vm.warp(currentTimestamp);
         inflationOracle.setPriceIndexTwentyYearsAgo(78);
         inflationOracle.setLatestPriceIndex(122);
@@ -58,7 +59,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getUnitUsdPriceForTimestamp_1MonthAnd1Second() public {
         // Arrange
-        uint256 currentTimestamp = START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
+        uint256 currentTimestamp = TestUtils.START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
         vm.warp(currentTimestamp);
         inflationOracle.setPriceIndexTwentyYearsAgo(78);
         inflationOracle.setLatestPriceIndex(122);
@@ -76,7 +77,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
     function test_getUnitUsdPriceForTimestamp_0Days() public {
         // Arrange & Act
-        uint256 price = bondingCurveProxy.exposed_getUnitUsdPriceForTimestamp(START_TIMESTAMP);
+        uint256 price = bondingCurveProxy.exposed_getUnitUsdPriceForTimestamp(TestUtils.START_TIMESTAMP);
 
         // Assert
         uint256 expectedPrice = 1e18;
@@ -90,7 +91,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
     function test_updateInternals() public {
         // Arrange
         uint256 lastInternalPriceBefore = bondingCurveProxy.getUnitUsdPrice();
-        uint256 currentTimestamp = START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
+        uint256 currentTimestamp = TestUtils.START_TIMESTAMP + ORACLE_UPDATE_INTERVAL;
         vm.warp(currentTimestamp);
         uint256 lastOracleUpdateTimestampBefore = bondingCurveProxy.lastOracleUpdateTimestamp();
         inflationOracle.setPriceIndexTwentyYearsAgo(78);
@@ -117,7 +118,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         uint256 reserveRatio = bondingCurveProxy.getReserveRatio();
 
         // Assert
-        assertEq(reserveRatio, INITIAL_COLLATERAL_TOKEN_VALUE / INITIAL_UNIT_VALUE);
+        assertEq(reserveRatio, TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE / TestUtils.INITIAL_UNIT_VALUE);
     }
 
     /**
@@ -163,7 +164,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         uint256 collateralAmount = 1e18;
         uint256 userCollateralBalance = 100 * 1e18;
         vm.deal(user, userCollateralBalance);
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);
@@ -178,7 +179,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         address user = vm.addr(2);
         uint256 userCollateralBalance = 100 * 1e18;
         vm.deal(user, userCollateralBalance);
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);
@@ -198,7 +199,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
 
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         uint256 bondingCurveCollateralBalance = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         vm.prank(address(bondingCurveProxy));

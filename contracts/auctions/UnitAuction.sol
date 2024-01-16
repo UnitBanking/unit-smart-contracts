@@ -7,6 +7,7 @@ import '../abstracts/Ownable.sol';
 import '../libraries/TransferUtils.sol';
 import '../BondingCurve.sol';
 import '../UnitToken.sol';
+import '../interfaces/IUnitAuction.sol';
 
 /*
 TODO:
@@ -14,12 +15,8 @@ TODO:
 - implement the invariant in expansion auction: Unit auction price >= RedeemPrice
 */
 
-contract UnitAuction is Proxiable, Ownable {
+contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     using TransferUtils for address;
-    error UnitAuctionInitialReserveRatioOutOfRange(uint256 reserveRatio);
-    error UnitAuctionResultingReserveRatioOutOfRange(uint256 reserveRatio);
-    error UnitAuctionReserveRatioNotIncreased();
-    error UnitAuctionNoDirectTransfers();
 
     uint256 public constant CRITICAL_RR = 1;
     uint256 public constant LOW_RR = 3;
@@ -219,11 +216,11 @@ contract UnitAuction is Proxiable, Ownable {
         auctionState = _auctionState;
     }
 
-    function inContractionRange(uint256 reserveRatio) private pure returns (bool) {
+    function inContractionRange(uint256 reserveRatio) internal pure returns (bool) {
         return reserveRatio > CRITICAL_RR && reserveRatio <= LOW_RR;
     }
 
-    function inExpansionRange(uint256 reserveRatio) private pure returns (bool) {
+    function inExpansionRange(uint256 reserveRatio) internal pure returns (bool) {
         return reserveRatio > TARGET_RR;
     }
 }

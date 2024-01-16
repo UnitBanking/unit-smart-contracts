@@ -5,6 +5,7 @@ pragma solidity 0.8.21;
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { Mintable } from '../../../contracts/abstracts/Mintable.sol';
+import { TestUtils } from '../utils/TestUtils.t.sol';
 
 contract BondingCurveMintTest is BondingCurveTestBase {
     function test_mint_SuccessfullyMintsUnitToken() public {
@@ -17,7 +18,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
 
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
 
         // Act
@@ -52,7 +53,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         collateralERC20TokenTest.mint(5 * 1e18); // increases RR
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
 
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user1);
@@ -82,7 +83,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         collateralERC20TokenTest.mint(userCollateralBalance);
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
 
         // Act
@@ -106,7 +107,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         collateralERC20TokenTest.mint(userCollateralBalance);
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         // Act && Assert
         vm.prank(user);
@@ -123,7 +124,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         collateralERC20TokenTest.mint(userCollateralBalance);
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         uint256 bondingCurveCollateralBalance = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         vm.prank(address(bondingCurveProxy));
@@ -144,9 +145,9 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         collateralERC20TokenTest.mint(userCollateralBalance);
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
-        assertEq(bondingCurveProxy.getReserveRatio(), HIGH_RR);
+        assertEq(bondingCurveProxy.getReserveRatio(), TestUtils.HIGH_RR);
 
         // Act
         vm.prank(user);
@@ -172,11 +173,11 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         vm.startPrank(address(bondingCurveProxy));
         collateralERC20TokenTest.mint(
-            type(uint256).max / collateralUsdOracle.getCollateralUsdPrice() - INITIAL_COLLATERAL_TOKEN_VALUE
+            type(uint256).max / collateralUsdOracle.getCollateralUsdPrice() - TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE
         );
         vm.stopPrank();
 
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         assertEq(bondingCurveProxy.getReserveRatio(), 115720447209488867682148501081349782583534698222344066017616);
 

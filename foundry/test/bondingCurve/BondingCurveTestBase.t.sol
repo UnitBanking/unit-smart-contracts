@@ -11,15 +11,10 @@ import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 import { UnitToken } from '../../../contracts/UnitToken.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
+import { TestUtils } from '../utils/TestUtils.t.sol';
 
 abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
-    uint256 internal constant START_TIMESTAMP = 1699023595;
-    uint256 internal constant INITIAL_COLLATERAL_TOKEN_VALUE = 5 wei;
-    uint256 internal constant INITIAL_UNIT_VALUE = 1 wei;
-    uint256 internal constant HIGH_RR = 4;
-
-    address internal constant COLLATERAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     CollateralERC20TokenTest public collateralERC20TokenTest;
     InflationOracleHarness public inflationOracle;
@@ -38,7 +33,7 @@ abstract contract BondingCurveTestBase is Test {
         vm.deal(wallet, 10 ether);
 
         // set up block timestamp
-        vm.warp(START_TIMESTAMP);
+        vm.warp(TestUtils.START_TIMESTAMP);
 
         // set up collateral token
         collateralERC20TokenTest = new CollateralERC20TokenTest();
@@ -57,7 +52,7 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.initialize();
 
         // set up BondingCurve contract
-        bondingCurveImplementation = new BondingCurveHarness(COLLATERAL_BURN_ADDRESS);
+        bondingCurveImplementation = new BondingCurveHarness(TestUtils.COLLATERAL_BURN_ADDRESS);
         bondingCurveProxyType = new Proxy(address(this));
 
         bondingCurveProxyType.upgradeToAndCall(
@@ -81,9 +76,9 @@ abstract contract BondingCurveTestBase is Test {
 
         // send initial collateral token amount to bondingCurveProxy contract
         vm.prank(address(bondingCurveProxy));
-        collateralERC20TokenTest.mint(INITIAL_COLLATERAL_TOKEN_VALUE);
+        collateralERC20TokenTest.mint(TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE);
         vm.prank(address(bondingCurveProxy));
-        unitToken.mint(wallet, INITIAL_UNIT_VALUE);
+        unitToken.mint(wallet, TestUtils.INITIAL_UNIT_VALUE);
     }
 
     function _createUserAndMintUnit(uint256 collateralAmountIn) internal returns (address user) {
@@ -95,7 +90,7 @@ abstract contract BondingCurveTestBase is Test {
         collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
 
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);
