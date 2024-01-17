@@ -260,7 +260,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         assertEq(burnAmount, 494505494505497);
     }
 
-    function test_quoteRedeem_ReturnsQuotesFor0Token() public {
+    function test_quoteRedeem_ReturnsQuotesForZeroAmount() public {
         // Arrange
         uint256 mineTokenAmount = 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
