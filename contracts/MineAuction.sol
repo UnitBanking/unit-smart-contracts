@@ -54,7 +54,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     function getAuctionGroup(
         uint256 auctionGroupId
     ) external view override returns (uint256 startTime, uint256 settleTime, uint256 bidTime) {
-        validateAuctionGroupId(auctionGroupId);
+        revertIfAuctionGroupIdTooLarge(auctionGroupId);
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         startTime = auctionGroup.startTime;
         settleTime = auctionGroup.settleTime;
@@ -91,7 +91,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         uint256 auctionGroupId,
         uint256 auctionId
     ) external view override returns (uint256 totalBidAmount, uint256 rewardAmount) {
-        validateAuctionId(auctionGroupId, auctionId);
+        revertIfAuctionIdInFuture(auctionGroupId, auctionId);
         Auction storage auction = auctions[auctionGroupId][auctionId];
         totalBidAmount = auction.totalBidAmount;
         rewardAmount = auction.rewardAmount;
@@ -102,7 +102,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         uint256 auctionId,
         address bidder
     ) external view override returns (uint256 bidAmount) {
-        validateAuctionId(auctionGroupId, auctionId);
+        revertIfAuctionIdInFuture(auctionGroupId, auctionId);
         bidAmount = auctions[auctionGroupId][auctionId].bid[bidder];
     }
 
@@ -111,7 +111,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         uint256 auctionId,
         address bidder
     ) external view override returns (uint256 claimedAmount) {
-        validateAuctionId(auctionGroupId, auctionId);
+        revertIfAuctionIdInFuture(auctionGroupId, auctionId);
         claimedAmount = auctions[auctionGroupId][auctionId].claimed[bidder];
     }
 
@@ -134,7 +134,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             uint256 claimableAmount
         )
     {
-        validateAuctionId(auctionGroupId, auctionId);
+        revertIfAuctionIdInFuture(auctionGroupId, auctionId);
         Auction storage auction = auctions[auctionGroupId][auctionId];
         totalBidAmount = auction.totalBidAmount;
         rewardAmount = auction.rewardAmount;
@@ -181,13 +181,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return block.timestamp >= startTime && block.timestamp < endTime;
     }
 
-    function validateAuctionGroupId(uint256 auctionGroupId) internal view {
+    function revertIfAuctionGroupIdTooLarge(uint256 auctionGroupId) internal view {
         if (auctionGroupId > auctionGroups.length - 1) {
             revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
         }
     }
 
-    function validateAuctionId(uint256 auctionGroupId, uint256 auctionId) internal view {
+    // should be be able to fetch future auction
+    function revertIfAuctionIdInFuture(uint256 auctionGroupId, uint256 auctionId) internal view {
         if (auctionGroupId > currentAuctionGroupId()) {
             revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
         }
@@ -197,8 +198,22 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         }
     }
 
+    // claim is only enabled for past auction, exclude current auction
+    function revertIfNotClaimable(uint256 auctionGroupId, uint256 auctionId) internal view {
+        if (auctionGroupId > currentAuctionGroupId()) {
+            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
+        }
+        AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
+        if (
+            block.timestamp <
+            auctionGroup.startTime + (auctionId + 1) * (auctionGroup.bidTime + auctionGroup.settleTime)
+        ) {
+            revert AuctionAuctionIdTooLarge(auctionId);
+        }
+    }
+
     function _claim(uint256 auctionGroupId, uint256 auctionId, address bidder, address to, uint256 amount) internal {
-        validateAuctionId(auctionGroupId, auctionId);
+        revertIfNotClaimable(auctionGroupId, auctionId);
         uint256 claimable = getClaimableAmount(auctionGroupId, auctionId, bidder);
         if (amount > claimable) {
             revert AuctionInvalidClaimAmount(amount);
@@ -211,7 +226,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     //TODO: use prb math to optimize
     function getRewardAmount(uint256 auctionGroupId) internal view returns (uint256) {
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
-        uint elapsed = block.timestamp - initialAuctionTime;
+        uint256 elapsed = block.timestamp - initialAuctionTime;
         uint256 period = (elapsed / SECONDS_IN_FOUR_YEARS) + 1;
         uint256 auctionableAmount = totalAuctionableAmount >> period;
         return (auctionableAmount * (auctionGroup.bidTime + auctionGroup.settleTime)) / SECONDS_IN_FOUR_YEARS;
