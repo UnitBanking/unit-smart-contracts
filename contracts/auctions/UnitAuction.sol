@@ -179,7 +179,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 burnPrice = bondingCurve.getBurnPrice();
 
         if (currentPrice < burnPrice) {
-            _terminateAuction();
+            _startExpansionAuction();
         } else {
             collateralAmount = TransferUtils.safeTransferFrom(
                 bondingCurve.collateralToken(),
