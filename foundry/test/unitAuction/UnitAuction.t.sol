@@ -3,8 +3,10 @@
 pragma solidity 0.8.21;
 
 import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
+import { UnitAuction } from '../../../contracts/auctions/UnitAuction.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
+import 'forge-std/console.sol';
 
 contract UnitAuctionTest is UnitAuctionTestBase {
     function test_constructor_stateVariablesSetCorrectly() public {
@@ -150,7 +152,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
         assertEq(startTime, block.timestamp);
         assertEq(startPrice, price);
-        assertEq(variant, 2);
+        assertEq(variant, AUCTION_VARIANT_CONTRACTION);
     }
 
     /**
@@ -168,7 +170,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
         assertEq(startTime, block.timestamp);
         assertEq(startPrice, price);
-        assertEq(variant, 3);
+        assertEq(variant, AUCTION_VARIANT_EXPANSION);
     }
 
     /**
@@ -183,7 +185,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint32 startTime, uint216 startPrice, uint8 variant) = unitAuctionProxy.auctionState();
         assertEq(startTime, 0);
         assertEq(startPrice, 0);
-        assertEq(variant, 1);
+        assertEq(variant, AUCTION_VARIANT_NONE);
     }
 
     /**
@@ -214,5 +216,219 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // Act & Assert
         assertEq(unitAuctionProxy.exposed_inExpansionRange(rrOutOfExpansionRange), false);
         assertEq(unitAuctionProxy.exposed_inExpansionRange(rrInExpansionRange), true);
+    }
+
+    /**
+     * ================ refreshState() ================
+     */
+
+    function test_refreshState_Initial_StartsContractionAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.burn(3); // decreases RR
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 2);
+        assertEq(auctionState.startTime, block.timestamp);
+        assertEq(auctionState.startPrice, price);
+        assertEq(auctionState.variant, AUCTION_VARIANT_CONTRACTION);
+    }
+
+    function test_refreshState_Initial_StartsExpansionAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.mint(1); // increases RR
+        uint256 price = bondingCurve.getMintPrice();
+
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 6);
+        assertEq(auctionState.startTime, block.timestamp);
+        assertEq(auctionState.startPrice, price);
+        assertEq(auctionState.variant, AUCTION_VARIANT_EXPANSION);
+    }
+
+    function test_refreshState_AlreadyInContraction_RestartsContractionAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.burn(2); // increases RR
+
+        // starts initial expansion auction
+        unitAuctionProxy.refreshState();
+        // set up block timestamp as current + `contractionAuctionMaxDuration` + 1 seconds
+        vm.warp(TestUtils.START_TIMESTAMP + unitAuctionProxy.contractionAuctionMaxDuration() + 1 seconds);
+
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 2);
+        assertEq(auctionState.startTime, block.timestamp);
+        assertEq(auctionState.startPrice, price);
+        assertEq(auctionState.variant, AUCTION_VARIANT_CONTRACTION);
+    }
+
+    function test_refreshState_AlreadyInContraction_StartsExpansionAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.burn(2); // decreases RR
+
+        // starts initial contraction auction
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy.refreshState();
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 priceBefore = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+        assertEq(reserveRatioBefore, 3);
+        assertEq(auctionStateBefore.startTime, block.timestamp);
+        assertEq(auctionStateBefore.startPrice, priceBefore);
+        assertEq(auctionStateBefore.variant, AUCTION_VARIANT_CONTRACTION);
+        // set up block timestamp as current + 1 seconds
+        vm.warp(TestUtils.START_TIMESTAMP + 1 seconds);
+
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.mint(4); // increases RR
+
+        uint256 price = bondingCurve.getMintPrice();
+
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 6);
+        assertEq(auctionState.startTime, block.timestamp);
+        assertEq(auctionState.startPrice, price);
+        assertEq(auctionState.variant, AUCTION_VARIANT_EXPANSION);
+    }
+
+    function test_refreshState_AlreadyInContraction_TerminatesAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.burn(2); // creases RR
+
+        // starts initial contraction auction
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy.refreshState();
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+        assertEq(reserveRatioBefore, 3);
+        assertEq(auctionStateBefore.startTime, block.timestamp);
+        assertEq(auctionStateBefore.startPrice, price);
+        assertEq(auctionStateBefore.variant, AUCTION_VARIANT_CONTRACTION);
+        // set up block timestamp as current + 1 seconds
+        vm.warp(TestUtils.START_TIMESTAMP + 1 seconds);
+
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.mint(2); // increases RR
+
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 4);
+        assertEq(auctionState.startTime, 0);
+        assertEq(auctionState.startPrice, 0);
+        assertEq(auctionState.variant, AUCTION_VARIANT_NONE);
+    }
+
+    function test_refreshState_AlreadyInExpansion_RestartsExpansionAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.mint(2); // increases RR
+
+        // starts initial contraction auction
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy.refreshState();
+        assertEq(reserveRatioBefore, 7);
+        assertEq(auctionStateBefore.startTime, block.timestamp);
+        assertEq(auctionStateBefore.startPrice, bondingCurve.getMintPrice());
+        assertEq(auctionStateBefore.variant, AUCTION_VARIANT_EXPANSION);
+        // set up block timestamp as current + `expansionAuctionMaxDuration` + 1 seconds
+        vm.warp(TestUtils.START_TIMESTAMP + unitAuctionProxy.expansionAuctionMaxDuration() + 1 seconds);
+
+        uint256 price = bondingCurve.getMintPrice();
+
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 6);
+        assertEq(auctionState.startTime, block.timestamp);
+        assertEq(auctionState.startPrice, price);
+        assertEq(auctionState.variant, AUCTION_VARIANT_EXPANSION);
+    }
+
+    function test_refreshState_AlreadyInExpansion_StartsContractionAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.mint(2); // increases RR
+
+        // starts initial contraction auction
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
+            .refreshState();
+        assertEq(reserveRatioBefore, 7);
+        assertEq(auctionStateBefore.startTime, block.timestamp);
+        assertEq(auctionStateBefore.startPrice, bondingCurve.getMintPrice());
+        assertEq(auctionStateBefore.variant, AUCTION_VARIANT_EXPANSION);
+        // set up block timestamp as current + 1 seconds
+        vm.warp(TestUtils.START_TIMESTAMP + 1 seconds);
+
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.burn(4); // decreases RR
+
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 2);
+        assertEq(auctionState.startTime, block.timestamp);
+        assertEq(auctionState.startPrice, price);
+        assertEq(auctionState.variant, AUCTION_VARIANT_CONTRACTION);
+    }
+
+    function test_refreshState_AlreadyInExpansion_TerminatesAuction() public {
+        // Arrange
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.mint(2); // increases RR
+
+        // starts initial contraction auction
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
+            .refreshState();
+        assertEq(reserveRatioBefore, 7);
+        assertEq(auctionStateBefore.startTime, block.timestamp);
+        assertEq(auctionStateBefore.startPrice, bondingCurve.getMintPrice());
+        assertEq(auctionStateBefore.variant, AUCTION_VARIANT_EXPANSION);
+
+        // set up block timestamp as current + 1 seconds
+        vm.warp(TestUtils.START_TIMESTAMP + 1 seconds);
+
+        vm.prank(address(bondingCurve));
+        collateralERC20Token.burn(2); // decreases RR
+
+        // Act
+        (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(reserveRatio, 4);
+        assertEq(auctionState.startTime, 0);
+        assertEq(auctionState.startPrice, 0);
+        assertEq(auctionState.variant, AUCTION_VARIANT_NONE);
     }
 }

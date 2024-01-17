@@ -17,6 +17,10 @@ import { TestUtils } from '../utils/TestUtils.t.sol';
 import 'forge-std/console.sol';
 
 abstract contract UnitAuctionTestBase is Test {
+    uint8 public constant AUCTION_VARIANT_NONE = 1;
+    uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
+    uint8 public constant AUCTION_VARIANT_EXPANSION = 3;
+
     Proxy public proxy;
     UnitAuctionHarness public unitAuctionImplementation;
     UnitAuctionHarness public unitAuctionProxy;
