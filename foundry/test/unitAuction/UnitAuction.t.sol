@@ -287,7 +287,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         collateralERC20Token.burn(2); // decreases RR
 
         // starts initial contraction auction
-        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy.refreshState();
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
+            .refreshState();
         uint256 mintPrice = bondingCurve.getMintPrice();
         uint216 priceBefore = uint216(
             (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
@@ -320,7 +321,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         collateralERC20Token.burn(2); // creases RR
 
         // starts initial contraction auction
-        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy.refreshState();
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
+            .refreshState();
         uint256 mintPrice = bondingCurve.getMintPrice();
         uint216 price = uint216(
             (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
@@ -351,7 +353,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         collateralERC20Token.mint(2); // increases RR
 
         // starts initial contraction auction
-        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy.refreshState();
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
+            .refreshState();
         assertEq(reserveRatioBefore, 7);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, bondingCurve.getMintPrice());

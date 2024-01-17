@@ -12,7 +12,7 @@ import '../interfaces/IUnitAuction.sol';
 /*
 TODO:
 - AuctionState struct packing to be confirmed
-- implement the invariant in expansion auction: Unit auction price >= RedeemPrice
+- add event logging
 - !IMPORTANT! gas tests
 */
 
@@ -152,7 +152,12 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 collateralAmount = unitAmount * currentPrice; // TODO: Double check precision here
 
         unitToken.burnFrom(msg.sender, unitAmount);
-        TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
+        TransferUtils.safeTransferFrom(
+            bondingCurve.collateralToken(),
+            address(bondingCurve),
+            msg.sender,
+            collateralAmount
+        );
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
         if (reserveRatioAfter <= reserveRatioBefore) {
@@ -169,20 +174,30 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        collateralAmount = TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
-
         uint256 currentPrice = (_auctionState.startPrice *
             999 ** ((block.timestamp - _auctionState.startTime) / 1800 seconds)) / 1000;
-        uint256 unitAmount = collateralAmount * currentPrice; // TODO: Double check precision here
+        uint256 burnPrice = bondingCurve.getBurnPrice();
 
-        unitToken.mint(msg.sender, unitAmount);
+        if (currentPrice < burnPrice) {
+            _terminateAuction();
+        } else {
+            collateralAmount = TransferUtils.safeTransferFrom(
+                bondingCurve.collateralToken(),
+                msg.sender,
+                address(bondingCurve),
+                collateralAmount
+            );
+            uint256 unitAmount = collateralAmount * currentPrice; // TODO: Double check precision here
 
-        uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
-        if (reserveRatioAfter <= reserveRatioBefore) {
-            revert UnitAuctionReserveRatioNotIncreased();
-        }
-        if (!inExpansionRange(reserveRatioAfter)) {
-            revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
+            unitToken.mint(msg.sender, unitAmount);
+
+            uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
+            if (reserveRatioAfter <= reserveRatioBefore) {
+                revert UnitAuctionReserveRatioNotIncreased();
+            }
+            if (!inExpansionRange(reserveRatioAfter)) {
+                revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
+            }
         }
     }
 

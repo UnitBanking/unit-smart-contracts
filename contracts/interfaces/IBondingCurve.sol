@@ -78,13 +78,18 @@ interface IBondingCurve {
     function updateInternals() external;
 
     /**
-     * @notice Returns the current UNIT price in collateral token, which is used when minting UNIT.
+     * ================ GETTERS ================
+     */
+
+    /**
+     * @notice Returns the current UNIT price, in collateral token, used when minting UNIT.
      */
     function getMintPrice() external view returns (uint256);
 
     /**
-     * ================ GETTERS ================
+     * @notice Returns the current UNIT price, in collateral token, used when burning UNIT.
      */
+    function getBurnPrice() external view returns (uint256);
 
     function getUnitUsdPrice() external view returns (uint256);
 

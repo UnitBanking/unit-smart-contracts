@@ -15,6 +15,7 @@ import './UnitToken.sol';
 
 /*
  TODOs:
+ - add event logging
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility (possibly convert all to public for improved testability)
  - revisit `burn()` interface upon code integration
@@ -217,6 +218,14 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      */
     function getMintPrice() external view returns (uint256) {
         return (_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION;
+    }
+
+    /**
+     * @inheritdoc IBondingCurve
+     * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
+     */
+    function getBurnPrice() external view returns (uint256) {
+        return (_getUnitCollateralPrice(0) * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION;
     }
 
     /**

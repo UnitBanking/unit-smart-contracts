@@ -23,6 +23,11 @@ interface IUnitAuction {
     error UnitAuctionReserveRatioNotIncreased();
 
     /**
+     * @dev The current auction price is lower than the UNIT redemption (burn) price.
+     */
+    error UnitAuctionPriceLowerThanBurnPrice(uint256 currentPrice, uint256 burnPrice);
+
+    /**
      * ================ CORE FUNCTIONALITY ================
      */
 
