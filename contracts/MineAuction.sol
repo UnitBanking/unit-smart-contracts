@@ -115,6 +115,37 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         claimedAmount = auctions[auctionGroupId][auctionId].claimed[bidder];
     }
 
+    function getAuctionInfo(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    )
+        external
+        view
+        override
+        returns (
+            uint256 totalBidAmount,
+            uint256 rewardAmount,
+            uint256 startTime,
+            uint256 settleTime,
+            uint256 bidTime,
+            uint256 bidAmount,
+            uint256 claimedAmount,
+            uint256 claimableAmount
+        )
+    {
+        validateAuctionId(auctionGroupId, auctionId);
+        Auction storage auction = auctions[auctionGroupId][auctionId];
+        totalBidAmount = auction.totalBidAmount;
+        rewardAmount = auction.rewardAmount;
+        startTime = auctionGroups[auctionGroupId].startTime;
+        settleTime = auctionGroups[auctionGroupId].settleTime;
+        bidTime = auctionGroups[auctionGroupId].bidTime;
+        bidAmount = auction.bid[bidder];
+        claimedAmount = auction.claimed[bidder];
+        claimableAmount = getClaimableAmount(auctionGroupId, auctionId, bidder);
+    }
+
     function bid(uint256 auctionId, uint256 amount) external override onlyNotPaused {
         if (amount == 0) {
             revert AuctionInvalidBidAmount();
@@ -126,7 +157,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         uint256 auctionGroupId = currentAuctionGroupId();
 
         if (auctions[auctionGroupId][auctionId].rewardAmount == 0) {
-            auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount();
+            auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount(auctionGroupId);
         }
 
         uint256 transferAmount = TransferUtils.safeTransferFrom(bidToken, msg.sender, address(bondingCurve), amount);
@@ -180,12 +211,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     }
 
     //TODO: use prb math to optimize
-    function getRewardAmount() internal view returns (uint256) {
+    function getRewardAmount(uint256 auctionGroupId) internal view returns (uint256) {
+        AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         uint elapsed = block.timestamp - initialAuctionTime;
         uint256 period = (elapsed / SECONDS_IN_FOUR_YEARS) + 1;
-        uint256 time = elapsed % SECONDS_IN_FOUR_YEARS;
         uint256 auctionableAmount = totalAuctionableAmount >> period;
-        return (auctionableAmount * time) / SECONDS_IN_FOUR_YEARS;
+        return (auctionableAmount * (auctionGroup.bidTime + auctionGroup.settleTime)) / SECONDS_IN_FOUR_YEARS;
     }
 
     function getClaimableAmount(

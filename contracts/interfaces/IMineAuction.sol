@@ -56,6 +56,24 @@ interface IMineAuction {
         uint256 auctionId
     ) external view returns (uint256 totalBidAmount, uint256 rewardAmount);
 
+    function getAuctionInfo(
+        uint256 auctionGroupId,
+        uint256 auctionId,
+        address bidder
+    )
+        external
+        view
+        returns (
+            uint256 totalBidAmount,
+            uint256 rewardAmount,
+            uint256 startTime,
+            uint256 settleTime,
+            uint256 bidTime,
+            uint256 bidAmount,
+            uint256 claimedAmount,
+            uint256 claimableAmount
+        );
+
     function getBid(
         uint256 auctionGroupId,
         uint256 auctionId,
