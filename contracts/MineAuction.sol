@@ -176,11 +176,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     function isCurrentAuctionId(uint256 auctionId) internal view returns (bool) {
         AuctionGroup memory auctionGroup = auctionGroups[currentAuctionGroupId()];
-        unchecked {
-            uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
-            uint256 endTime = startTime + auctionGroup.bidTime;
-            return block.timestamp >= startTime && block.timestamp < endTime;
-        }
+        uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
+        uint256 endTime = startTime + auctionGroup.bidTime;
+        return block.timestamp >= startTime && block.timestamp < endTime;
     }
 
     function validateAuctionGroupId(uint256 auctionGroupId) internal view {
