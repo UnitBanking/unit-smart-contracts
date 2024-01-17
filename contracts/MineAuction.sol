@@ -54,7 +54,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     function getAuctionGroup(
         uint256 auctionGroupId
     ) external view override returns (uint256 startTime, uint256 settleTime, uint256 bidTime) {
-        revertIfAuctionGroupIdTooLarge(auctionGroupId);
+        revertIfAuctionGroupNotExist(auctionGroupId);
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         startTime = auctionGroup.startTime;
         settleTime = auctionGroup.settleTime;
@@ -181,7 +181,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return block.timestamp >= startTime && block.timestamp < endTime;
     }
 
-    function revertIfAuctionGroupIdTooLarge(uint256 auctionGroupId) internal view {
+    function revertIfAuctionGroupNotExist(uint256 auctionGroupId) internal view {
         if (auctionGroupId > auctionGroups.length - 1) {
             revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
         }
