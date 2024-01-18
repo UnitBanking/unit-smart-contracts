@@ -178,7 +178,12 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        collateralAmount = TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
+        collateralAmount = TransferUtils.safeTransferFrom(
+            bondingCurve.collateralToken(),
+            msg.sender,
+            address(bondingCurve),
+            collateralAmount
+        );
 
         uint256 currentPrice = (_auctionState.startPrice *
             999 ** ((block.timestamp - _auctionState.startTime) / 1800 seconds)) / 1000;
