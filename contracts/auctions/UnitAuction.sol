@@ -168,6 +168,10 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         }
     }
 
+    /**
+     * @notice Bids in the UNIT expansion auction.
+     * @param collateralAmount Collateral token amount to be sold for UNIT token.
+     */
     function buyUnit(uint256 collateralAmount) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
