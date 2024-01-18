@@ -221,7 +221,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     function _startExpansionAuction() internal returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
             uint32(block.timestamp),
-            uint216(bondingCurve.getMintPrice()), // TODO: Do we also need an expansion auction start price multiplier?
+            uint216(bondingCurve.getMintPrice()),
             AUCTION_VARIANT_EXPANSION
         );
         auctionState = _auctionState;
