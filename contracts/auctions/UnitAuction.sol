@@ -74,6 +74,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         expansionAuctionMaxDuration = 23 hours;
         startPriceBuffer = START_PRICE_BUFFER;
 
+        auctionState.variant = AUCTION_VARIANT_NONE;
+
         super.initialize();
     }
 
@@ -110,30 +112,24 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         reserveRatio = bondingCurve.getReserveRatio();
         _auctionState = auctionState;
 
-        if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
-            if (!inContractionRange(reserveRatio)) {
-                if (inExpansionRange(reserveRatio)) {
-                    _auctionState = _startExpansionAuction();
-                } else {
-                    _auctionState = _terminateAuction();
+        if (inContractionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
+                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
+                    _auctionState = _startContractionAuction();
                 }
-            } else if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
+            } else {
                 _auctionState = _startContractionAuction();
             }
-        } else if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
-            if (!inExpansionRange(reserveRatio)) {
-                if (inContractionRange(reserveRatio)) {
-                    _auctionState = _startContractionAuction();
-                } else {
-                    _auctionState = _terminateAuction();
+        } else if (inExpansionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
+                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
+                    _auctionState = _startExpansionAuction();
                 }
-            } else if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
+            } else {
                 _auctionState = _startExpansionAuction();
             }
-        } else if (inContractionRange(reserveRatio)) {
-            _auctionState = _startContractionAuction();
-        } else if (inExpansionRange(reserveRatio)) {
-            _auctionState = _startExpansionAuction();
+        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
+            _auctionState = _terminateAuction();
         }
     }
 

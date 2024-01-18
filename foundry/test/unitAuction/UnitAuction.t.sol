@@ -222,19 +222,35 @@ contract UnitAuctionTest is UnitAuctionTestBase {
      * ================ refreshState() ================
      */
 
+    function test_refreshState_NoActiveAuction_ShouldNotStartNewAuction() public {
+        // Arrange
+        (uint32 startTimeBefore, uint216 startPriceBefore, uint8 variantBefore) = unitAuctionProxy.auctionState();
+        assertEq(startTimeBefore, 0);
+        assertEq(startPriceBefore, 0);
+        assertEq(variantBefore, 1);
+
+        // Act
+        (, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
+
+        // Assert
+        assertEq(auctionState.startTime, 0);
+        assertEq(auctionState.startPrice, 0);
+        assertEq(auctionState.variant, 1);
+    }
+
     function test_refreshState_Initial_StartsContractionAuction() public {
         // Arrange
         vm.prank(address(bondingCurve));
         collateralERC20Token.burn(3); // decreases RR
-        uint256 mintPrice = bondingCurve.getMintPrice();
-        uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
-        );
 
         // Act
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
         assertEq(reserveRatio, 2);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
@@ -245,12 +261,12 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // Arrange
         vm.prank(address(bondingCurve));
         collateralERC20Token.mint(1); // increases RR
-        uint256 price = bondingCurve.getMintPrice();
 
         // Act
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
+        uint256 price = bondingCurve.getMintPrice();
         assertEq(reserveRatio, 6);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
@@ -263,7 +279,16 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         collateralERC20Token.burn(2); // increases RR
 
         // starts initial expansion auction
-        unitAuctionProxy.refreshState();
+        (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
+            .refreshState();
+        uint256 mintPriceBefore = bondingCurve.getMintPrice();
+        uint216 priceBefore = uint216(
+            (mintPriceBefore * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
+        assertEq(reserveRatioBefore, 3);
+        assertEq(auctionStateBefore.startTime, block.timestamp);
+        assertEq(auctionStateBefore.startPrice, priceBefore);
+        assertEq(auctionStateBefore.variant, AUCTION_VARIANT_CONTRACTION);
         // set up block timestamp as current + `contractionAuctionMaxDuration` + 1 seconds
         vm.warp(TestUtils.START_TIMESTAMP + unitAuctionProxy.contractionAuctionMaxDuration() + 1 seconds);
 
@@ -392,14 +417,14 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         vm.prank(address(bondingCurve));
         collateralERC20Token.burn(4); // decreases RR
 
-        uint256 mintPrice = bondingCurve.getMintPrice();
-        uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
-        );
         // Act
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
+        uint256 mintPrice = bondingCurve.getMintPrice();
+        uint216 price = uint216(
+            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+        );
         assertEq(reserveRatio, 2);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
