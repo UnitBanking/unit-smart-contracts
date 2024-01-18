@@ -178,30 +178,24 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
+        collateralAmount = TransferUtils.safeTransfer(bondingCurve.collateralToken(), msg.sender, collateralAmount);
+
         uint256 currentPrice = (_auctionState.startPrice *
             999 ** ((block.timestamp - _auctionState.startTime) / 1800 seconds)) / 1000;
         uint256 burnPrice = bondingCurve.getBurnPrice();
-
         if (currentPrice < burnPrice) {
-            _startExpansionAuction();
-        } else {
-            collateralAmount = TransferUtils.safeTransferFrom(
-                bondingCurve.collateralToken(),
-                msg.sender,
-                address(bondingCurve),
-                collateralAmount
-            );
-            uint256 unitAmount = collateralAmount * currentPrice; // TODO: Double check precision here
+            revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
+        }
+        uint256 unitAmount = collateralAmount * currentPrice; // TODO: Double check precision here
 
-            unitToken.mint(msg.sender, unitAmount);
+        unitToken.mint(msg.sender, unitAmount);
 
-            uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
-            if (reserveRatioAfter <= reserveRatioBefore) {
-                revert UnitAuctionReserveRatioNotIncreased();
-            }
-            if (!inExpansionRange(reserveRatioAfter)) {
-                revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
-            }
+        uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
+        if (reserveRatioAfter <= reserveRatioBefore) {
+            revert UnitAuctionReserveRatioNotIncreased();
+        }
+        if (!inExpansionRange(reserveRatioAfter)) {
+            revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
     }
 
