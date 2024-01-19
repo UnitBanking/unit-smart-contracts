@@ -144,7 +144,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         }
 
         uint256 currentPrice = (_auctionState.startPrice *
-            99 ** ((block.timestamp - _auctionState.startTime) / 90 seconds)) / 100;
+            (100 - ((block.timestamp - _auctionState.startTime) / 90 seconds))) / 100;
         uint256 collateralAmount = unitAmount * currentPrice; // TODO: Double check precision here
 
         unitToken.burnFrom(msg.sender, unitAmount);
@@ -182,7 +182,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         );
 
         uint256 currentPrice = (_auctionState.startPrice *
-            999 ** ((block.timestamp - _auctionState.startTime) / 1800 seconds)) / 1000;
+            (1000 - ((block.timestamp - _auctionState.startTime) / 1800 seconds))) / 1000;
         uint256 burnPrice = bondingCurve.getBurnPrice();
         if (currentPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
