@@ -67,7 +67,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         override
         returns (uint256 startTime, uint256 settleTime, uint256 bidTime)
     {
-        AuctionGroup memory auctionGroup = auctionGroups[currentAuctionGroupId()];
+        AuctionGroup memory auctionGroup = auctionGroups[_currentAuctionGroupId()];
         startTime = auctionGroup.startTime;
         settleTime = auctionGroup.settleTime;
         bidTime = auctionGroup.bidTime;
@@ -77,14 +77,8 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return auctionGroups.length;
     }
 
-    function currentAuctionGroupId() public view override returns (uint256) {
-        uint256 auctionGroupId = auctionGroups.length - 1;
-        for (; auctionGroupId >= 0; auctionGroupId--) {
-            if (auctionGroups[auctionGroupId].startTime <= block.timestamp) {
-                return auctionGroupId;
-            }
-        }
-        return auctionGroupId;
+    function currentAuctionGroupId() external view override returns (uint256) {
+        return _currentAuctionGroupId();
     }
 
     function getAuction(
@@ -154,7 +148,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             revert AuctionNotCurrentAuctionId(auctionId);
         }
 
-        uint256 auctionGroupId = currentAuctionGroupId();
+        uint256 auctionGroupId = _currentAuctionGroupId();
 
         if (auctions[auctionGroupId][auctionId].rewardAmount == 0) {
             auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount(auctionGroupId);
@@ -174,8 +168,18 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         _claim(auctionGroupId, auctionId, msg.sender, to, amount);
     }
 
+    function _currentAuctionGroupId() internal view returns (uint256) {
+        uint256 auctionGroupId = auctionGroups.length - 1;
+        for (; auctionGroupId >= 0; auctionGroupId--) {
+            if (auctionGroups[auctionGroupId].startTime <= block.timestamp) {
+                return auctionGroupId;
+            }
+        }
+        return auctionGroupId;
+    }
+
     function isCurrentAuctionId(uint256 auctionId) internal view returns (bool) {
-        AuctionGroup memory auctionGroup = auctionGroups[currentAuctionGroupId()];
+        AuctionGroup memory auctionGroup = auctionGroups[_currentAuctionGroupId()];
         uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
         uint256 endTime = startTime + auctionGroup.bidTime;
         return block.timestamp >= startTime && block.timestamp < endTime;
@@ -189,7 +193,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     // should be be able to fetch future auction
     function revertIfAuctionIdInFuture(uint256 auctionGroupId, uint256 auctionId) internal view {
-        if (auctionGroupId > currentAuctionGroupId()) {
+        if (auctionGroupId > _currentAuctionGroupId()) {
             revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
         }
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
@@ -200,7 +204,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     // claim is only enabled for past auction, exclude current auction
     function revertIfNotClaimable(uint256 auctionGroupId, uint256 auctionId) internal view {
-        if (auctionGroupId > currentAuctionGroupId()) {
+        if (auctionGroupId > _currentAuctionGroupId()) {
             revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
         }
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
@@ -256,7 +260,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     }
 
     function revertIfAuctionBiddingInProgress() internal view {
-        uint256 auctionGroupId = currentAuctionGroupId();
+        uint256 auctionGroupId = _currentAuctionGroupId();
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         unchecked {
             // Overflow not possible: previously checked
