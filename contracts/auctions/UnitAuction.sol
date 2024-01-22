@@ -187,15 +187,15 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (currentPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
         }
-        uint256 unitAmount = collateralAmount * currentPrice; // TODO: Double check precision here
+        uint256 unitAmount = collateralAmount * currentPrice / 1e18; // TODO: Double check precision here
 
         unitToken.mint(msg.sender, unitAmount);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
-        if (reserveRatioAfter <= reserveRatioBefore) {
-            revert UnitAuctionReserveRatioNotIncreased();
+        if (reserveRatioAfter >= reserveRatioBefore) {
+            revert UnitAuctionReserveRatioNotDecreased();
         }
-        if (!inExpansionRange(reserveRatioAfter)) {
+        if (reserveRatioAfter < TARGET_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
     }

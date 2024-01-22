@@ -18,9 +18,14 @@ interface IUnitAuction {
     error UnitAuctionResultingReserveRatioOutOfRange(uint256 reserveRatio);
 
     /**
-     * @dev Reserve ration must increase after completing a bid.
+     * @dev Reserve ratio must increase after completing a bid.
      */
     error UnitAuctionReserveRatioNotIncreased();
+
+    /**
+     * @dev Reserve ratio must decrease after completing a bid.
+     */
+    error UnitAuctionReserveRatioNotDecreased();
 
     /**
      * @dev The current auction price is lower than the UNIT redemption (burn) price.
