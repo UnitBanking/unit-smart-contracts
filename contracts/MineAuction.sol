@@ -9,6 +9,7 @@ import './abstracts/Proxiable.sol';
 import './MineToken.sol';
 import './abstracts/Pausable.sol';
 import './libraries/TransferUtils.sol';
+import 'hardhat/console.sol';
 
 contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
@@ -44,10 +45,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     }
 
     function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 bidTime) external override onlyOwner {
-        revertIfAuctionBiddingInProgress();
-        if (startTime < block.timestamp) {
-            revert AuctionStartTimeInThePast();
-        }
+        revertIfNotInSettlement(startTime);
         _setAuctionGroup(startTime, settleTime, bidTime);
     }
 
@@ -259,16 +257,20 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         emit AuctionGroupSet(auctionGroups.length - 1, startTime, settleTime, bidTime);
     }
 
-    function revertIfAuctionBiddingInProgress() internal view {
+    function revertIfNotInSettlement(uint256 startTime) internal view {
         uint256 auctionGroupId = _currentAuctionGroupId();
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
+        uint256 auctionDuration = auctionGroup.bidTime + auctionGroup.settleTime;
         unchecked {
             // Overflow not possible: previously checked
-            uint256 elapsed = (block.timestamp - auctionGroup.startTime) %
-                (auctionGroup.bidTime + auctionGroup.settleTime);
+            uint256 elapsed = (block.timestamp - auctionGroup.startTime) % auctionDuration;
             // Overflow not possible: auctionInterval > auctionSettleTime
             if (elapsed < auctionGroup.bidTime) {
                 revert AuctionBiddingInProgress();
+            }
+            uint256 offset = (startTime - auctionGroup.startTime) % auctionDuration;
+            if (offset < auctionGroup.bidTime || startTime > block.timestamp - elapsed + auctionDuration) {
+                revert AuctionGroupStartTimeNotInSettlement();
             }
         }
     }

@@ -37,22 +37,24 @@ describe('Mine Auctions', () => {
 
   describe('Before auction start', () => {
     beforeEach(async () => {
-      const block = await getLatestBlock(owner)
       await setNextBlockTimestampToSettlement(auction, owner)
-      await auction.setAuctionGroup(block.timestamp + DEFAULT_BID_TIME + 10, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
+      const block = await getLatestBlock(owner)
+      await auction.setAuctionGroup(block.timestamp, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     })
 
     it('reverts when bid', async () => {
-      const auctionId = 0
+      const auctionId = 1n
       await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
       await increase(5 * 60)
       await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
     })
 
     it('allows to change auction group settings', async () => {
+      let block = await getLatestBlock(owner)
+      await setNextBlockTimestamp(block.timestamp + DEFAULT_BID_TIME)
       await ethers.provider.send('evm_mine')
-      const block = await getLatestBlock(owner)
-      const newStartTime = BigInt(block.timestamp) + 100n
+      block = await getLatestBlock(owner)
+      const newStartTime = BigInt(block.timestamp) + 10n
 
       const newBidTime = 2 * 60 * 60
       const newSettle = 60 * 30
@@ -209,8 +211,8 @@ describe('Mine Auctions', () => {
 
     // be able to set start time
     await setNextBlockTimestampToSettlement(auction, owner)
-    const [startTime, ,] = await auction.getCurrentAuctionGroup()
-    const newStartTime = startTime + BigInt(DEFAULT_AUCTION_INTERVAL) * (auctionId0 + 2n)
+    const block = await getLatestBlock(owner)
+    const newStartTime = BigInt(block.timestamp) + 10n
     await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     await expect(auction.bid(0, 1)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
     // increase to new start time left boundary

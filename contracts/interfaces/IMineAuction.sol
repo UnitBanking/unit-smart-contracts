@@ -19,6 +19,7 @@ interface IMineAuction {
     error AuctionInvalidBidAmount();
     error AuctionInProgress();
     error AuctionBiddingInProgress();
+    error AuctionGroupStartTimeNotInSettlement();
     error AuctionInSettlement();
     error AuctionClaimingCurrentAuction();
     error AuctionInvalidClaimAmount(uint256 amount);
