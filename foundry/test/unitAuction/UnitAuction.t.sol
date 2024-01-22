@@ -6,7 +6,6 @@ import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
 import { UnitAuction } from '../../../contracts/auctions/UnitAuction.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
-import 'forge-std/console.sol';
 
 contract UnitAuctionTest is UnitAuctionTestBase {
     function test_constructor_stateVariablesSetCorrectly() public {
@@ -18,7 +17,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_receive_NoDirectTransfer() public {
         // Arrange
-        address user = _createUserAndMintUnitToken(1e18);
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 balanceBefore = address(unitAuctionProxy).balance;
 
         // Act
@@ -59,7 +58,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_setContractionAuctionMaxDuration_notOwnerCannotSet() public {
         // Arrange
-        address user = _createUserAndMintUnitToken(1e18);
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 contractionMaxDurationBefore = unitAuctionProxy.contractionAuctionMaxDuration();
 
         // Act
@@ -90,7 +89,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_setExpansionAuctionMaxDuration_notOwnerCannotSet() public {
         // Arrange
-        address user = _createUserAndMintUnitToken(1e18);
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 expansionMaxDurationBefore = unitAuctionProxy.expansionAuctionMaxDuration();
 
         // Act
@@ -121,7 +120,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_setStartPriceBuffer_notOwnerCannotSet() public {
         // Arrange
-        address user = _createUserAndMintUnitToken(1e18);
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 startPriceBufferBefore = unitAuctionProxy.startPriceBuffer();
 
         // Act

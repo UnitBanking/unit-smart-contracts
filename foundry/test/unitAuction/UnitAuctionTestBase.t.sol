@@ -14,7 +14,6 @@ import { UnitToken } from '../../../contracts/UnitToken.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
 import { CollateralUsdOracleMock } from '../../../contracts/test/CollateralUsdOracleMock.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
-import 'forge-std/console.sol';
 
 abstract contract UnitAuctionTestBase is Test {
     uint8 public constant AUCTION_VARIANT_NONE = 1;
@@ -76,6 +75,7 @@ abstract contract UnitAuctionTestBase is Test {
 
         unitToken.setMinter(address(bondingCurve), true);
         unitToken.setBurner(address(bondingCurve), true);
+
         mineToken.setMinter(wallet, true);
         mineToken.setBurner(address(bondingCurve), true);
 
@@ -94,15 +94,18 @@ abstract contract UnitAuctionTestBase is Test {
         );
 
         unitAuctionProxy = UnitAuctionHarness(payable(proxy));
+
+        unitToken.setMinter(address(unitAuctionProxy), true);
     }
 
-    function _createUserAndMintUnitToken(uint256 collateralAmount) internal returns (address user) {
+    function _createUserAndMintUnitAndCollateralToken(uint256 collateralAmount) internal returns (address user) {
         // Arrange
         user = vm.addr(2);
         uint256 userCollateralBalance = 100 * 1e18;
         vm.startPrank(user);
         collateralERC20Token.mint(userCollateralBalance);
         collateralERC20Token.approve(address(bondingCurve), userCollateralBalance);
+        collateralERC20Token.approve(address(unitAuctionProxy), userCollateralBalance);
         vm.stopPrank();
 
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
