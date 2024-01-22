@@ -100,14 +100,21 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
         uint256 unitBalanceBefore = unitToken.balanceOf(user);
+        uint256 collateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 unitAmount = 100161971476592491;
+        uint256 collateralAmount = 1e17;
 
         // Act
+        vm.expectEmit();
+        emit IUnitAuction.BuyUnit(user, unitAmount, collateralAmount);
         vm.prank(user);
-        unitAuctionProxy.buyUnit(1e17);
+        unitAuctionProxy.buyUnit(collateralAmount);
 
         // Assert
         uint256 unitBalanceAfter = unitToken.balanceOf(user);
-        assertEq(unitBalanceAfter - unitBalanceBefore, 100161971476592491);
+        uint256 collateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        assertEq(unitBalanceAfter - unitBalanceBefore, unitAmount);
+        assertEq(collateralBalanceBefore - collateralBalanceAfter, collateralAmount);
     }
 
     function test_buyUnit_SuccessfullyBuysUnit2Times() public {
@@ -117,15 +124,25 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
         uint256 unitBalanceBefore = unitToken.balanceOf(user);
+        uint256 collateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 unitAmount = 100161971476592491;
+        uint256 collateralAmount = 1e17;
 
         // Act
+        vm.expectEmit();
+        emit IUnitAuction.BuyUnit(user, unitAmount, collateralAmount);
         vm.prank(user);
-        unitAuctionProxy.buyUnit(1e17);
+        unitAuctionProxy.buyUnit(collateralAmount);
+
+        vm.expectEmit();
+        emit IUnitAuction.BuyUnit(user, unitAmount, collateralAmount);
         vm.prank(user);
-        unitAuctionProxy.buyUnit(1e17);
+        unitAuctionProxy.buyUnit(collateralAmount);
 
         // Assert
         uint256 unitBalanceAfter = unitToken.balanceOf(user);
-        assertEq(unitBalanceAfter - unitBalanceBefore, 200323942953184982);
+        uint256 collateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        assertEq(unitBalanceAfter - unitBalanceBefore, unitAmount * 2);
+        assertEq(collateralBalanceBefore - collateralBalanceAfter, collateralAmount * 2);
     }
 }

@@ -4,6 +4,7 @@ pragma solidity 0.8.23;
 
 import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
 import { UnitAuction } from '../../../contracts/auctions/UnitAuction.sol';
+import { IUnitAuction } from '../../../contracts/interfaces/IUnitAuction.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
 
@@ -145,6 +146,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         );
 
         // Act
+        vm.expectEmit();
+        emit IUnitAuction.StartAuction(AUCTION_VARIANT_CONTRACTION, uint32(block.timestamp), price);
         unitAuctionProxy.exposed_startContractionAuction();
 
         // Assert
@@ -163,6 +166,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         uint256 price = bondingCurve.getMintPrice();
 
         // Act
+        vm.expectEmit();
+        emit IUnitAuction.StartAuction(AUCTION_VARIANT_EXPANSION, uint32(block.timestamp), uint216(price));
         unitAuctionProxy.exposed_startExpansionAuction();
 
         // Assert
@@ -178,6 +183,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_terminateAuction_SuccessfullyTerminates() public {
         // Arrnage & Act
+        vm.expectEmit();
+        emit IUnitAuction.TerminateAuction();
         unitAuctionProxy.exposed_terminateAuction();
 
         // Assert
