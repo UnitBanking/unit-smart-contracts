@@ -4,6 +4,15 @@ pragma solidity 0.8.21;
 
 interface IUnitAuction {
     /**
+     * ================ EVENTS ================
+     */
+
+    event SellUnit(address sender, uint256 unitAmount, uint256 collateralAmount);
+    event BuyUnit(address sender, uint256 unitAmount, uint256 collateralAmount);
+    event StartAuction(uint8 variant, uint32 startTime, uint216 startPrice);
+    event TerminateAuction();
+
+    /**
      * ================ ERRORS ================
      */
 

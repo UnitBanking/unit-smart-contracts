@@ -12,7 +12,7 @@ import '../interfaces/IUnitAuction.sol';
 /*
 TODO:
 - AuctionState struct packing to be confirmed
-- add event logging
+- Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - !IMPORTANT! gas tests
 */
 
@@ -162,6 +162,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (inExpansionRange(reserveRatioAfter)) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
+
+        emit SellUnit(msg.sender, unitAmount, collateralAmount);
     }
 
     /**
@@ -187,7 +189,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (currentPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
         }
-        uint256 unitAmount = (collateralAmount * currentPrice) / 1e18; // TODO: Double check precision here
+        uint256 unitAmount = (collateralAmount * currentPrice) / 1e18; // TODO: Get precision from BondingCurve
 
         unitToken.mint(msg.sender, unitAmount);
 
@@ -198,6 +200,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (reserveRatioAfter < TARGET_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
+
+        emit BuyUnit(msg.sender, unitAmount, collateralAmount);
     }
 
     /**
@@ -211,6 +215,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             AUCTION_VARIANT_CONTRACTION
         );
         auctionState = _auctionState;
+
+        emit StartAuction(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
     }
 
     function _startExpansionAuction() internal returns (AuctionState memory _auctionState) {
@@ -220,11 +226,15 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             AUCTION_VARIANT_EXPANSION
         );
         auctionState = _auctionState;
+
+        emit StartAuction(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
     }
 
     function _terminateAuction() internal returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(0, 0, AUCTION_VARIANT_NONE);
         auctionState = _auctionState;
+
+        emit TerminateAuction();
     }
 
     function inContractionRange(uint256 reserveRatio) internal pure returns (bool) {
