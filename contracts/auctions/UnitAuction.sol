@@ -11,9 +11,10 @@ import '../interfaces/IUnitAuction.sol';
 
 /*
 TODO:
-- AuctionState struct packing to be confirmed
+- Consider putting constants we pull from the bonding curve into a common library
+- AuctionState struct packing: casting timestamp to uint32 gives us until y2106, the next possible size is uint40, which will last until y36812
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
-- !IMPORTANT! gas tests
+- Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
 */
 
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
@@ -26,6 +27,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110% TODO: This is TBC
     uint256 public constant START_PRICE_BUFFER_PRECISION = 10_000;
+
+    uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices returned from the bonding curve are in this precision
 
     BondingCurve public immutable bondingCurve;
     UnitToken public immutable unitToken;
@@ -63,6 +66,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         unitToken = _unitToken;
 
         HIGH_RR = _bondingCurve.HIGH_RR();
+        UNITUSD_PRICE_PRECISION = _bondingCurve.UNITUSD_PRICE_PRECISION();
 
         super.initialize();
     }
@@ -148,7 +152,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         uint256 currentPrice = (_auctionState.startPrice *
             (100 - ((block.timestamp - _auctionState.startTime) / 90 seconds))) / 100;
-        uint256 collateralAmount = unitAmount * currentPrice; // TODO: Double check precision here
+        uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
         unitToken.burnFrom(msg.sender, unitAmount);
         TransferUtils.safeTransferFrom(
@@ -192,7 +196,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (currentPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
         }
-        uint256 unitAmount = (collateralAmount * currentPrice) / 1e18; // TODO: Get precision from BondingCurve
+        uint256 unitAmount = (collateralAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
         unitToken.mint(msg.sender, unitAmount);
 
