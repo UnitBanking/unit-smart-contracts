@@ -21,6 +21,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     uint256 public constant CRITICAL_RR = 1;
     uint256 public constant LOW_RR = 3;
+    uint256 public immutable HIGH_RR;
     uint256 public constant TARGET_RR = 5;
 
     uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110% TODO: This is TBC
@@ -60,6 +61,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     constructor(BondingCurve _bondingCurve, UnitToken _unitToken) {
         bondingCurve = _bondingCurve;
         unitToken = _unitToken;
+
+        HIGH_RR = _bondingCurve.HIGH_RR();
 
         super.initialize();
     }
@@ -159,7 +162,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (reserveRatioAfter <= reserveRatioBefore) {
             revert UnitAuctionReserveRatioNotIncreased();
         }
-        if (inExpansionRange(reserveRatioAfter)) {
+        if (reserveRatioAfter >= HIGH_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
