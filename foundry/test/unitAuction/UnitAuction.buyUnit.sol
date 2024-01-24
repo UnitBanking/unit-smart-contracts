@@ -104,8 +104,13 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
-        uint256 unitBalanceBefore = unitToken.balanceOf(user);
-        uint256 collateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 auctionCollateralBalanceBefore = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 unitTotalSupplyBefore = unitToken.totalSupply();
+
         uint256 unitAmount = 100161971476592491;
         uint256 collateralAmount = 1e17;
 
@@ -116,10 +121,18 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         unitAuctionProxy.buyUnit(collateralAmount);
 
         // Assert
-        uint256 unitBalanceAfter = unitToken.balanceOf(user);
-        uint256 collateralBalanceAfter = collateralERC20Token.balanceOf(user);
-        assertEq(unitBalanceAfter - unitBalanceBefore, unitAmount);
-        assertEq(collateralBalanceBefore - collateralBalanceAfter, collateralAmount);
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        uint256 auctionCollateralBalanceAfter = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceAfter = unitToken.balanceOf(address(unitAuctionProxy));
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 unitTotalSupplyAfter = unitToken.totalSupply();
+        assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount);
+        assertEq(userCollateralBalanceBefore - userCollateralBalanceAfter, collateralAmount);
+        assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
+        assertEq(auctionCollateralBalanceAfter, auctionCollateralBalanceBefore);
+        assertEq(unitTotalSupplyAfter - unitTotalSupplyBefore, unitAmount);
+        assertEq(bondingCurveCollateralBalanceAfter - bondingCurveCollateralBalanceBefore, collateralAmount);
     }
 
     function test_buyUnit_SuccessfullyBuysUnit2Times() public {
@@ -128,8 +141,13 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
-        uint256 unitBalanceBefore = unitToken.balanceOf(user);
-        uint256 collateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 auctionCollateralBalanceBefore = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 unitTotalSupplyBefore = unitToken.totalSupply();
+  
         uint256 unitAmount = 100161971476592491;
         uint256 collateralAmount = 1e17;
 
@@ -145,9 +163,17 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         unitAuctionProxy.buyUnit(collateralAmount);
 
         // Assert
-        uint256 unitBalanceAfter = unitToken.balanceOf(user);
-        uint256 collateralBalanceAfter = collateralERC20Token.balanceOf(user);
-        assertEq(unitBalanceAfter - unitBalanceBefore, unitAmount * 2);
-        assertEq(collateralBalanceBefore - collateralBalanceAfter, collateralAmount * 2);
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        uint256 auctionCollateralBalanceAfter = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceAfter = unitToken.balanceOf(address(unitAuctionProxy));
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 unitTotalSupplyAfter = unitToken.totalSupply();
+        assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount * 2);
+        assertEq(userCollateralBalanceBefore - userCollateralBalanceAfter, collateralAmount * 2);
+        assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
+        assertEq(auctionCollateralBalanceAfter, auctionCollateralBalanceBefore);
+        assertEq(unitTotalSupplyAfter - unitTotalSupplyBefore, unitAmount * 2);
+        assertEq(bondingCurveCollateralBalanceAfter - bondingCurveCollateralBalanceBefore, collateralAmount * 2);
     }
 }
