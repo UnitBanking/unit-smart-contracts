@@ -5,8 +5,72 @@ pragma solidity 0.8.23;
 import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
 import { IUnitAuction } from '../../../contracts/interfaces/IUnitAuction.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 
 contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
+    function test_sellUnit_RevertsWhenInsufficientUserUnitBalance() public {
+        // Arange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+        uint256 unitAmount = unitToken.balanceOf(user) + 1;
+
+        // Get RR to 2 (i.e. in UNIT contraction range)
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(1e18);
+
+        vm.prank(user);
+        unitToken.approve(address(unitAuctionProxy), unitAmount);
+
+        // Act & Assert
+        vm.startPrank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20.ERC20InsufficientBalance.selector,
+                user,
+                unitToken.balanceOf(user),
+                unitAmount
+            )
+        );
+        unitAuctionProxy.sellUnit(unitAmount);
+        vm.stopPrank();
+    }
+
+    function test_sellUnit_RevertsWhenResultingReserveRatioOutOfRange() public {
+        // Arrange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+        uint256 unitAmount = unitToken.balanceOf(user);
+
+        // Get RR to 2 (i.e. in UNIT contraction range)
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(1e18);
+
+        vm.prank(user);
+        unitToken.approve(address(unitAuctionProxy), unitAmount);
+
+        // Act & Assert
+        vm.startPrank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IUnitAuction.UnitAuctionResultingReserveRatioOutOfRange.selector,
+                899443158634848994882500124099660670
+            )
+        );
+        unitAuctionProxy.sellUnit(unitAmount);
+        vm.stopPrank();
+    }
+
+    function test_sellUnit_RevertsWhenReserveRatioNotIncreased() public {
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+
+        // Get RR to 2 (i.e. in UNIT contraction range)
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(1e18);
+
+        // Act & Assert
+        vm.prank(user);
+        vm.expectRevert(IUnitAuction.UnitAuctionReserveRatioNotIncreased.selector);
+        unitAuctionProxy.sellUnit(0);
+    }
+
     function test_sellUnit_SuccessfulBid() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);

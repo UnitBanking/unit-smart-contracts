@@ -29,9 +29,6 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(5 * 1e18); // increases RR
 
-        vm.prank(user);
-        collateralERC20Token.approve(address(unitAuctionProxy), collateralAmount);
-
         // Act & Assert
         vm.prank(user);
         vm.expectRevert(
@@ -147,7 +144,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
         uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
         uint256 unitTotalSupplyBefore = unitToken.totalSupply();
-  
+
         uint256 unitAmount = 100161971476592491;
         uint256 collateralAmount = 1e17;
 
