@@ -23,7 +23,7 @@ abstract contract UnitAuctionTestBase is Test {
     Proxy public proxy;
     UnitAuctionHarness public unitAuctionImplementation;
     UnitAuctionHarness public unitAuctionProxy;
-    BondingCurve public bondingCurve;
+    BondingCurve public bondingCurveProxy;
     CollateralERC20TokenTest public collateralERC20Token;
     UnitToken public unitToken;
     MineToken public mineToken;
@@ -71,22 +71,22 @@ abstract contract UnitAuctionTestBase is Test {
                 collateralUsdOracle
             )
         );
-        bondingCurve = BondingCurve(payable(_proxy));
+        bondingCurveProxy = BondingCurve(payable(_proxy));
 
-        unitToken.setMinter(address(bondingCurve), true);
-        unitToken.setBurner(address(bondingCurve), true);
+        unitToken.setMinter(address(bondingCurveProxy), true);
+        unitToken.setBurner(address(bondingCurveProxy), true);
 
         mineToken.setMinter(wallet, true);
-        mineToken.setBurner(address(bondingCurve), true);
+        mineToken.setBurner(address(bondingCurveProxy), true);
 
         // send initial collateral token amount to bondingCurveProxy contract
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE);
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         unitToken.mint(wallet, TestUtils.INITIAL_UNIT_VALUE);
 
         // set up UnitAuction contract
-        unitAuctionImplementation = new UnitAuctionHarness(bondingCurve, unitToken);
+        unitAuctionImplementation = new UnitAuctionHarness(bondingCurveProxy, unitToken);
         proxy = new Proxy(address(this));
         proxy.upgradeToAndCall(
             address(unitAuctionImplementation),
@@ -104,7 +104,7 @@ abstract contract UnitAuctionTestBase is Test {
         uint256 userCollateralBalance = 100 * 1e18;
         vm.startPrank(user);
         collateralERC20Token.mint(userCollateralBalance);
-        collateralERC20Token.approve(address(bondingCurve), userCollateralBalance);
+        collateralERC20Token.approve(address(bondingCurveProxy), userCollateralBalance);
         collateralERC20Token.approve(address(unitAuctionProxy), userCollateralBalance);
         vm.stopPrank();
 
@@ -112,6 +112,6 @@ abstract contract UnitAuctionTestBase is Test {
 
         // Act
         vm.prank(user);
-        bondingCurve.mint(user, collateralAmount);
+        bondingCurveProxy.mint(user, collateralAmount);
     }
 }

@@ -26,7 +26,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 collateralAmount = collateralERC20Token.balanceOf(user) + 1;
 
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(5 * 1e18); // increases RR
 
         vm.prank(user);
@@ -39,7 +39,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
                 TransferUtils.TransferUtilsERC20TransferFromFailed.selector,
                 address(collateralERC20Token),
                 user,
-                address(bondingCurve),
+                address(bondingCurveProxy),
                 99000000000000000001
             )
         );
@@ -51,7 +51,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 collateralAmount = collateralERC20Token.balanceOf(user);
 
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(5 * 1e18); // increases RR
 
         unitAuctionProxy.refreshState();
@@ -72,7 +72,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 collateralAmount = collateralERC20Token.balanceOf(user);
 
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(5 * 1e18); // increases RR
 
         // Act & Assert
@@ -84,7 +84,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
     function test_buyUnit_RevertsWhenReserveRatioNotDecreased() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
         // Act & Assert
@@ -96,7 +96,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
     function test_buyUnit_SuccessfullyBuysUnit() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
         uint256 unitBalanceBefore = unitToken.balanceOf(user);
@@ -120,7 +120,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
     function test_buyUnit_SuccessfullyBuysUnit2Times() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        vm.prank(address(bondingCurve));
+        vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(10 * 1e18); // increases RR
 
         uint256 unitBalanceBefore = unitToken.balanceOf(user);
