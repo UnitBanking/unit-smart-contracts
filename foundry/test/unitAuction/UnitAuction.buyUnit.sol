@@ -13,7 +13,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         uint256 collateralAmount = 1e18;
 
         // Act & Assert
-        uint256 reserveRatio = 1;
+        uint256 reserveRatio = 1001000000000000004;
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(IUnitAuction.UnitAuctionInitialReserveRatioOutOfRange.selector, reserveRatio)
@@ -77,7 +77,12 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
 
         // Act & Assert
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(IUnitAuction.UnitAuctionResultingReserveRatioOutOfRange.selector, 1));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IUnitAuction.UnitAuctionResultingReserveRatioOutOfRange.selector,
+                1047687308787247517
+            )
+        );
         unitAuctionProxy.buyUnit(collateralAmount);
     }
 
@@ -90,7 +95,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         // Act & Assert
         vm.prank(user);
         vm.expectRevert(IUnitAuction.UnitAuctionReserveRatioNotDecreased.selector);
-        unitAuctionProxy.buyUnit(1);
+        unitAuctionProxy.buyUnit(0);
     }
 
     function test_buyUnit_SuccessfullyBuysUnit() public {

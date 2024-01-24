@@ -5,27 +5,21 @@ pragma solidity 0.8.23;
 import '../abstracts/Proxiable.sol';
 import '../abstracts/Ownable.sol';
 import '../libraries/TransferUtils.sol';
+import '../libraries/ReserveRatio.sol';
 import '../BondingCurve.sol';
 import '../UnitToken.sol';
 import '../interfaces/IUnitAuction.sol';
 
 /*
 TODO:
-- Consider putting constants we pull from the bonding curve into a common library
+- Consider putting remaining constants we pull from the bonding curve (like UNITUSD_PRICE_PRECISION) in a common library
 - AuctionState struct packing: casting timestamp to uint32 gives us until y2106, the next possible size is uint40, which will last until y36812
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
 */
 
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
-    using TransferUtils for address;
-
-    uint256 public constant CRITICAL_RR = 1;
-    uint256 public constant LOW_RR = 3;
-    uint256 public immutable HIGH_RR;
-    uint256 public constant TARGET_RR = 5;
-
-    uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110% TODO: This is TBC
+    uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110%
     uint256 public constant START_PRICE_BUFFER_PRECISION = 10_000;
 
     uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices returned from the bonding curve are in this precision
@@ -68,7 +62,6 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         collateralToken = bondingCurve.collateralToken();
         unitToken = _unitToken;
 
-        HIGH_RR = _bondingCurve.HIGH_RR();
         UNITUSD_PRICE_PRECISION = _bondingCurve.UNITUSD_PRICE_PRECISION();
 
         super.initialize();
@@ -158,18 +151,14 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
         unitToken.burnFrom(msg.sender, unitAmount);
-        TransferUtils.safeTransferFrom(
-            collateralToken,
-            address(bondingCurve),
-            msg.sender,
-            collateralAmount
-        );
+        bondingCurve.approveCollateralToken(collateralAmount);
+        TransferUtils.safeTransferFrom(collateralToken, address(bondingCurve), msg.sender, collateralAmount);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
         if (reserveRatioAfter <= reserveRatioBefore) {
             revert UnitAuctionReserveRatioNotIncreased();
         }
-        if (reserveRatioAfter >= HIGH_RR) {
+        if (reserveRatioAfter >= ReserveRatio.HIGH_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
@@ -207,7 +196,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (reserveRatioAfter >= reserveRatioBefore) {
             revert UnitAuctionReserveRatioNotDecreased();
         }
-        if (reserveRatioAfter < TARGET_RR) {
+        if (reserveRatioAfter < ReserveRatio.TARGET_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
@@ -248,10 +237,10 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     function inContractionRange(uint256 reserveRatio) internal pure returns (bool) {
-        return reserveRatio > CRITICAL_RR && reserveRatio <= LOW_RR;
+        return reserveRatio > ReserveRatio.CRITICAL_RR && reserveRatio <= ReserveRatio.LOW_RR;
     }
 
     function inExpansionRange(uint256 reserveRatio) internal pure returns (bool) {
-        return reserveRatio > TARGET_RR;
+        return reserveRatio > ReserveRatio.TARGET_RR;
     }
 }

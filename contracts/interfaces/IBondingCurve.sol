@@ -23,6 +23,11 @@ interface IBondingCurve {
     error BondingCurveInvalidUnitTokenPrecision(uint256 invalidPrecision, uint256 expectedPrecision);
 
     /**
+     * @dev Call unauthorized.
+     */
+    error BondingCurveForbidden();
+
+    /**
      * ================ CORE FUNCTIONALITY ================
      */
 
@@ -43,6 +48,15 @@ interface IBondingCurve {
         IInflationOracle _inflationOracle,
         ICollateralUsdOracle _collateralUsdOracle
     ) external;
+
+    /**
+     * @notice Approves collateral token to be spent by the UNIT auction contract on behalf of this contract.
+     * Used in UNIT contraction auction, where the auction contract must transfer collateral token from this
+     * contract to the user when they bid.
+     * @dev Can only be called by the UNIT auction contract.
+     * @param amount Collateral token amount to be approved for spending.
+     */
+    function approveCollateralToken(uint256 amount) external;
 
     /**
      * @notice Creates UNIT token and assigns it to `receiver`. The amount created is proportional to the

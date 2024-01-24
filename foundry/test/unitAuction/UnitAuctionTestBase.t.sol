@@ -96,6 +96,9 @@ abstract contract UnitAuctionTestBase is Test {
         unitAuctionProxy = UnitAuctionHarness(payable(proxy));
 
         unitToken.setMinter(address(unitAuctionProxy), true);
+        unitToken.setBurner(address(unitAuctionProxy), true);
+
+        bondingCurveProxy.setUnitAuction(address(unitAuctionProxy));
     }
 
     function _createUserAndMintUnitAndCollateralToken(uint256 collateralAmount) internal returns (address user) {

@@ -147,7 +147,10 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         vm.stopPrank();
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
-        assertEq(bondingCurveProxy.getReserveRatio(), TestUtils.HIGH_RR);
+        assertEq(
+            bondingCurveProxy.getReserveRatio() / TestUtils.RR_PRECISION,
+            TestUtils.HIGH_RR / TestUtils.RR_PRECISION
+        );
 
         // Act
         vm.prank(user);
@@ -172,14 +175,12 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         vm.stopPrank();
 
         vm.startPrank(address(bondingCurveProxy));
-        collateralERC20TokenTest.mint(
-            type(uint256).max / collateralUsdOracle.getCollateralUsdPrice() - TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE
-        );
+        collateralERC20TokenTest.mint(userCollateralBalance * 10);
         vm.stopPrank();
 
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
-        assertEq(bondingCurveProxy.getReserveRatio(), 115720447209488867682148501081349782583534698222344066017616);
+        assertEq(bondingCurveProxy.getReserveRatio(), 999381287372054430990364809209393220250);
 
         // Act
         vm.prank(user);

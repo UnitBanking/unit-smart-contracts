@@ -5,11 +5,13 @@ pragma solidity 0.8.23;
 import './interfaces/IBondingCurve.sol';
 import './abstracts/Proxiable.sol';
 import './abstracts/ReentrancyGuard.sol';
+import './abstracts/Ownable.sol';
 import './interfaces/IInflationOracle.sol';
 import './interfaces/ICollateralUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
 import './libraries/TransferUtils.sol';
+import './libraries/ReserveRatio.sol';
 import './MineToken.sol';
 import './UnitToken.sol';
 
@@ -24,7 +26,7 @@ import './UnitToken.sol';
  - add UTs for non reentrant funcs
  */
 
-contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
+contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     using TransferUtils for address;
 
     /**
@@ -34,8 +36,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     uint256 private constant TWENTY_YEARS_IN_SECONDS = 20 * 365 days;
     UD60x18 private constant TWENTY_YEARS_UD60x18 = UD60x18.wrap(20 * uUNIT);
     UD60x18 private constant ONE_YEAR_IN_SECONDS_UD60x18 = UD60x18.wrap(365 days * uUNIT);
-
-    uint256 public constant HIGH_RR = 4; // High reserve ratio (RR)
 
     uint256 public constant BASE_SPREAD = 10; // 0.001 or 0.1%
     uint256 public constant SPREAD_PRECISION = 10_000;
@@ -65,6 +65,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
     ICollateralUsdOracle public collateralUsdOracle;
     UnitToken public unitToken;
     MineToken public mineToken;
+    address public unitAuction;
 
     /**
      * ================ CONSTRUCTOR ================
@@ -94,6 +95,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         IInflationOracle _inflationOracle,
         ICollateralUsdOracle _collateralUsdOracle
     ) external {
+        _setOwner(msg.sender);
         uint256 unitTokenPrecision = 10 ** _unitToken.decimals();
         if (unitTokenPrecision != UNITUSD_PRICE_PRECISION) {
             revert BondingCurveInvalidUnitTokenPrecision(unitTokenPrecision, UNITUSD_PRICE_PRECISION);
@@ -113,11 +115,26 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
         super.initialize();
     }
 
+    function setUnitAuction(address _unitAuction) external onlyOwner {
+        unitAuction = _unitAuction;
+    }
+
+    /**
+     * @inheritdoc IBondingCurve
+     */
+    function approveCollateralToken(uint256 amount) external {
+        if (msg.sender != unitAuction) {
+            revert BondingCurveForbidden();
+        }
+
+        collateralToken.approve(msg.sender, amount);
+    }
+
     /**
      * @inheritdoc IBondingCurve
      */
     function mint(address receiver, uint256 collateralAmountIn) external nonReentrant {
-        if (_getReserveRatio() < HIGH_RR) {
+        if (_getReserveRatio() < ReserveRatio.HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
@@ -239,7 +256,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
      */
 
     function quoteMint(uint256 collateralAmount) external view returns (uint256) {
-        if (_getReserveRatio() < HIGH_RR) {
+        if (_getReserveRatio() < ReserveRatio.HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
@@ -358,7 +375,8 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard {
 
         if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
-                (collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) / // TODO: can do unchecked subtraction (gas optimization)
+                ((collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) *
+                    ReserveRatio.RR_PRECISION) /
                 (unitUsdPrice * unitTokenTotalSupply);
         }
     }

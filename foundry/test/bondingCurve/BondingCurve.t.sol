@@ -118,7 +118,10 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         uint256 reserveRatio = bondingCurveProxy.getReserveRatio();
 
         // Assert
-        assertEq(reserveRatio, TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE / TestUtils.INITIAL_UNIT_VALUE);
+        assertEq(
+            reserveRatio,
+            (TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE * TestUtils.RR_PRECISION) / TestUtils.INITIAL_UNIT_VALUE
+        );
     }
 
     /**

@@ -200,9 +200,9 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_inContractionRange_SuccessfullyChecksRange() public {
         // Arrange
-        uint256 rrOutOfContractionRangeLower = 1;
-        uint256 rrOutOfContractionRangeHigher = 4;
-        uint256 rrInContractionRange = 2;
+        uint256 rrOutOfContractionRangeLower = 1 * TestUtils.RR_PRECISION;
+        uint256 rrOutOfContractionRangeHigher = 4 * TestUtils.RR_PRECISION;
+        uint256 rrInContractionRange = 2 * TestUtils.RR_PRECISION;
 
         // Act & Assert
         assertEq(unitAuctionProxy.exposed_inContractionRange(rrOutOfContractionRangeLower), false);
@@ -216,8 +216,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_inExpansionRange_SuccessfullyChecksRange() public {
         // Arrange
-        uint256 rrOutOfExpansionRange = 5;
-        uint256 rrInExpansionRange = 6;
+        uint256 rrOutOfExpansionRange = 5 * TestUtils.RR_PRECISION;
+        uint256 rrInExpansionRange = 6 * TestUtils.RR_PRECISION;
 
         // Act & Assert
         assertEq(unitAuctionProxy.exposed_inExpansionRange(rrOutOfExpansionRange), false);
@@ -257,7 +257,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         uint216 price = uint216(
             (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
         );
-        assertEq(reserveRatio, 2);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 2);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
         assertEq(auctionState.variant, AUCTION_VARIANT_CONTRACTION);
@@ -273,7 +273,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
         // Assert
         uint256 price = bondingCurveProxy.getMintPrice();
-        assertEq(reserveRatio, 6);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 6);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
         assertEq(auctionState.variant, AUCTION_VARIANT_EXPANSION);
@@ -291,7 +291,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         uint216 priceBefore = uint216(
             (mintPriceBefore * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
         );
-        assertEq(reserveRatioBefore, 3);
+        assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 3);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, priceBefore);
         assertEq(auctionStateBefore.variant, AUCTION_VARIANT_CONTRACTION);
@@ -306,7 +306,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
-        assertEq(reserveRatio, 2);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 2);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
         assertEq(auctionState.variant, AUCTION_VARIANT_CONTRACTION);
@@ -324,7 +324,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         uint216 priceBefore = uint216(
             (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
         );
-        assertEq(reserveRatioBefore, 3);
+        assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 3);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, priceBefore);
         assertEq(auctionStateBefore.variant, AUCTION_VARIANT_CONTRACTION);
@@ -340,7 +340,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
-        assertEq(reserveRatio, 6);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 6);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
         assertEq(auctionState.variant, AUCTION_VARIANT_EXPANSION);
@@ -358,7 +358,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         uint216 price = uint216(
             (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
         );
-        assertEq(reserveRatioBefore, 3);
+        assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 3);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, price);
         assertEq(auctionStateBefore.variant, AUCTION_VARIANT_CONTRACTION);
@@ -372,7 +372,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
-        assertEq(reserveRatio, 4);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 4);
         assertEq(auctionState.startTime, 0);
         assertEq(auctionState.startPrice, 0);
         assertEq(auctionState.variant, AUCTION_VARIANT_NONE);
@@ -386,7 +386,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // starts initial contraction auction
         (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
             .refreshState();
-        assertEq(reserveRatioBefore, 7);
+        assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 7);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, bondingCurveProxy.getMintPrice());
         assertEq(auctionStateBefore.variant, AUCTION_VARIANT_EXPANSION);
@@ -399,7 +399,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
-        assertEq(reserveRatio, 6);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 6);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
         assertEq(auctionState.variant, AUCTION_VARIANT_EXPANSION);
@@ -413,7 +413,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // starts initial contraction auction
         (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
             .refreshState();
-        assertEq(reserveRatioBefore, 7);
+        assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 7);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, bondingCurveProxy.getMintPrice());
         assertEq(auctionStateBefore.variant, AUCTION_VARIANT_EXPANSION);
@@ -431,7 +431,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         uint216 price = uint216(
             (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
         );
-        assertEq(reserveRatio, 2);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 2);
         assertEq(auctionState.startTime, block.timestamp);
         assertEq(auctionState.startPrice, price);
         assertEq(auctionState.variant, AUCTION_VARIANT_CONTRACTION);
@@ -445,7 +445,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // starts initial contraction auction
         (uint256 reserveRatioBefore, UnitAuction.AuctionState memory auctionStateBefore) = unitAuctionProxy
             .refreshState();
-        assertEq(reserveRatioBefore, 7);
+        assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 7);
         assertEq(auctionStateBefore.startTime, block.timestamp);
         assertEq(auctionStateBefore.startPrice, bondingCurveProxy.getMintPrice());
         assertEq(auctionStateBefore.variant, AUCTION_VARIANT_EXPANSION);
@@ -460,7 +460,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
 
         // Assert
-        assertEq(reserveRatio, 4);
+        assertEq(reserveRatio / TestUtils.RR_PRECISION, 4);
         assertEq(auctionState.startTime, 0);
         assertEq(auctionState.startPrice, 0);
         assertEq(auctionState.variant, AUCTION_VARIANT_NONE);
