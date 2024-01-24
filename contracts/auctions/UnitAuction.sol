@@ -31,6 +31,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices returned from the bonding curve are in this precision
 
     BondingCurve public immutable bondingCurve;
+    IERC20 public immutable collateralToken;
     UnitToken public immutable unitToken;
 
     uint256 public contractionAuctionMaxDuration;
@@ -60,9 +61,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @notice This contract uses a Proxy pattern.
      * Locks the contract, to prevent the implementation contract from being used.
+     * @dev This contract must be deployed after the bonding curve has been deployed and initialized via its proxy.
      */
     constructor(BondingCurve _bondingCurve, UnitToken _unitToken) {
         bondingCurve = _bondingCurve;
+        collateralToken = bondingCurve.collateralToken();
         unitToken = _unitToken;
 
         HIGH_RR = _bondingCurve.HIGH_RR();
@@ -156,7 +159,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         unitToken.burnFrom(msg.sender, unitAmount);
         TransferUtils.safeTransferFrom(
-            bondingCurve.collateralToken(),
+            collateralToken,
             address(bondingCurve),
             msg.sender,
             collateralAmount
@@ -184,7 +187,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         }
 
         collateralAmount = TransferUtils.safeTransferFrom(
-            bondingCurve.collateralToken(),
+            collateralToken,
             msg.sender,
             address(bondingCurve),
             collateralAmount
