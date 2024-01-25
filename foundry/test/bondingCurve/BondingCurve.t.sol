@@ -8,6 +8,19 @@ import { TestUtils } from '../utils/TestUtils.t.sol';
 
 contract BondingCurveHarnessTest is BondingCurveTestBase {
     /**
+     * ================ COLLATERAL_BURN_ADDRESS() ================
+     */
+
+    function test_COLLATERAL_BURN_ADDRESS_CorrectlySetsAddressInProxyContract() public {
+        // Arrange & Act
+        (, bytes memory data) = address(bondingCurveProxyType).call(abi.encodeWithSelector(0xb8588101));
+
+        // Assert
+        address collateralBurnAddress = abi.decode(data, (address));
+        assertEq(collateralBurnAddress, TestUtils.COLLATERAL_BURN_ADDRESS);
+    }
+
+    /**
      * ================ getUnitUsdPriceForTimestamp() ================
      */
 
