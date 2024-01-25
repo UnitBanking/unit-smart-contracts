@@ -115,19 +115,19 @@ describe('Mine Auctions', () => {
       await increase(DEFAULT_BID_TIME + DEFAULT_SETTLE_TIME)
       await expect(auction.getAuction(groupId + 1n, auctionId)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionGroupIdTooLarge'
+        'AuctionAuctionGroupIdGreaterThanCurrentId'
       )
       await expect(auction.getAuctionGroup(groupId + 1n)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionGroupIdTooLarge'
+        'AuctionAuctionGroupIdGreaterThanLastId'
       )
       await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionGroupIdTooLarge'
+        'AuctionAuctionGroupIdGreaterThanCurrentId'
       )
       await expect(auction.getBid(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionGroupIdTooLarge'
+        'AuctionAuctionGroupIdGreaterThanCurrentId'
       )
     })
     it('reverts when auctionId is too large', async () => {

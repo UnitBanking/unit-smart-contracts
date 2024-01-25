@@ -184,15 +184,17 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     }
 
     function revertIfAuctionGroupNotExist(uint256 auctionGroupId) internal view {
-        if (auctionGroupId > auctionGroups.length - 1) {
-            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
+        uint256 lastGroupId = auctionGroups.length - 1;
+        if (auctionGroupId > lastGroupId) {
+            revert AuctionAuctionGroupIdGreaterThanLastId(lastGroupId);
         }
     }
 
-    // should be be able to fetch future auction
+    // auction info should only be available for past auction, include current auction
     function revertIfAuctionIdInFuture(uint256 auctionGroupId, uint256 auctionId) internal view {
-        if (auctionGroupId > _currentAuctionGroupId()) {
-            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
+        uint currentGroupId = _currentAuctionGroupId();
+        if (auctionGroupId > currentGroupId) {
+            revert AuctionAuctionGroupIdGreaterThanCurrentId(currentGroupId);
         }
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (block.timestamp < auctionGroup.startTime + auctionId * (auctionGroup.bidTime + auctionGroup.settleTime)) {
@@ -202,8 +204,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     // claim is only enabled for past auction, exclude current auction
     function revertIfNotClaimable(uint256 auctionGroupId, uint256 auctionId) internal view {
-        if (auctionGroupId > _currentAuctionGroupId()) {
-            revert AuctionAuctionGroupIdTooLarge(auctionGroupId);
+        uint currentGroupId = _currentAuctionGroupId();
+        if (auctionGroupId > currentGroupId) {
+            revert AuctionAuctionGroupIdGreaterThanCurrentId(currentGroupId);
         }
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (
@@ -264,12 +267,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         unchecked {
             // Overflow not possible: previously checked
             uint256 elapsed = (block.timestamp - auctionGroup.startTime) % auctionDuration;
-            // Overflow not possible: auctionInterval > auctionSettleTime
             if (elapsed < auctionGroup.bidTime) {
                 revert AuctionBiddingInProgress();
             }
+            if(startTime < auctionGroup.startTime) {
+                revert AuctionGroupStartTimeTooEarly();
+            }
             uint256 offset = (startTime - auctionGroup.startTime) % auctionDuration;
-            if (offset < auctionGroup.bidTime || startTime > block.timestamp - elapsed + auctionDuration) {
+            if (offset < auctionGroup.bidTime || startTime >= block.timestamp - elapsed + auctionDuration) {
                 revert AuctionGroupStartTimeNotInSettlement();
             }
         }

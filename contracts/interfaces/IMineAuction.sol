@@ -12,7 +12,8 @@ interface IMineAuction {
     event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 bidTime);
 
     error AuctionNoDirectTransfer();
-    error AuctionAuctionGroupIdTooLarge(uint256 auctionGroupId);
+    error AuctionAuctionGroupIdGreaterThanCurrentId(uint256 compareTo);
+    error AuctionAuctionGroupIdGreaterThanLastId(uint256 compareTo);
     error AuctionAuctionIdTooLarge(uint256 auctionId);
     error AuctionNotCurrentAuctionId(uint256 auctionId);
     error AuctionStartTimeInThePast();
@@ -20,6 +21,7 @@ interface IMineAuction {
     error AuctionInProgress();
     error AuctionBiddingInProgress();
     error AuctionGroupStartTimeNotInSettlement();
+    error AuctionGroupStartTimeTooEarly();
     error AuctionInSettlement();
     error AuctionClaimingCurrentAuction();
     error AuctionInvalidClaimAmount(uint256 amount);
