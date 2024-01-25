@@ -9,7 +9,6 @@ import './abstracts/Proxiable.sol';
 import './MineToken.sol';
 import './abstracts/Pausable.sol';
 import './libraries/TransferUtils.sol';
-import 'hardhat/console.sol';
 
 contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
@@ -44,7 +43,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         Proxiable.initialize();
     }
 
-    function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 bidTime) external override onlyOwner {
+    function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external override onlyOwner {
         revertIfNotInSettlement(startTime);
         _setAuctionGroup(startTime, settleTime, bidTime);
     }
@@ -142,11 +141,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         if (amount == 0) {
             revert AuctionInvalidBidAmount();
         }
-        if (!isCurrentAuctionId(auctionId)) {
-            revert AuctionNotCurrentAuctionId(auctionId);
-        }
 
         uint256 auctionGroupId = _currentAuctionGroupId();
+        AuctionGroup memory auctionGroup = auctionGroups[_currentAuctionGroupId()];
+        uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
+        uint256 endTime = startTime + auctionGroup.bidTime;
+        if (block.timestamp < startTime || block.timestamp >= endTime) {
+            revert AuctionNotCurrentAuctionId(auctionId);
+        }
 
         if (auctions[auctionGroupId][auctionId].rewardAmount == 0) {
             auctions[auctionGroupId][auctionId].rewardAmount = getRewardAmount(auctionGroupId);
@@ -176,13 +178,6 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return auctionGroupId;
     }
 
-    function isCurrentAuctionId(uint256 auctionId) internal view returns (bool) {
-        AuctionGroup memory auctionGroup = auctionGroups[_currentAuctionGroupId()];
-        uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
-        uint256 endTime = startTime + auctionGroup.bidTime;
-        return block.timestamp >= startTime && block.timestamp < endTime;
-    }
-
     function revertIfAuctionGroupNotExist(uint256 auctionGroupId) internal view {
         uint256 lastGroupId = auctionGroups.length - 1;
         if (auctionGroupId > lastGroupId) {
@@ -198,7 +193,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         }
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (block.timestamp < auctionGroup.startTime + auctionId * (auctionGroup.bidTime + auctionGroup.settleTime)) {
-            revert AuctionAuctionIdTooLarge(auctionId);
+            revert AuctionAuctionIdGreaterThanCurrentId(auctionId);
         }
     }
 
@@ -213,7 +208,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             block.timestamp <
             auctionGroup.startTime + (auctionId + 1) * (auctionGroup.bidTime + auctionGroup.settleTime)
         ) {
-            revert AuctionAuctionIdTooLarge(auctionId);
+            revert AuctionAuctionIdGreaterThanPreviousId(auctionId);
         }
     }
 
@@ -221,7 +216,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         revertIfNotClaimable(auctionGroupId, auctionId);
         uint256 claimable = getClaimableAmount(auctionGroupId, auctionId, bidder);
         if (amount > claimable) {
-            revert AuctionInvalidClaimAmount(amount);
+            revert AuctionInsufficientClaimAmount(amount);
         }
         auctions[auctionGroupId][auctionId].claimed[bidder] += amount;
         mine.mint(to, amount);
@@ -251,7 +246,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return totalClaimable - auction.claimed[bidder];
     }
 
-    function _setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 bidTime) internal {
+    function _setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) internal {
         AuctionGroup memory auctionGroup;
         auctionGroup.startTime = startTime;
         auctionGroup.settleTime = settleTime;
@@ -260,7 +255,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         emit AuctionGroupSet(auctionGroups.length - 1, startTime, settleTime, bidTime);
     }
 
-    function revertIfNotInSettlement(uint256 startTime) internal view {
+    function revertIfNotInSettlement(uint64 startTime) internal view {
         uint256 auctionGroupId = _currentAuctionGroupId();
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         uint256 auctionDuration = auctionGroup.bidTime + auctionGroup.settleTime;
@@ -270,7 +265,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             if (elapsed < auctionGroup.bidTime) {
                 revert AuctionBiddingInProgress();
             }
-            if(startTime < auctionGroup.startTime) {
+            if (startTime < auctionGroup.startTime) {
                 revert AuctionGroupStartTimeTooEarly();
             }
             uint256 offset = (startTime - auctionGroup.startTime) % auctionDuration;

@@ -14,7 +14,8 @@ interface IMineAuction {
     error AuctionNoDirectTransfer();
     error AuctionAuctionGroupIdGreaterThanCurrentId(uint256 compareTo);
     error AuctionAuctionGroupIdGreaterThanLastId(uint256 compareTo);
-    error AuctionAuctionIdTooLarge(uint256 auctionId);
+    error AuctionAuctionIdGreaterThanCurrentId(uint256 compareTo);
+    error AuctionAuctionIdGreaterThanPreviousId(uint256 compareTo);
     error AuctionNotCurrentAuctionId(uint256 auctionId);
     error AuctionStartTimeInThePast();
     error AuctionInvalidBidAmount();
@@ -24,7 +25,7 @@ interface IMineAuction {
     error AuctionGroupStartTimeTooEarly();
     error AuctionInSettlement();
     error AuctionClaimingCurrentAuction();
-    error AuctionInvalidClaimAmount(uint256 amount);
+    error AuctionInsufficientClaimAmount(uint256 amount);
 
     struct Auction {
         uint256 totalBidAmount;
@@ -34,9 +35,9 @@ interface IMineAuction {
     }
 
     struct AuctionGroup {
-        uint256 startTime;
-        uint256 settleTime;
-        uint256 bidTime;
+        uint64 startTime;
+        uint32 settleTime;
+        uint32 bidTime;
     }
 
     function initialize(
@@ -91,7 +92,7 @@ interface IMineAuction {
 
     function currentAuctionGroupId() external view returns (uint256);
 
-    function setAuctionGroup(uint256 startTime, uint256 settleTime, uint256 bidTime) external;
+    function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external;
 
     function bid(uint256 auctionId, uint256 amount) external;
 

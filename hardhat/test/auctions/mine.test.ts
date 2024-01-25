@@ -132,17 +132,21 @@ describe('Mine Auctions', () => {
     })
     it('reverts when auctionId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
+      await expect(auction.claim(groupId, auctionId, 10)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionAuctionIdGreaterThanPreviousId'
+      )
       await expect(auction.getAuction(groupId, auctionId + 1n)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionIdTooLarge'
+        'AuctionAuctionIdGreaterThanCurrentId'
       )
       await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionIdTooLarge'
+        'AuctionAuctionIdGreaterThanCurrentId'
       )
       await expect(auction.getBid(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(
         auction,
-        'AuctionAuctionIdTooLarge'
+        'AuctionAuctionIdGreaterThanCurrentId'
       )
     })
   })
@@ -153,7 +157,7 @@ describe('Mine Auctions', () => {
       await increase(DEFAULT_AUCTION_INTERVAL)
       await expect(auction.claim(groupId, auctionId, ethers.MaxUint256)).to.be.revertedWithCustomError(
         auction,
-        'AuctionInvalidClaimAmount'
+        'AuctionInsufficientClaimAmount'
       )
     })
     it('allows to claim', async () => {
