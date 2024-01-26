@@ -143,7 +143,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         }
 
         uint256 auctionGroupId = _currentAuctionGroupId();
-        AuctionGroup memory auctionGroup = auctionGroups[_currentAuctionGroupId()];
+        AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
         uint256 endTime = startTime + auctionGroup.bidTime;
         if (block.timestamp < startTime || block.timestamp >= endTime) {
