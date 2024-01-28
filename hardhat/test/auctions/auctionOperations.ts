@@ -70,7 +70,10 @@ export async function getBiddingAuctionIdAtLatestBlock(auction: MineAuction, own
   return await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
 }
 
-export async function setNextBlockTimestampToSettlement(auction: MineAuction, owner: HardhatEthersSigner) {
+export async function setNextBlockTimestampToSettlement(
+  auction: MineAuction,
+  owner: HardhatEthersSigner
+): Promise<bigint> {
   const block = await getLatestBlock(owner)
   const [, startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
   const interval = bidTime + settleTime
