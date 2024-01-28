@@ -12,10 +12,11 @@ interface IMineAuction {
     event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 bidTime);
 
     error AuctionNoDirectTransfer();
-    error AuctionAuctionGroupIdGreaterThanCurrentId(uint256 compareTo);
-    error AuctionAuctionGroupIdGreaterThanLastId(uint256 compareTo);
-    error AuctionAuctionIdGreaterThanCurrentId(uint256 compareTo);
-    error AuctionAuctionIdGreaterThanPreviousId(uint256 compareTo);
+    error AuctionAuctionGroupIdInFuture(uint256 auctionGroupId);
+    error AuctionAuctionIdInFuture(uint256 auctionId);
+    error AuctionAuctionIdInFutureOrCurrent(uint256 auctionId);
+    error AuctionInvalidAuctionGroupId(uint256 auctionGroupId);
+    error AuctionNotCurrentAuctionGroupId(uint256 auctionGroupId);
     error AuctionNotCurrentAuctionId(uint256 auctionId);
     error AuctionStartTimeInThePast();
     error AuctionInvalidBidAmount();
@@ -53,7 +54,10 @@ interface IMineAuction {
 
     function getAuctionGroupCount() external view returns (uint256);
 
-    function getCurrentAuctionGroup() external view returns (uint256 startTime, uint256 settleTime, uint256 bidTime);
+    function getCurrentAuctionGroup()
+        external
+        view
+        returns (uint256 auctionGroupId, uint256 startTime, uint256 settleTime, uint256 bidTime);
 
     function getAuction(
         uint256 auctionGroupId,
@@ -94,7 +98,7 @@ interface IMineAuction {
 
     function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external;
 
-    function bid(uint256 auctionId, uint256 amount) external;
+    function bid(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 
     function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 

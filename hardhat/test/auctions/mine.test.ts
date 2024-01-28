@@ -8,7 +8,11 @@ import {
 import { expect } from 'chai'
 import { getLatestBlock } from '../utils'
 import { type MineToken, type IERC20, type MineAuction } from '../../build/types'
-import { increase, setNextBlockTimestamp } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
+import {
+  increase,
+  increaseTo,
+  setNextBlockTimestamp,
+} from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import {
   getBiddingAuctionIdAt,
@@ -37,16 +41,22 @@ describe('Mine Auctions', () => {
 
   describe('Before auction start', () => {
     beforeEach(async () => {
-      await setNextBlockTimestampToSettlement(auction, owner)
-      const block = await getLatestBlock(owner)
-      await auction.setAuctionGroup(block.timestamp, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
+      const nextBlockTimestamp = await setNextBlockTimestampToSettlement(auction, owner)
+      await auction.setAuctionGroup(nextBlockTimestamp, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     })
 
     it('reverts when bid', async () => {
+      const groupId = await auction.currentAuctionGroupId()
       const auctionId = 1n
-      await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
+      await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionNotCurrentAuctionId'
+      )
       await increase(5 * 60)
-      await expect(auction.bid(auctionId, 100)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
+      await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
+        auction,
+        'AuctionNotCurrentAuctionId'
+      )
     })
 
     it('allows to change auction group settings', async () => {
@@ -71,21 +81,22 @@ describe('Mine Auctions', () => {
     })
   })
 
-  describe('Auction started and before settlement', () => {
+  describe('Auction in bidding phase', () => {
     let auctionStartTime: bigint
+    let auctionGroupId: bigint
     let auctionId: bigint
     beforeEach(async () => {
       const block = await getLatestBlock(owner)
-      const currentAuctionId = await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
+      const [currentAuctionGroupId, currentAuctionId] = await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
+      auctionGroupId = currentAuctionGroupId
       auctionId = currentAuctionId + 1n
-      const [startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
+      const [, startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
       auctionStartTime = startTime + auctionId * (settleTime + bidTime)
       await setNextBlockTimestamp(auctionStartTime)
-      await ethers.provider.send('evm_mine')
     })
 
     it('can bid', async () => {
-      const tx = await auction.bid(auctionId, 101)
+      const tx = await auction.bid(auctionGroupId, auctionId, 101)
       await expect(tx).to.emit(auction, 'AuctionBid').withArgs(0, auctionId, owner.address, 101n)
       const [totalBidAmount, rewardAmount] = await auction.getAuction(0, auctionId)
       expect(totalBidAmount).to.equal(101n)
@@ -104,7 +115,7 @@ describe('Mine Auctions', () => {
 
     it('reverts if auction is not approved for bid token', async () => {
       await token.approve(await auction.getAddress(), 0)
-      await expect(auction.bid(auctionId, 100)).to.be.reverted
+      await expect(auction.bid(auctionGroupId, auctionId, 100)).to.be.reverted
     })
   })
   describe('In settlement and before auction ends', () => {})
@@ -112,42 +123,47 @@ describe('Mine Auctions', () => {
   describe('Auction view valid check', () => {
     it('reverts when groupId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
-      await increase(DEFAULT_BID_TIME + DEFAULT_SETTLE_TIME)
-      await expect(auction.getAuction(groupId + 1n, auctionId)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionGroupIdGreaterThanCurrentId'
-      )
-      await expect(auction.getAuctionGroup(groupId + 1n)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionGroupIdGreaterThanLastId'
-      )
-      await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionGroupIdGreaterThanCurrentId'
-      )
-      await expect(auction.getBid(groupId + 1n, auctionId, owner.address)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionGroupIdGreaterThanCurrentId'
-      )
+      const nextBlockTimestamp = await setNextBlockTimestampToSettlement(auction, owner)
+      // const [, , settleTime, bidTime] = await auction.getCurrentAuctionGroup()
+      // const newStartTime = nextBlockTimestamp + (settleTime + bidTime) * 2n + 10n
+      const newStartTime = nextBlockTimestamp + 60n * 30n
+      await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
+      await expect(auction.getAuction(groupId + 1n, auctionId))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdInFuture')
+        .withArgs(groupId + 1n)
+      await expect(auction.getAuction(groupId + 2n, auctionId))
+        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .withArgs(groupId + 2n)
+      await expect(auction.getAuctionGroup(groupId + 2n))
+        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .withArgs(groupId + 2n)
+      await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdInFuture')
+        .withArgs(groupId + 1n)
+      await expect(auction.getClaimed(groupId + 2n, auctionId, owner.address))
+        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .withArgs(groupId + 2n)
+      await expect(auction.getBid(groupId + 1n, auctionId, owner.address))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdInFuture')
+        .withArgs(groupId + 1n)
+      await expect(auction.getBid(groupId + 2n, auctionId, owner.address))
+        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .withArgs(groupId + 2n)
     })
     it('reverts when auctionId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
-      await expect(auction.claim(groupId, auctionId, 10)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionIdGreaterThanPreviousId'
-      )
-      await expect(auction.getAuction(groupId, auctionId + 1n)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionIdGreaterThanCurrentId'
-      )
-      await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionIdGreaterThanCurrentId'
-      )
-      await expect(auction.getBid(groupId, auctionId + 1n, owner.address)).to.be.revertedWithCustomError(
-        auction,
-        'AuctionAuctionIdGreaterThanCurrentId'
-      )
+      await expect(auction.claim(groupId, auctionId, 10))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFutureOrCurrent')
+        .withArgs(auctionId)
+      await expect(auction.getAuction(groupId, auctionId + 1n))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFuture')
+        .withArgs(auctionId + 1n)
+      await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFuture')
+        .withArgs(auctionId + 1n)
+      await expect(auction.getBid(groupId, auctionId + 1n, owner.address))
+        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFuture')
+        .withArgs(auctionId + 1n)
     })
   })
   describe('At any time', () => {
@@ -178,64 +194,62 @@ describe('Mine Auctions', () => {
       expect(balanceAfterOwner - balanceBeforeOwner).to.equal(100n)
       expect(balanceAfterOther - balanceBeforeOther).to.equal(101n)
     })
-
     it('allows to partial claim', async () => {})
   })
 
   it('can bid when auction is skipped', async () => {})
 
   it('can bid in continuous auctions', async () => {
-    const groupId = await auction.currentAuctionGroupId()
-    const auctionId0 = await getBiddingAuctionIdAtLatestBlock(auction, owner)
-    await expect(auction.bid(auctionId0, 100))
+    const [groupId0, auctionId0] = await getBiddingAuctionIdAtLatestBlock(auction, owner)
+    await expect(auction.bid(groupId0, auctionId0, 100))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId, auctionId0, owner.address, 100n)
-    await expect(auction.connect(other).bid(auctionId0, 101))
+      .withArgs(groupId0, auctionId0, owner.address, 100n)
+    await expect(auction.connect(other).bid(groupId0, auctionId0, 101))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId, auctionId0, other.address, 101n)
+      .withArgs(groupId0, auctionId0, other.address, 101n)
     await increase(DEFAULT_AUCTION_INTERVAL * 2 + 1)
-    const auctionId1 = await getBiddingAuctionIdAtLatestBlock(auction, owner)
-    await expect(auction.bid(auctionId1, 100))
+    const [groupId1, auctionId1] = await getBiddingAuctionIdAtLatestBlock(auction, owner)
+    await expect(auction.bid(groupId1, auctionId1, 100))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId, auctionId1, owner.address, 100n)
-    await expect(auction.connect(other).bid(auctionId1, 101))
+      .withArgs(groupId1, auctionId1, owner.address, 100n)
+    await expect(auction.connect(other).bid(groupId1, auctionId1, 101))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId, auctionId1, other.address, 101n)
+      .withArgs(groupId1, auctionId1, other.address, 101n)
   })
 
   it('set new auction group between auctions', async () => {
-    const groupId0 = await auction.currentAuctionGroupId()
-    const auctionId0 = await getBiddingAuctionIdAtLatestBlock(auction, owner)
-    await expect(auction.bid(auctionId0, 100))
+    const [groupId0, auctionId0] = await getBiddingAuctionIdAtLatestBlock(auction, owner)
+    await expect(auction.bid(groupId0, auctionId0, 100))
       .to.emit(auction, 'AuctionBid')
       .withArgs(groupId0, auctionId0, owner.address, 100n)
-    await expect(auction.connect(other).bid(auctionId0, 101))
+    await expect(auction.connect(other).bid(groupId0, auctionId0, 101))
       .to.emit(auction, 'AuctionBid')
       .withArgs(groupId0, auctionId0, other.address, 101n)
 
     // be able to set start time
-    await setNextBlockTimestampToSettlement(auction, owner)
-    const block = await getLatestBlock(owner)
-    const newStartTime = BigInt(block.timestamp) + 10n
+    const nextBlockTimestamp = await setNextBlockTimestampToSettlement(auction, owner)
+    const newStartTime = nextBlockTimestamp + 10n
     await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
-    await expect(auction.bid(0, 1)).to.be.revertedWithCustomError(auction, 'AuctionNotCurrentAuctionId')
-    // increase to new start time left boundary
-    await setNextBlockTimestamp(newStartTime)
-    await ethers.provider.send('evm_mine')
+    expect((await getLatestBlock(owner)).timestamp).to.equal(nextBlockTimestamp)
+    await expect(auction.bid(groupId0, auctionId0, 1)).to.be.revertedWithCustomError(
+      auction,
+      'AuctionNotCurrentAuctionId'
+    )
 
     // console.log(new Date(Number(newStartTime) * 1000))
 
-    const groupId2 = await auction.currentAuctionGroupId()
-    expect(groupId2).to.equal(1)
-    const auctionId1 = await getBiddingAuctionIdAt(newStartTime, auction)
-    await expect(auction.bid(auctionId1, 100))
+    // increase to new start time left boundary
+    await increaseTo(newStartTime)
+    const [groupId1, auctionId1] = await getBiddingAuctionIdAt(newStartTime, auction)
+    expect(groupId1).to.equal(1)
+    await expect(auction.bid(groupId1, auctionId1, 100))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId2, auctionId1, owner.address, 100n)
-    await expect(auction.connect(other).bid(auctionId1, 101))
+      .withArgs(groupId1, auctionId1, owner.address, 100n)
+    await expect(auction.connect(other).bid(groupId1, auctionId1, 101))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId2, auctionId1, other.address, 101n)
-    await expect(auction.connect(another).bid(auctionId1, 101))
+      .withArgs(groupId1, auctionId1, other.address, 101n)
+    await expect(auction.connect(another).bid(groupId1, auctionId1, 101))
       .to.emit(auction, 'AuctionBid')
-      .withArgs(groupId2, auctionId1, another.address, 101n)
+      .withArgs(groupId1, auctionId1, another.address, 101n)
   })
 })
