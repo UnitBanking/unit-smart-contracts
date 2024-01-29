@@ -151,8 +151,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
         unitToken.burnFrom(msg.sender, unitAmount);
-        bondingCurve.approveCollateralToken(collateralAmount);
-        TransferUtils.safeTransferFrom(collateralToken, address(bondingCurve), msg.sender, collateralAmount);
+        bondingCurve.transferCollateralToken(msg.sender, collateralAmount);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
         if (reserveRatioAfter <= reserveRatioBefore) {

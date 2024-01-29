@@ -122,12 +122,12 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     /**
      * @inheritdoc IBondingCurve
      */
-    function approveCollateralToken(uint256 amount) external {
+    function transferCollateralToken(address receiver, uint256 amount) external {
         if (msg.sender != unitAuction) {
             revert BondingCurveForbidden();
         }
 
-        collateralToken.approve(msg.sender, amount);
+        TransferUtils.safeTransfer(collateralToken, receiver, amount);
     }
 
     /**
