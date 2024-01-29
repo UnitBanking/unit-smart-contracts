@@ -71,6 +71,30 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         unitAuctionProxy.sellUnit(0);
     }
 
+    function test_sellUnit_SuccessfullySelsUnitAfter33Minutes() public {
+        // Arrange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+        uint256 collateralUnitBalanceBefore = collateralERC20Token.balanceOf(user);
+
+        uint256 unitAmount = 1e17;
+        uint256 collateralAmount = 88322190268591359;
+
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(1e18);
+
+        vm.prank(user);
+        unitToken.approve(address(unitAuctionProxy), unitAmount);
+
+        unitAuctionProxy.refreshState();
+        vm.warp(block.timestamp + 33 minutes);
+
+        // Act & Assert
+        vm.prank(user);
+        unitAuctionProxy.sellUnit(unitAmount);
+        uint256 collateralUnitBalanceAfter = collateralERC20Token.balanceOf(user);
+        assertEq(collateralUnitBalanceAfter - collateralUnitBalanceBefore, collateralAmount);
+    }
+
     function test_sellUnit_SuccessfulBid() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);

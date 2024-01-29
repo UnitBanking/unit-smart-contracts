@@ -55,7 +55,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         vm.warp(block.timestamp + 22 hours);
 
         // Act & Assert
-        uint256 currentPrice = 957548447316224219;
+        uint256 currentPrice = 958482849005033943;
         uint256 burnPrice = 999675189415101362;
         vm.prank(user);
         vm.expectRevert(
@@ -93,6 +93,27 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         vm.prank(user);
         vm.expectRevert(IUnitAuction.UnitAuctionReserveRatioNotDecreased.selector);
         unitAuctionProxy.buyUnit(0);
+    }
+
+    function test_buyUnit_SuccessfullyBuysUnitAfter33Minutes() public {
+        // Arrange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(10 * 1e18); // increases RR
+
+        unitAuctionProxy.refreshState();
+        vm.warp(block.timestamp + 33 minutes);
+
+        uint256 unitAmount = 100051798818530130;
+        uint256 collateralAmount = 1e17;
+
+        // Act & Assert
+        vm.prank(user);
+        unitAuctionProxy.buyUnit(collateralAmount);
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount);
     }
 
     function test_buyUnit_SuccessfullyBuysUnit() public {

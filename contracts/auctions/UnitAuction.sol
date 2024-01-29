@@ -9,6 +9,7 @@ import '../libraries/ReserveRatio.sol';
 import '../BondingCurve.sol';
 import '../UnitToken.sol';
 import '../interfaces/IUnitAuction.sol';
+import { pow, uUNIT, unwrap, wrap } from '@prb/math/src/UD60x18.sol';
 
 /*
 TODO:
@@ -16,11 +17,17 @@ TODO:
 - AuctionState struct packing: casting timestamp to uint32 gives us until y2106, the next possible size is uint40, which will last until y36812
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
+- Add amount in max/amount out min in bid calls
 */
 
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110%
     uint256 public constant START_PRICE_BUFFER_PRECISION = 10_000;
+
+    uint256 public constant CONTRACTION_PRICE_DECAY_BASE = 990000000000000000; // 0.99 in prb-math.UNIT precision
+    uint256 public constant CONTRACTION_PRICE_DECAY_TIME_INTERVAL = 90 seconds;
+    uint256 public constant EXPANSION_PRICE_DECAY_BASE = 999000000000000000; // 0.999 in prb-math.UNIT precision
+    uint256 public constant EXPANSION_PRICE_DECAY_TIME_INTERVAL = 1800 seconds;
 
     uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices returned from the bonding curve are in this precision
 
@@ -147,7 +154,13 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         }
 
         uint256 currentPrice = (_auctionState.startPrice *
-            (100 - ((block.timestamp - _auctionState.startTime) / 90 seconds))) / 100;
+            unwrap(
+                pow(
+                    wrap(CONTRACTION_PRICE_DECAY_BASE),
+                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / CONTRACTION_PRICE_DECAY_TIME_INTERVAL)
+                )
+            )) / uUNIT;
+
         uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
         unitToken.burnFrom(msg.sender, unitAmount);
@@ -182,7 +195,13 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         );
 
         uint256 currentPrice = (_auctionState.startPrice *
-            (1000 - ((block.timestamp - _auctionState.startTime) / 1800 seconds))) / 1000;
+            unwrap(
+                pow(
+                    wrap(EXPANSION_PRICE_DECAY_BASE),
+                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
+                )
+            )) / uUNIT;
+
         uint256 burnPrice = bondingCurve.getBurnPrice();
         if (currentPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
