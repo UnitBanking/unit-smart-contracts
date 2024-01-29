@@ -50,12 +50,12 @@ describe('Mine Auctions', () => {
       const auctionId = 1n
       await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
         auction,
-        'AuctionNotCurrentAuctionId'
+        'MineAuctionNotCurrentAuctionId'
       )
       await increase(5 * 60)
       await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
         auction,
-        'AuctionNotCurrentAuctionId'
+        'MineAuctionNotCurrentAuctionId'
       )
     })
 
@@ -109,7 +109,7 @@ describe('Mine Auctions', () => {
       const newSettle = 60 * 30
       await expect(auction.setAuctionGroup(auctionStartTime, newSettle, newInterval)).to.be.revertedWithCustomError(
         auction,
-        'AuctionBiddingInProgress'
+        'MineAuctionBiddingInProgress'
       )
     })
 
@@ -129,40 +129,40 @@ describe('Mine Auctions', () => {
       const newStartTime = nextBlockTimestamp + 60n * 30n
       await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
       await expect(auction.getAuction(groupId + 1n, auctionId))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdInFuture')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionGroupIdInFuture')
         .withArgs(groupId + 1n)
       await expect(auction.getAuction(groupId + 2n, auctionId))
-        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionInvalidAuctionGroupId')
         .withArgs(groupId + 2n)
       await expect(auction.getAuctionGroup(groupId + 2n))
-        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionInvalidAuctionGroupId')
         .withArgs(groupId + 2n)
       await expect(auction.getClaimed(groupId + 1n, auctionId, owner.address))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdInFuture')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionGroupIdInFuture')
         .withArgs(groupId + 1n)
       await expect(auction.getClaimed(groupId + 2n, auctionId, owner.address))
-        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionInvalidAuctionGroupId')
         .withArgs(groupId + 2n)
       await expect(auction.getBid(groupId + 1n, auctionId, owner.address))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionGroupIdInFuture')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionGroupIdInFuture')
         .withArgs(groupId + 1n)
       await expect(auction.getBid(groupId + 2n, auctionId, owner.address))
-        .to.be.revertedWithCustomError(auction, 'AuctionInvalidAuctionGroupId')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionInvalidAuctionGroupId')
         .withArgs(groupId + 2n)
     })
     it('reverts when auctionId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
       await expect(auction.claim(groupId, auctionId, 10))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFutureOrCurrent')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionIdInFutureOrCurrent')
         .withArgs(auctionId)
       await expect(auction.getAuction(groupId, auctionId + 1n))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFuture')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionIdInFuture')
         .withArgs(auctionId + 1n)
       await expect(auction.getClaimed(groupId, auctionId + 1n, owner.address))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFuture')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionIdInFuture')
         .withArgs(auctionId + 1n)
       await expect(auction.getBid(groupId, auctionId + 1n, owner.address))
-        .to.be.revertedWithCustomError(auction, 'AuctionAuctionIdInFuture')
+        .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionIdInFuture')
         .withArgs(auctionId + 1n)
     })
   })
@@ -173,7 +173,7 @@ describe('Mine Auctions', () => {
       await increase(DEFAULT_AUCTION_INTERVAL)
       await expect(auction.claim(groupId, auctionId, ethers.MaxUint256)).to.be.revertedWithCustomError(
         auction,
-        'AuctionInsufficientClaimAmount'
+        'MineAuctionInsufficientClaimAmount'
       )
     })
     it('allows to claim', async () => {
@@ -233,7 +233,7 @@ describe('Mine Auctions', () => {
     expect((await getLatestBlock(owner)).timestamp).to.equal(nextBlockTimestamp)
     await expect(auction.bid(groupId0, auctionId0, 1)).to.be.revertedWithCustomError(
       auction,
-      'AuctionNotCurrentAuctionId'
+      'MineAuctionNotCurrentAuctionId'
     )
 
     // console.log(new Date(Number(newStartTime) * 1000))

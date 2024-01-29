@@ -16,9 +16,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant AUCTIONABLE_NUMERATOR = 8000;
     uint256 constant AUCTIONABLE_DENOMINATOR = 10000;
 
-    BondingCurve public bondingCurve;
-    MineToken public mine;
-    IERC20 public bidToken;
+    BondingCurve public immutable bondingCurve;
+    MineToken public immutable mine;
+    IERC20 public immutable bidToken;
 
     AuctionGroup[] private auctionGroups;
     mapping(uint256 auctionGroupId => mapping(uint256 auctionId => Auction auction)) auctions;
@@ -26,19 +26,18 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 public totalAuctionableAmount;
     uint256 public initialAuctionTime;
 
-    function initialize(
-        BondingCurve _bondingCurve,
-        MineToken _mine,
-        IERC20 _bidToken,
-        uint256 _initialAuctionTime
-    ) external {
-        _setOwner(msg.sender);
-        _setAuctionGroup(0, 1 hours, 23 hours);
+    constructor(BondingCurve _bondingCurve, MineToken _mine, IERC20 _bidToken) {
+        initialized = true;
         bondingCurve = _bondingCurve;
         mine = _mine;
         bidToken = _bidToken;
+    }
+
+    function initialize(uint256 _initialAuctionTime) external {
+        _setOwner(msg.sender);
+        _setAuctionGroup(0, 1 hours, 23 hours);
         initialAuctionTime = _initialAuctionTime;
-        totalAuctionableAmount = (_mine.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
+        totalAuctionableAmount = (mine.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
 
         Proxiable.initialize();
     }
@@ -144,24 +143,24 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     function bid(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external override onlyNotPaused {
         if (amount == 0) {
-            revert AuctionInvalidBidAmount();
+            revert MineAuctionInvalidBidAmount();
         }
         revertIfAuctionGroupIdOutOfBounds(auctionGroupId);
 
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (auctionGroup.startTime > block.timestamp) {
-            revert AuctionNotCurrentAuctionGroupId(auctionGroupId);
+            revert MineAuctionNotCurrentAuctionGroupId(auctionGroupId);
         } else if (auctionGroups.length > auctionGroupId + 1) {
             AuctionGroup memory nextAuctionGroup = auctionGroups[auctionGroupId + 1];
             if (nextAuctionGroup.startTime != 0 && nextAuctionGroup.startTime <= block.timestamp) {
-                revert AuctionNotCurrentAuctionGroupId(auctionGroupId);
+                revert MineAuctionNotCurrentAuctionGroupId(auctionGroupId);
             }
         }
 
         uint256 startTime = auctionId * (auctionGroup.bidTime + auctionGroup.settleTime) + auctionGroup.startTime;
         uint256 endTime = startTime + auctionGroup.bidTime;
         if (block.timestamp < startTime || block.timestamp >= endTime) {
-            revert AuctionNotCurrentAuctionId(auctionId);
+            revert MineAuctionNotCurrentAuctionId(auctionId);
         }
 
         if (auctions[auctionGroupId][auctionId].rewardAmount == 0) {
@@ -194,7 +193,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     function revertIfAuctionGroupIdOutOfBounds(uint256 auctionGroupId) internal view {
         if (auctionGroupId >= auctionGroups.length) {
-            revert AuctionInvalidAuctionGroupId(auctionGroupId);
+            revert MineAuctionInvalidAuctionGroupId(auctionGroupId);
         }
     }
 
@@ -202,11 +201,11 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     function revertIfAuctionIdInFuture(uint256 auctionGroupId, uint256 auctionId) internal view {
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (block.timestamp < auctionGroup.startTime) {
-            revert AuctionAuctionGroupIdInFuture(auctionGroupId);
+            revert MineAuctionAuctionGroupIdInFuture(auctionGroupId);
         }
 
         if (block.timestamp < auctionGroup.startTime + auctionId * (auctionGroup.bidTime + auctionGroup.settleTime)) {
-            revert AuctionAuctionIdInFuture(auctionId);
+            revert MineAuctionAuctionIdInFuture(auctionId);
         }
     }
 
@@ -214,14 +213,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     function revertIfAuctionIdInFutureOrCurrent(uint256 auctionGroupId, uint256 auctionId) internal view {
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (block.timestamp < auctionGroup.startTime) {
-            revert AuctionAuctionGroupIdInFuture(auctionGroupId);
+            revert MineAuctionAuctionGroupIdInFuture(auctionGroupId);
         }
 
         if (
             block.timestamp <
             auctionGroup.startTime + (auctionId + 1) * (auctionGroup.bidTime + auctionGroup.settleTime)
         ) {
-            revert AuctionAuctionIdInFutureOrCurrent(auctionId);
+            revert MineAuctionAuctionIdInFutureOrCurrent(auctionId);
         }
     }
 
@@ -230,7 +229,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         revertIfAuctionIdInFutureOrCurrent(auctionGroupId, auctionId);
         uint256 claimable = getClaimableAmount(auctionGroupId, auctionId, bidder);
         if (amount > claimable) {
-            revert AuctionInsufficientClaimAmount(amount);
+            revert MineAuctionInsufficientClaimAmount(amount);
         }
         auctions[auctionGroupId][auctionId].claimed[bidder] += amount;
         mine.mint(to, amount);
@@ -277,19 +276,19 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             // Overflow not possible: previously checked
             uint256 elapsed = (block.timestamp - auctionGroup.startTime) % auctionDuration;
             if (elapsed < auctionGroup.bidTime) {
-                revert AuctionBiddingInProgress();
+                revert MineAuctionBiddingInProgress();
             }
             if (startTime < auctionGroup.startTime) {
-                revert AuctionGroupStartTimeTooEarly();
+                revert MineAuctionGroupStartTimeTooEarly();
             }
             uint256 offset = (startTime - auctionGroup.startTime) % auctionDuration;
             if (offset < auctionGroup.bidTime || startTime >= block.timestamp - elapsed + auctionDuration) {
-                revert AuctionGroupStartTimeNotInSettlement();
+                revert MineAuctionGroupStartTimeNotInSettlement();
             }
         }
     }
 
     receive() external payable {
-        revert AuctionNoDirectTransfer();
+        revert MineAuctionNoDirectTransfer();
     }
 }

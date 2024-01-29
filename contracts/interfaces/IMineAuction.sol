@@ -11,22 +11,22 @@ interface IMineAuction {
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
     event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 bidTime);
 
-    error AuctionNoDirectTransfer();
-    error AuctionAuctionGroupIdInFuture(uint256 auctionGroupId);
-    error AuctionAuctionIdInFuture(uint256 auctionId);
-    error AuctionAuctionIdInFutureOrCurrent(uint256 auctionId);
-    error AuctionInvalidAuctionGroupId(uint256 auctionGroupId);
-    error AuctionNotCurrentAuctionGroupId(uint256 auctionGroupId);
-    error AuctionNotCurrentAuctionId(uint256 auctionId);
-    error AuctionStartTimeInThePast();
-    error AuctionInvalidBidAmount();
-    error AuctionInProgress();
-    error AuctionBiddingInProgress();
-    error AuctionGroupStartTimeNotInSettlement();
-    error AuctionGroupStartTimeTooEarly();
-    error AuctionInSettlement();
-    error AuctionClaimingCurrentAuction();
-    error AuctionInsufficientClaimAmount(uint256 amount);
+    error MineAuctionNoDirectTransfer();
+    error MineAuctionAuctionGroupIdInFuture(uint256 auctionGroupId);
+    error MineAuctionAuctionIdInFuture(uint256 auctionId);
+    error MineAuctionAuctionIdInFutureOrCurrent(uint256 auctionId);
+    error MineAuctionInvalidAuctionGroupId(uint256 auctionGroupId);
+    error MineAuctionNotCurrentAuctionGroupId(uint256 auctionGroupId);
+    error MineAuctionNotCurrentAuctionId(uint256 auctionId);
+    error MineAuctionStartTimeInThePast();
+    error MineAuctionInvalidBidAmount();
+    error MineAuctionInProgress();
+    error MineAuctionBiddingInProgress();
+    error MineAuctionGroupStartTimeNotInSettlement();
+    error MineAuctionGroupStartTimeTooEarly();
+    error MineAuctionInSettlement();
+    error MineAuctionClaimingCurrentAuction();
+    error MineAuctionInsufficientClaimAmount(uint256 amount);
 
     struct Auction {
         uint256 totalBidAmount;
@@ -41,12 +41,7 @@ interface IMineAuction {
         uint32 bidTime;
     }
 
-    function initialize(
-        BondingCurve bondingCurve,
-        MineToken mine,
-        IERC20 bidToken,
-        uint256 initialAuctionTime
-    ) external;
+    function initialize(uint256 initialAuctionTime) external;
 
     function getAuctionGroup(
         uint256 auctionGroupId

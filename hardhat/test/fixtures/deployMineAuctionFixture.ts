@@ -23,8 +23,6 @@ export const DEFAULT_AUCTION_INTERVAL = DEFAULT_SETTLE_TIME + DEFAULT_BID_TIME
 export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType> {
   const [owner, other, another] = await ethers.getSigners()
   const factory = await ethers.getContractFactory('MineAuction', { signer: owner })
-  const auction = await factory.deploy()
-  const auctionAddress = await auction.getAddress()
   const { mine } = await loadFixture(deployMineFixture)
   const { base } = await deployBaseTokenFixture()
 
@@ -32,14 +30,12 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
   const bidTokenAddress = await base.getAddress()
 
   const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
+  const auction = await factory.deploy(dummyBondingCurve, mineAddress, bidTokenAddress)
+  const auctionAddress = await auction.getAddress()
+
   const block = await getLatestBlock(owner)
 
-  const initialize = factory.interface.encodeFunctionData('initialize(address,address,address, uint256)', [
-    dummyBondingCurve,
-    mineAddress,
-    bidTokenAddress,
-    block.timestamp,
-  ])
+  const initialize = factory.interface.encodeFunctionData('initialize(uint256)', [block.timestamp])
   const proxy = await ethers.deployContract('Proxy', [owner.address], { signer: owner })
   await proxy.upgradeToAndCall(auctionAddress, initialize)
   const proxyAddress = await proxy.getAddress()
