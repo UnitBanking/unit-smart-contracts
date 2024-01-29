@@ -21,8 +21,8 @@ TODO:
 */
 
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
-    uint256 public constant START_PRICE_BUFFER = 11_000; // 1.1 or 110%
-    uint256 public constant START_PRICE_BUFFER_PRECISION = 10_000;
+    uint256 public constant CONTRACTION_START_PRICE_BUFFER = 11_000; // 1.1 or 110%
+    uint256 public constant CONTRACTION_START_PRICE_BUFFER_PRECISION = 10_000;
 
     uint256 public constant CONTRACTION_PRICE_DECAY_BASE = 990000000000000000; // 0.99 in prb-math.UNIT precision
     uint256 public constant CONTRACTION_PRICE_DECAY_TIME_INTERVAL = 90 seconds;
@@ -37,7 +37,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     uint256 public contractionAuctionMaxDuration;
     uint256 public expansionAuctionMaxDuration;
-    uint256 public startPriceBuffer;
+    uint256 public contractionStartPriceBuffer;
 
     /**
      * ================ AUCTION STATE ================
@@ -84,7 +84,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         _setOwner(msg.sender);
         contractionAuctionMaxDuration = 2 hours;
         expansionAuctionMaxDuration = 23 hours;
-        startPriceBuffer = START_PRICE_BUFFER;
+        contractionStartPriceBuffer = CONTRACTION_START_PRICE_BUFFER;
 
         auctionState.variant = AUCTION_VARIANT_NONE;
 
@@ -112,7 +112,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @param _startPriceBuffer Must be in `START_PRICE_BUFFER_PRECISION` precision.
      */
     function setStartPriceBuffer(uint256 _startPriceBuffer) external onlyOwner {
-        startPriceBuffer = _startPriceBuffer;
+        contractionStartPriceBuffer = _startPriceBuffer;
     }
 
     /**
@@ -230,7 +230,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     function _startContractionAuction() internal returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
             uint32(block.timestamp), // TODO: Confirm we want to do this
-            uint216((bondingCurve.getMintPrice() * startPriceBuffer) / START_PRICE_BUFFER_PRECISION),
+            uint216(
+                (bondingCurve.getMintPrice() * contractionStartPriceBuffer) / CONTRACTION_START_PRICE_BUFFER_PRECISION
+            ),
             AUCTION_VARIANT_CONTRACTION
         );
         auctionState = _auctionState;

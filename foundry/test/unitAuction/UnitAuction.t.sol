@@ -37,7 +37,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         assertEq(unitAuctionProxy.owner(), 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496);
         assertEq(unitAuctionProxy.contractionAuctionMaxDuration(), 2 hours);
         assertEq(unitAuctionProxy.expansionAuctionMaxDuration(), 23 hours);
-        assertEq(unitAuctionProxy.startPriceBuffer(), 11_000);
+        assertEq(unitAuctionProxy.contractionStartPriceBuffer(), 11_000);
         assertEq(unitAuctionProxy.initialized(), true);
     }
 
@@ -109,20 +109,20 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
     function test_setStartPriceBuffer_ownerCanSet() public {
         // Arrange
-        uint256 startPriceBufferBefore = unitAuctionProxy.startPriceBuffer();
+        uint256 startPriceBufferBefore = unitAuctionProxy.contractionStartPriceBuffer();
 
         // Act
         unitAuctionProxy.setStartPriceBuffer(startPriceBufferBefore + 1);
 
         // Assert
-        uint256 startPriceBufferAfter = unitAuctionProxy.startPriceBuffer();
+        uint256 startPriceBufferAfter = unitAuctionProxy.contractionStartPriceBuffer();
         assertEq(startPriceBufferAfter, startPriceBufferBefore + 1);
     }
 
     function test_setStartPriceBuffer_notOwnerCannotSet() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        uint256 startPriceBufferBefore = unitAuctionProxy.startPriceBuffer();
+        uint256 startPriceBufferBefore = unitAuctionProxy.contractionStartPriceBuffer();
 
         // Act
         vm.prank(user);
@@ -130,7 +130,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         unitAuctionProxy.setStartPriceBuffer(startPriceBufferBefore + 1);
 
         // Assert
-        uint256 startPriceBufferAfter = unitAuctionProxy.startPriceBuffer();
+        uint256 startPriceBufferAfter = unitAuctionProxy.contractionStartPriceBuffer();
         assertEq(startPriceBufferAfter, startPriceBufferBefore);
     }
 
@@ -142,7 +142,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // Arrnage
         uint256 mintPrice = bondingCurveProxy.getMintPrice();
         uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPrice * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
 
         // Act
@@ -255,7 +256,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // Assert
         uint256 mintPrice = bondingCurveProxy.getMintPrice();
         uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPrice * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
         assertEq(reserveRatio / TestUtils.RR_PRECISION, 2);
         assertEq(auctionState.startTime, block.timestamp);
@@ -289,7 +291,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
             .refreshState();
         uint256 mintPriceBefore = bondingCurveProxy.getMintPrice();
         uint216 priceBefore = uint216(
-            (mintPriceBefore * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPriceBefore * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
         assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 3);
         assertEq(auctionStateBefore.startTime, block.timestamp);
@@ -300,7 +303,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
         uint256 mintPrice = bondingCurveProxy.getMintPrice();
         uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPrice * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
         // Act
         (uint256 reserveRatio, UnitAuction.AuctionState memory auctionState) = unitAuctionProxy.refreshState();
@@ -322,7 +326,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
             .refreshState();
         uint256 mintPrice = bondingCurveProxy.getMintPrice();
         uint216 priceBefore = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPrice * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
         assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 3);
         assertEq(auctionStateBefore.startTime, block.timestamp);
@@ -356,7 +361,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
             .refreshState();
         uint256 mintPrice = bondingCurveProxy.getMintPrice();
         uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPrice * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
         assertEq(reserveRatioBefore / TestUtils.RR_PRECISION, 3);
         assertEq(auctionStateBefore.startTime, block.timestamp);
@@ -429,7 +435,8 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         // Assert
         uint256 mintPrice = bondingCurveProxy.getMintPrice();
         uint216 price = uint216(
-            (mintPrice * unitAuctionProxy.startPriceBuffer()) / unitAuctionProxy.START_PRICE_BUFFER_PRECISION()
+            (mintPrice * unitAuctionProxy.contractionStartPriceBuffer()) /
+                unitAuctionProxy.CONTRACTION_START_PRICE_BUFFER_PRECISION()
         );
         assertEq(reserveRatio / TestUtils.RR_PRECISION, 2);
         assertEq(auctionState.startTime, block.timestamp);
