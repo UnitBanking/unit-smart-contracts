@@ -60,8 +60,10 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      */
 
     /**
-     * @notice This contract uses a Proxy pattern.
-     * Locks the contract, to prevent the implementation contract from being used.
+     * @notice This contract employs a proxy pattern, so the main purpose of the constructor is to render the
+     * implementation contract unusable. It initializes certain immutables to optimize gas usage when accessing these
+     * variables. Primarily, it calls `super.initialize()` to ensure the contract cannot be initialized with valid
+     * values for the remaining variables.
      * @dev This contract must be deployed after the bonding curve has been deployed and initialized via its proxy.
      */
     constructor(BondingCurve _bondingCurve, UnitToken _unitToken) {
