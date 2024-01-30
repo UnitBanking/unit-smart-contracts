@@ -46,7 +46,7 @@ describe('Mine Auctions', () => {
     })
 
     it('reverts when bid', async () => {
-      const groupId = await auction.currentAuctionGroupId()
+      const [groupId] = await auction.getCurrentAuctionGroup()
       const auctionId = 1n
       await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
         auction,
@@ -109,7 +109,7 @@ describe('Mine Auctions', () => {
       const newSettle = 60 * 30
       await expect(auction.setAuctionGroup(auctionStartTime, newSettle, newInterval)).to.be.revertedWithCustomError(
         auction,
-        'MineAuctionBiddingInProgress'
+        'MineAuctionStartTimeTooEarly'
       )
     })
 
@@ -231,7 +231,10 @@ describe('Mine Auctions', () => {
     const newStartTime = nextBlockTimestamp + 10n
     await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     expect((await getLatestBlock(owner)).timestamp).to.equal(nextBlockTimestamp)
-    await expect(auction.bid(groupId0, auctionId0, 1)).to.be.revertedWithCustomError(auction, 'MineAuctionInSettlement')
+    await expect(auction.bid(groupId0, auctionId0, 1)).to.be.revertedWithCustomError(
+      auction,
+      'MineAuctionNotCurrentAuctionId'
+    )
 
     // console.log(new Date(Number(newStartTime) * 1000))
 
@@ -250,3 +253,9 @@ describe('Mine Auctions', () => {
       .withArgs(groupId1, auctionId1, another.address, 101n)
   })
 })
+
+// |----|---|  * |---
+
+// |----|---|  * |----|---|
+//                                   0 | 1
+// |-------*------|---|-------------|--[-*|-------------]--|--]----

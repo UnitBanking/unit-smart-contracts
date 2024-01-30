@@ -43,7 +43,21 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     }
 
     function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external override onlyOwner {
-        revertIfNotInSettlement(startTime);
+        AuctionGroup memory lastAuctionGroup = auctionGroups[auctionGroups.length - 1];
+        uint256 auctionStartTime = lastAuctionGroup.startTime;
+        // has no future group
+        if (block.timestamp >= lastAuctionGroup.startTime) {
+            unchecked {
+                // Underflow not possible: previously checked
+                uint256 elapsed = (block.timestamp - lastAuctionGroup.startTime) %
+                    (lastAuctionGroup.bidTime + lastAuctionGroup.settleTime);
+                auctionStartTime = block.timestamp - elapsed;
+            }
+        }
+
+        if (auctionStartTime + lastAuctionGroup.bidTime > startTime) {
+            revert MineAuctionStartTimeTooEarly();
+        }
         _setAuctionGroup(startTime, settleTime, bidTime);
     }
 
@@ -63,7 +77,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         override
         returns (uint256 auctionGroupId, uint256 startTime, uint256 settleTime, uint256 bidTime)
     {
-        auctionGroupId = _currentAuctionGroupId();
+        auctionGroupId = auctionGroups.length - 1;
+        for (; auctionGroupId >= 0; auctionGroupId--) {
+            if (auctionGroups[auctionGroupId].startTime <= block.timestamp) {
+                break;
+            }
+        }
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         startTime = auctionGroup.startTime;
         settleTime = auctionGroup.settleTime;
@@ -72,10 +91,6 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     function getAuctionGroupCount() external view override returns (uint256) {
         return auctionGroups.length;
-    }
-
-    function currentAuctionGroupId() external view override returns (uint256) {
-        return _currentAuctionGroupId();
     }
 
     function getAuction(
@@ -155,8 +170,11 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
             if (block.timestamp >= nextAuctionGroup.startTime) {
                 revert MineAuctionNotCurrentAuctionGroupId(auctionGroupId);
             }
-            if (nextAuctionGroup.startTime - block.timestamp < auctionGroup.bidTime) {
-                revert MineAuctionInSettlement();
+            uint256 elapsed = (block.timestamp - auctionGroup.startTime) %
+                (auctionGroup.bidTime + auctionGroup.settleTime);
+            uint256 currentAuctionStartTime = block.timestamp - elapsed;
+            if (nextAuctionGroup.startTime - currentAuctionStartTime < auctionGroup.bidTime) {
+                revert MineAuctionCurrentAuctionDisabled();
             }
         }
 
@@ -182,16 +200,6 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
 
     function claimTo(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external override {
         _claim(auctionGroupId, auctionId, msg.sender, to, amount);
-    }
-
-    function _currentAuctionGroupId() internal view returns (uint256) {
-        uint256 auctionGroupId = auctionGroups.length - 1;
-        for (; auctionGroupId >= 0; auctionGroupId--) {
-            if (auctionGroups[auctionGroupId].startTime <= block.timestamp) {
-                return auctionGroupId;
-            }
-        }
-        return auctionGroupId;
     }
 
     function revertIfAuctionGroupIdOutOfBounds(uint256 auctionGroupId) internal view {
@@ -269,24 +277,6 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         auctionGroup.bidTime = bidTime;
         auctionGroups.push(auctionGroup);
         emit AuctionGroupSet(auctionGroups.length - 1, startTime, settleTime, bidTime);
-    }
-
-    function revertIfNotInSettlement(uint64 startTime) internal view {
-        AuctionGroup memory lastAuctionGroup = auctionGroups[auctionGroups.length - 1];
-        if (startTime < lastAuctionGroup.startTime) {
-            revert MineAuctionEarlyThanLastAuctionGroup(lastAuctionGroup.startTime);
-        }
-
-        if (block.timestamp >= lastAuctionGroup.startTime) {
-            unchecked {
-                // Underflow not possible: previously checked
-                uint256 elapsed = (block.timestamp - lastAuctionGroup.startTime) %
-                    (lastAuctionGroup.bidTime + lastAuctionGroup.settleTime);
-                if (elapsed < lastAuctionGroup.bidTime) {
-                    revert MineAuctionBiddingInProgress();
-                }
-            }
-        }
     }
 
     receive() external payable {

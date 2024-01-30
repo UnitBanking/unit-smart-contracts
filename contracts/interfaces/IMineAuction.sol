@@ -19,9 +19,8 @@ interface IMineAuction {
     error MineAuctionNotCurrentAuctionGroupId(uint256 auctionGroupId);
     error MineAuctionNotCurrentAuctionId(uint256 auctionId);
     error MineAuctionInvalidBidAmount();
-    error MineAuctionBiddingInProgress();
-    error MineAuctionEarlyThanLastAuctionGroup(uint256 lastAuctionGroupStartTime);
-    error MineAuctionInSettlement();
+    error MineAuctionStartTimeTooEarly();
+    error MineAuctionCurrentAuctionDisabled();
     error MineAuctionInsufficientClaimAmount(uint256 amount);
 
     struct Auction {
@@ -84,8 +83,6 @@ interface IMineAuction {
         uint256 auctionId,
         address bidder
     ) external view returns (uint256 claimedAmount);
-
-    function currentAuctionGroupId() external view returns (uint256);
 
     function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external;
 
