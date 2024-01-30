@@ -100,8 +100,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Sets `contractionAuctionMaxDuration`.
-     * @param _maxDuration New max duration of a Unit contraction auction.
+     * @notice Sets `expansionAuctionMaxDuration`.
+     * @param _maxDuration New max duration of a Unit expansion auction.
      */
     function setExpansionAuctionMaxDuration(uint256 _maxDuration) external onlyOwner {
         expansionAuctionMaxDuration = _maxDuration;
