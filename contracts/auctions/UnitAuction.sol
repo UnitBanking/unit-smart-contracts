@@ -4,11 +4,12 @@ pragma solidity 0.8.23;
 
 import '../abstracts/Proxiable.sol';
 import '../abstracts/Ownable.sol';
+import '../abstracts/ReentrancyGuard.sol';
+import '../interfaces/IUnitAuction.sol';
 import '../libraries/TransferUtils.sol';
 import '../libraries/ReserveRatio.sol';
 import '../BondingCurve.sol';
 import '../UnitToken.sol';
-import '../interfaces/IUnitAuction.sol';
 import { pow, uUNIT, unwrap, wrap } from '@prb/math/src/UD60x18.sol';
 
 /*
@@ -20,7 +21,7 @@ TODO:
 - Add amount in max/amount out min in bid calls
 */
 
-contract UnitAuction is IUnitAuction, Proxiable, Ownable {
+contract UnitAuction is IUnitAuction, Proxiable, Ownable, ReentrancyGuard {
     uint256 public constant CONTRACTION_START_PRICE_BUFFER = 11_000; // 1.1 or 110%
     uint256 public constant CONTRACTION_START_PRICE_BUFFER_PRECISION = 10_000;
 
@@ -147,9 +148,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     /**
      * @notice Bids in the UNIT contraction auction.
+     * @dev If changing the collateral token to an untrusted one (with e.g. unexpected side effects) in the future,
+     * consider using the `nonReentrant` modifier to prevent potential reentrancy attacks.
      * @param unitAmount Unit token amount to be sold for collateral token.
      */
-    function sellUnit(uint256 unitAmount) external {
+    function sellUnit(uint256 unitAmount) external /* nonReentrant */ {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
@@ -181,9 +184,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     /**
      * @notice Bids in the UNIT expansion auction.
+     * @dev If changing the collateral token to an untrusted one (with e.g. unexpected side effects) in the future,
+     * consider using the `nonReentrant` modifier to prevent potential reentrancy attacks.
      * @param collateralAmount Collateral token amount to be sold for UNIT token.
      */
-    function buyUnit(uint256 collateralAmount) external {
+    function buyUnit(uint256 collateralAmount) external /* nonReentrant */ {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
