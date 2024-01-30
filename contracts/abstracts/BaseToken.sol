@@ -9,6 +9,14 @@ import './Ownable.sol';
 import './Proxiable.sol';
 import '../interfaces/IERC20Permit.sol';
 
+/**
+ * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
+ * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
+ *
+ * IMPORTANT: This contract is used as parent contract in contracts that implement a proxy pattern.
+ * Adding, removing, changing or rearranging state variables in this contract can result in a storage collision
+ * in child contracts in case of a contract upgrade.
+ */
 abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IERC20Permit {
     bytes32 public constant DOMAIN_TYPEHASH =
         keccak256('EIP712Domain(string name,uint256 chainId,address verifyingContract)');

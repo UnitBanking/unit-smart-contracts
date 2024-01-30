@@ -21,7 +21,15 @@ TODO:
 - Add amount in max/amount out min in bid calls
 */
 
-contract UnitAuction is IUnitAuction, Proxiable, Ownable, ReentrancyGuard {
+/**
+ * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
+ * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
+ */
+contract UnitAuction is IUnitAuction, Proxiable, Ownable {
+    /**
+     * ================ CONSTANTS ================
+     */
+
     uint256 public constant CONTRACTION_START_PRICE_BUFFER = 11_000; // 1.1 or 110%
     uint256 public constant CONTRACTION_START_PRICE_BUFFER_PRECISION = 10_000;
 
@@ -36,14 +44,6 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable, ReentrancyGuard {
     IERC20 public immutable collateralToken;
     UnitToken public immutable unitToken;
 
-    uint256 public contractionAuctionMaxDuration;
-    uint256 public expansionAuctionMaxDuration;
-    uint256 public contractionStartPriceBuffer;
-
-    /**
-     * ================ AUCTION STATE ================
-     */
-
     uint8 public constant AUCTION_VARIANT_NONE = 1;
     uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
     uint8 public constant AUCTION_VARIANT_EXPANSION = 3;
@@ -54,7 +54,29 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable, ReentrancyGuard {
         uint8 variant;
     }
 
+    /**
+     * ================ STATE VARIABLES ================
+     */
+
+    /**
+     * IMPORTANT:
+     * !STORAGE COLLISION WARNING!
+     * Adding, removing or rearranging undermentioned state variables can result in a storage collision after a contract
+     * upgrade. Any new state variables must be added beneath these to prevent storage conflicts.
+     */
+
     AuctionState public auctionState;
+
+    uint256 public contractionAuctionMaxDuration;
+    uint256 public expansionAuctionMaxDuration;
+    uint256 public contractionStartPriceBuffer;
+
+    /**
+     * IMPORTANT:
+     * !STORAGE COLLISION WARNING!
+     * Adding, removing or rearranging above state variables can result in a storage collision after a contract upgrade.
+     * Any new state variables must be added beneath these to prevent storage conflicts.
+     */
 
     /**
      * ================ CONSTRUCTOR ================
@@ -148,11 +170,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable, ReentrancyGuard {
 
     /**
      * @notice Bids in the UNIT contraction auction.
-     * @dev If changing the collateral token to an untrusted one (with e.g. unexpected side effects) in the future,
+     * @dev If changing the collateral token to an untrusted one (e.g. with unexpected side effects),
      * consider using the `nonReentrant` modifier to prevent potential reentrancy attacks.
      * @param unitAmount Unit token amount to be sold for collateral token.
      */
-    function sellUnit(uint256 unitAmount) external /* nonReentrant */ {
+    function sellUnit(uint256 unitAmount) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
@@ -184,11 +206,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable, ReentrancyGuard {
 
     /**
      * @notice Bids in the UNIT expansion auction.
-     * @dev If changing the collateral token to an untrusted one (with e.g. unexpected side effects) in the future,
+     * @dev If changing the collateral token to an untrusted one (e.g. with unexpected side effects),
      * consider using the `nonReentrant` modifier to prevent potential reentrancy attacks.
      * @param collateralAmount Collateral token amount to be sold for UNIT token.
      */
-    function buyUnit(uint256 collateralAmount) external /* nonReentrant */ {
+    function buyUnit(uint256 collateralAmount) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);

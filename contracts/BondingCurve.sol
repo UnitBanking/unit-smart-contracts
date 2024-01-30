@@ -26,6 +26,10 @@ import './UnitToken.sol';
  - add UTs for non reentrant funcs
  */
 
+/**
+ * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
+ * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
+ */
 contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     using TransferUtils for address;
 
@@ -55,6 +59,13 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * ================ STATE VARIABLES ================
      */
 
+    /**
+     * IMPORTANT:
+     * !STORAGE COLLISION WARNING!
+     * Adding, removing or rearranging undermentioned state variables can result in a storage collision after a contract
+     * upgrade. Any new state variables must be added beneath these to prevent storage conflicts.
+     */
+
     UD60x18 public lastUnitUsdPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t')) – ln(Index(t'- 20years)))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
@@ -66,6 +77,13 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     UnitToken public unitToken;
     MineToken public mineToken;
     address public unitAuction;
+
+    /**
+     * IMPORTANT:
+     * !STORAGE COLLISION WARNING!
+     * Adding, removing or rearranging above state variables can result in a storage collision after a contract upgrade.
+     * Any new state variables must be added beneath these to prevent storage conflicts.
+     */
 
     /**
      * ================ CONSTRUCTOR ================
