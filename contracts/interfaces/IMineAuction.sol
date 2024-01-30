@@ -18,14 +18,10 @@ interface IMineAuction {
     error MineAuctionInvalidAuctionGroupId(uint256 auctionGroupId);
     error MineAuctionNotCurrentAuctionGroupId(uint256 auctionGroupId);
     error MineAuctionNotCurrentAuctionId(uint256 auctionId);
-    error MineAuctionStartTimeInThePast();
     error MineAuctionInvalidBidAmount();
-    error MineAuctionInProgress();
     error MineAuctionBiddingInProgress();
-    error MineAuctionGroupStartTimeNotInSettlement();
-    error MineAuctionGroupStartTimeTooEarly();
+    error MineAuctionEarlyThanLastAuctionGroup(uint256 lastAuctionGroupStartTime);
     error MineAuctionInSettlement();
-    error MineAuctionClaimingCurrentAuction();
     error MineAuctionInsufficientClaimAmount(uint256 amount);
 
     struct Auction {

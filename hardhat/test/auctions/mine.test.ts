@@ -231,10 +231,7 @@ describe('Mine Auctions', () => {
     const newStartTime = nextBlockTimestamp + 10n
     await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_TIME, DEFAULT_BID_TIME)
     expect((await getLatestBlock(owner)).timestamp).to.equal(nextBlockTimestamp)
-    await expect(auction.bid(groupId0, auctionId0, 1)).to.be.revertedWithCustomError(
-      auction,
-      'MineAuctionNotCurrentAuctionId'
-    )
+    await expect(auction.bid(groupId0, auctionId0, 1)).to.be.revertedWithCustomError(auction, 'MineAuctionInSettlement')
 
     // console.log(new Date(Number(newStartTime) * 1000))
 
