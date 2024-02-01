@@ -71,7 +71,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     uint256 public lastOracleUpdateTimestamp; // t'
 
     IERC20 public collateralToken;
-    uint256 collateralTokenDecimals;
     IInflationOracle public inflationOracle;
     ICollateralUsdOracle public collateralUsdOracle;
     UnitToken public unitToken;
@@ -122,7 +121,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         lastUnitUsdPrice = UNIT; // 1
 
         collateralToken = _collateralToken;
-        collateralTokenDecimals = _collateralToken.decimals();
         unitToken = _unitToken;
         mineToken = _mineToken;
         inflationOracle = _inflationOracle;
