@@ -6,9 +6,9 @@ import '../abstracts/Proxiable.sol';
 import '../abstracts/Ownable.sol';
 import '../abstracts/ReentrancyGuard.sol';
 import '../interfaces/IUnitAuction.sol';
+import '../interfaces/IBondingCurve.sol';
 import '../libraries/TransferUtils.sol';
 import '../libraries/ReserveRatio.sol';
-import '../BondingCurve.sol';
 import '../UnitToken.sol';
 import { pow, uUNIT, unwrap, wrap } from '@prb/math/src/UD60x18.sol';
 
@@ -38,9 +38,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     uint256 public constant EXPANSION_PRICE_DECAY_BASE = 999000000000000000; // 0.999 in prb-math.UNIT precision
     uint256 public constant EXPANSION_PRICE_DECAY_TIME_INTERVAL = 1800 seconds;
 
-    uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices returned from the bonding curve are in this precision
+    uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices provided by the bonding curve are in this precision
 
-    BondingCurve public immutable bondingCurve;
+    IBondingCurve public immutable bondingCurve;
     IERC20 public immutable collateralToken;
     UnitToken public immutable unitToken;
 
@@ -89,9 +89,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * values for the remaining variables.
      * @dev This contract must be deployed after the bonding curve has been deployed and initialized via its proxy.
      */
-    constructor(BondingCurve _bondingCurve, UnitToken _unitToken) {
+    constructor(IBondingCurve _bondingCurve, UnitToken _unitToken) {
         bondingCurve = _bondingCurve;
-        collateralToken = bondingCurve.collateralToken();
+        collateralToken = _bondingCurve.collateralToken();
         unitToken = _unitToken;
 
         UNITUSD_PRICE_PRECISION = _bondingCurve.UNITUSD_PRICE_PRECISION();

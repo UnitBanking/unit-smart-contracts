@@ -28,6 +28,12 @@ interface IBondingCurve {
     error BondingCurveForbidden();
 
     /**
+     * ================ CONSTANTS ================
+     */
+
+    function UNITUSD_PRICE_PRECISION() external pure returns (uint256);
+
+    /**
      * ================ CORE FUNCTIONALITY ================
      */
 
@@ -94,6 +100,8 @@ interface IBondingCurve {
     /**
      * ================ GETTERS ================
      */
+
+    function collateralToken() external view returns (IERC20);
 
     /**
      * @notice Returns the current UNIT price, in collateral token, used when minting UNIT.
