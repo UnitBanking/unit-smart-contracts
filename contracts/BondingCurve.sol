@@ -18,6 +18,7 @@ import './UnitToken.sol';
 /*
  TODOs:
  - add event logging
+ - remove ReentrancyGuard, for now the collateral token can be trusted
  - reduce OpenZeppelin Math library (we only need min/max funcs ATM)
  - review `IBondingCurve` function visibility (possibly convert all to public for improved testability)
  - revisit `burn()` interface upon code integration
