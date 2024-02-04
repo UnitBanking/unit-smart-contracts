@@ -57,7 +57,7 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
     }
 
     function permit(
-        address owner,
+        address _owner,
         address spender,
         uint256 value,
         uint256 expiry,
@@ -71,12 +71,12 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
         );
-        uint256 nonce = nonces[owner]++;
-        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, expiry));
+        uint256 nonce = nonces[_owner]++;
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, _owner, spender, value, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));
         address signer = ecrecover(digest, v, r, s);
-        if (signer != owner) {
-            revert ERC20InvalidSigner(signer, owner);
+        if (signer != _owner) {
+            revert ERC20InvalidSigner(signer, _owner);
         }
         _approve(signer, spender, value, true);
     }
