@@ -19,6 +19,7 @@ TODO:
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
 - Add amount in max/amount out min in bid calls
+- Use past tense in event naming convention, e.g. UnitSold, UnitBought, AuctionStarted, AuctionTerminated? 
 */
 
 /**
@@ -204,6 +205,23 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         emit SellUnit(msg.sender, unitAmount, collateralAmount);
     }
 
+    function quoteSellUnit(uint256 unitAmount) external view returns (uint256 collateralAmount) {
+        (uint256 reserveRatioBefore, AuctionState memory _auctionState) = _refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
+        }
+
+        uint256 currentPrice = (_auctionState.startPrice *
+            unwrap(
+                pow(
+                    wrap(CONTRACTION_PRICE_DECAY_BASE),
+                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / CONTRACTION_PRICE_DECAY_TIME_INTERVAL)
+                )
+            )) / uUNIT;
+
+        collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
+    }
+
     /**
      * @notice Bids in the UNIT expansion auction.
      * @dev If changing the collateral token to an untrusted one (e.g. with unexpected side effects),
@@ -250,36 +268,69 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         emit BuyUnit(msg.sender, unitAmount, collateralAmount);
     }
 
+    function quoteBuyUnit(uint256 collateralAmount) external view returns (uint256 unitAmount) {
+        (uint256 reserveRatioBefore, AuctionState memory _auctionState) = _refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
+        }
+
+        uint256 currentPrice = (_auctionState.startPrice *
+            unwrap(
+                pow(
+                    wrap(EXPANSION_PRICE_DECAY_BASE),
+                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
+                )
+            )) / uUNIT;
+
+        uint256 burnPrice = bondingCurve.getBurnPrice();
+        if (currentPrice < burnPrice) {
+            revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
+        }
+        unitAmount = (collateralAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
+    }
+
     /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
-    function _startContractionAuction() internal returns (AuctionState memory _auctionState) {
+    function _getNewContractionAuction() internal view returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
-            uint32(block.timestamp), // TODO: Confirm we want to do this
+            uint32(block.timestamp),
             uint216(
                 (bondingCurve.getMintPrice() * contractionStartPriceBuffer) / CONTRACTION_START_PRICE_BUFFER_PRECISION
             ),
             AUCTION_VARIANT_CONTRACTION
         );
+    }
+
+    function _startContractionAuction() internal returns (AuctionState memory _auctionState) {
+        _auctionState = _getNewContractionAuction();
         auctionState = _auctionState;
 
         emit StartAuction(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
     }
 
-    function _startExpansionAuction() internal returns (AuctionState memory _auctionState) {
+    function _getNewExpansionAuction() internal view returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
             uint32(block.timestamp),
             uint216(bondingCurve.getMintPrice()),
             AUCTION_VARIANT_EXPANSION
         );
+    }
+
+    function _startExpansionAuction() internal returns (AuctionState memory _auctionState) {
+        _auctionState = _getNewExpansionAuction();
         auctionState = _auctionState;
 
         emit StartAuction(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
     }
 
-    function _terminateAuction() internal returns (AuctionState memory _auctionState) {
+    function _getNullAuction() internal pure returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(0, 0, AUCTION_VARIANT_NONE);
+    }
+
+    function _terminateAuction() internal returns (AuctionState memory _auctionState) {
+        _auctionState = _getNullAuction();
         auctionState = _auctionState;
 
         emit TerminateAuction();
@@ -291,5 +342,30 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     function inExpansionRange(uint256 reserveRatio) internal pure returns (bool) {
         return reserveRatio > ReserveRatio.TARGET_RR;
+    }
+
+    function _refreshStateInMemory() internal view returns (uint256 reserveRatio, AuctionState memory _auctionState) {
+        reserveRatio = bondingCurve.getReserveRatio();
+        _auctionState = auctionState;
+
+        if (inContractionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
+                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
+                    _auctionState = _getNewContractionAuction();
+                }
+            } else {
+                _auctionState = _getNewContractionAuction();
+            }
+        } else if (inExpansionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
+                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
+                    _auctionState = _getNewExpansionAuction();
+                }
+            } else {
+                _auctionState = _getNewExpansionAuction();
+            }
+        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
+            _auctionState = _getNullAuction();
+        }
     }
 }

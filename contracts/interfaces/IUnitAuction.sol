@@ -48,4 +48,8 @@ interface IUnitAuction {
     function sellUnit(uint256 unitAmount) external;
 
     function buyUnit(uint256 collateralAmount) external;
+
+    function quoteSellUnit(uint256 unitAmount) external view returns (uint256 collateralAmount);
+
+    function quoteBuyUnit(uint256 collateralAmount) external view returns (uint256 unitAmount);
 }
