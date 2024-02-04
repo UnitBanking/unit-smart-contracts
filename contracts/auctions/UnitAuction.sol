@@ -145,28 +145,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @return _auctionState Current auction state.
      */
     function refreshState() public returns (uint256 reserveRatio, AuctionState memory _auctionState) {
-        reserveRatio = bondingCurve.getReserveRatio();
-        _auctionState = auctionState;
-
-        if (inContractionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
-                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
-                    _auctionState = _startContractionAuction();
-                }
-            } else {
-                _auctionState = _startContractionAuction();
-            }
-        } else if (inExpansionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
-                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
-                    _auctionState = _startExpansionAuction();
-                }
-            } else {
-                _auctionState = _startExpansionAuction();
-            }
-        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
-            _auctionState = _terminateAuction();
-        }
+        (reserveRatio, _auctionState) = _refreshState(
+            _startContractionAuction,
+            _startExpansionAuction,
+            _terminateAuction
+        );
     }
 
     /**
@@ -205,7 +188,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         emit SellUnit(msg.sender, unitAmount, collateralAmount);
     }
 
-    function quoteSellUnit(uint256 unitAmount) external view returns (uint256 collateralAmount) {
+    function quoteSellUnit(uint256 unitAmount) external returns (uint256 collateralAmount) {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = _refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
@@ -268,7 +251,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         emit BuyUnit(msg.sender, unitAmount, collateralAmount);
     }
 
-    function quoteBuyUnit(uint256 collateralAmount) external view returns (uint256 unitAmount) {
+    function quoteBuyUnit(uint256 collateralAmount) external returns (uint256 unitAmount) {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = _refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
@@ -344,28 +327,40 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         return reserveRatio > ReserveRatio.TARGET_RR;
     }
 
-    function _refreshStateInMemory() internal view returns (uint256 reserveRatio, AuctionState memory _auctionState) {
+    function _refreshStateInMemory() internal returns (uint256 reserveRatio, AuctionState memory _auctionState) {
+        (reserveRatio, _auctionState) = _refreshState(
+            _getNewContractionAuction,
+            _getNewExpansionAuction,
+            _getNullAuction
+        );
+    }
+
+    function _refreshState(
+        function() internal returns (AuctionState memory) startContractionAuction,
+        function() internal returns (AuctionState memory) startExpansionAuction,
+        function() internal returns (AuctionState memory) terminateAuction
+    ) internal returns (uint256 reserveRatio, AuctionState memory _auctionState) {
         reserveRatio = bondingCurve.getReserveRatio();
         _auctionState = auctionState;
 
         if (inContractionRange(reserveRatio)) {
             if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
                 if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
-                    _auctionState = _getNewContractionAuction();
+                    _auctionState = startContractionAuction();
                 }
             } else {
-                _auctionState = _getNewContractionAuction();
+                _auctionState = startContractionAuction();
             }
         } else if (inExpansionRange(reserveRatio)) {
             if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
                 if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
-                    _auctionState = _getNewExpansionAuction();
+                    _auctionState = startExpansionAuction();
                 }
             } else {
-                _auctionState = _getNewExpansionAuction();
+                _auctionState = startExpansionAuction();
             }
         } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
-            _auctionState = _getNullAuction();
+            _auctionState = terminateAuction();
         }
     }
 }
