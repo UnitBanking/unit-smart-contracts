@@ -10,6 +10,9 @@ import './MineToken.sol';
 import './abstracts/Pausable.sol';
 import './libraries/TransferUtils.sol';
 
+/// @title MineAuction contract for auctioning MINE tokens
+/// @notice You can use this contract to auction MINE tokens
+/// @dev The contract is proxiable and pauseable
 contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
     uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR;
@@ -33,6 +36,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         bidToken = _bidToken;
     }
 
+    /// @notice Initialize the contract, set the owner, and set the initial auction time, and set the first auction group
+    /// @param _initialAuctionTime The initial auction time, used to calculate the reward amount, since it is half each four years
+    /// @dev This function can only be called once
     function initialize(uint256 _initialAuctionTime) external {
         _setOwner(msg.sender);
         _setAuctionGroup(0, 1 hours, 23 hours);
@@ -42,6 +48,13 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         super.initialize();
     }
 
+    /// @notice Append the auction group, each time when  the auction settleTime or bitTime should be changed,
+    /// a new auction group should be appended, then when time passed the startTime of the new group, the new group
+    /// will be the current group, and thus all the auction after that will be in the new group, and use the new group's
+    /// settleTime and bidTime
+    /// @param startTime The start time of the new auction group, like tomorrow 12:00
+    /// @param settleTime The settle time of the new auction group, like 1 hour
+    /// @param bidTime The bid time of the new auction group, like 23 hours
     function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external override onlyOwner {
         AuctionGroup memory lastAuctionGroup = auctionGroups[auctionGroups.length - 1];
         uint256 auctionStartTime = lastAuctionGroup.startTime;
@@ -61,6 +74,11 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         _setAuctionGroup(startTime, settleTime, bidTime);
     }
 
+    /// @notice Get the auction group by the auction group id
+    /// @param auctionGroupId The auction group id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    /// @return startTime The start time of the auction group
+    /// @return settleTime The settle time of the auction group
+    /// @return bidTime The bid time of the auction group
     function getAuctionGroup(
         uint256 auctionGroupId
     ) external view override returns (uint256 startTime, uint256 settleTime, uint256 bidTime) {
@@ -71,6 +89,13 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         bidTime = auctionGroup.bidTime;
     }
 
+    /// @notice Get the current auction group, the current auction group is the one that has the start time
+    /// less than or equal to the current time
+    /// @return auctionGroupId The auction group id of the current auction group
+    /// @return startTime The start time of the current auction group
+    /// @return settleTime The settle time of the current auction group
+    /// @return bidTime The bid time of the current auction group
+    /// @dev since auction group is appended, the current auction group is the last one that has
     function getCurrentAuctionGroup()
         external
         view
@@ -89,10 +114,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         bidTime = auctionGroup.bidTime;
     }
 
+    /// @notice Get the total auction group count
     function getAuctionGroupCount() external view override returns (uint256) {
         return auctionGroups.length;
     }
 
+    /// @notice Get the auction info by the auction group id and auction id
+    /// @param auctionGroupId The auction group id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    /// @param auctionId The auction id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
     function getAuction(
         uint256 auctionGroupId,
         uint256 auctionId
@@ -104,6 +133,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         rewardAmount = auction.rewardAmount;
     }
 
+    /// @notice Get the bid amount token by the auction group id, auction id and bidder
+    /// @param auctionGroupId The auction group id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    /// @param auctionId The auction id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    /// @param bidder The bidder's address
+    /// @dev since the auction group is appended, the auction group id is the index of the auction in the auction group
+    /// since auction id is the index of the auction in the auction group based on time, so it could be not continuous
     function getBid(
         uint256 auctionGroupId,
         uint256 auctionId,
@@ -114,6 +149,8 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         bidAmount = auctions[auctionGroupId][auctionId].bid[bidder];
     }
 
+    /// @notice Get the claimed amount token by the auction group id, auction id and bidder
+    /// @dev it will revert if the auction group id is out of bounds, or the auction id is in future
     function getClaimed(
         uint256 auctionGroupId,
         uint256 auctionId,
@@ -124,6 +161,8 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         claimedAmount = auctions[auctionGroupId][auctionId].claimed[bidder];
     }
 
+    /// @notice Get the auction info by the auction group id, auction id and bidder
+    /// @dev it will revert if the auction group id is out of bounds, or the auction id is in future
     function getAuctionInfo(
         uint256 auctionGroupId,
         uint256 auctionId,
@@ -156,6 +195,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         claimableAmount = getClaimableAmount(auctionGroupId, auctionId, bidder);
     }
 
+    /// @notice Bid the auction by the auction group id, auction id and amount
+    /// @param auctionGroupId The auction group id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    /// @param auctionId The auction id, like 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    /// @param amount The amount of the bid token
+    /// @dev  both the group id and auction is are passed from the client, so the client should calculate the auction group id and auction id
+    /// we validate the auction group id and auction id, and then calculate the start time and end time of the auction,
+    /// and then validate  current time is in the middle of a auction, it should not be during a settlement, and it should
+    /// not be the future or past auction
     function bid(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external override onlyNotPaused {
         if (amount == 0) {
             revert MineAuctionInvalidBidAmount();
@@ -194,21 +241,24 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         emit AuctionBid(auctionGroupId, auctionId, msg.sender, transferAmount);
     }
 
+    /// @notice Claim the amount of token by the auction group id, auction id and amount
     function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external override {
         _claim(auctionGroupId, auctionId, msg.sender, msg.sender, amount);
     }
 
+    /// @notice Claim the amount of token by the auction group id, auction id and amount
     function claimTo(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external override {
         _claim(auctionGroupId, auctionId, msg.sender, to, amount);
     }
 
+    /// @dev make sure the auction group id is not out of bounds
     function revertIfAuctionGroupIdOutOfBounds(uint256 auctionGroupId) internal view {
         if (auctionGroupId >= auctionGroups.length) {
             revert MineAuctionInvalidAuctionGroupId(auctionGroupId);
         }
     }
 
-    // auction info should only be available for past auction, include current auction
+    /// @dev auction info should only be available for past auction, include current auction
     function revertIfAuctionIdInFuture(uint256 auctionGroupId, uint256 auctionId) internal view {
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (block.timestamp < auctionGroup.startTime) {
@@ -220,7 +270,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         }
     }
 
-    // claim is only enabled for past auction, exclude current auction
+    /// @dev claim is only enabled for past auction, exclude current auction
     function revertIfAuctionIdInFutureOrCurrent(uint256 auctionGroupId, uint256 auctionId) internal view {
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         if (block.timestamp < auctionGroup.startTime) {
@@ -248,6 +298,8 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     }
 
     //TODO: use prb math to optimize
+    /// @dev Get the reward amount token by the auction group id, it will revert if the auction group id is out of bounds
+    /// half each four years, and it distributed to the auction group based on the auction group's bidTime and settleTime
     function getRewardAmount(uint256 auctionGroupId) internal view returns (uint256) {
         AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
         uint256 elapsed = block.timestamp - initialAuctionTime;
@@ -256,6 +308,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return (auctionableAmount * (auctionGroup.bidTime + auctionGroup.settleTime)) / SECONDS_IN_FOUR_YEARS;
     }
 
+    /// @dev Get the claimable amount token by the auction group id, auction id and bidder,
+    /// it will revert if the auction group id is out of bounds, or the auction id is in future
+    ///  bidToken *  ( rewardAmount / totalBidAmount ) - claimed
     function getClaimableAmount(
         uint256 auctionGroupId,
         uint256 auctionId,
