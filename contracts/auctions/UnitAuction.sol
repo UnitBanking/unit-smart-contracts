@@ -164,13 +164,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        uint256 currentPrice = (_auctionState.startPrice *
-            unwrap(
-                pow(
-                    wrap(CONTRACTION_PRICE_DECAY_BASE),
-                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / CONTRACTION_PRICE_DECAY_TIME_INTERVAL)
-                )
-            )) / uUNIT;
+        uint256 currentPrice = _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime);
 
         uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
@@ -194,13 +188,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        uint256 currentPrice = (_auctionState.startPrice *
-            unwrap(
-                pow(
-                    wrap(CONTRACTION_PRICE_DECAY_BASE),
-                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / CONTRACTION_PRICE_DECAY_TIME_INTERVAL)
-                )
-            )) / uUNIT;
+        uint256 currentPrice = _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime);
 
         collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
     }
@@ -224,13 +212,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             collateralAmount
         );
 
-        uint256 currentPrice = (_auctionState.startPrice *
-            unwrap(
-                pow(
-                    wrap(EXPANSION_PRICE_DECAY_BASE),
-                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
-                )
-            )) / uUNIT;
+        uint256 currentPrice = _getCurrentBuyPrice(_auctionState.startPrice, _auctionState.startTime);
 
         uint256 burnPrice = bondingCurve.getBurnPrice();
         if (currentPrice < burnPrice) {
@@ -257,13 +239,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        uint256 currentPrice = (_auctionState.startPrice *
-            unwrap(
-                pow(
-                    wrap(EXPANSION_PRICE_DECAY_BASE),
-                    wrap(((block.timestamp - _auctionState.startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
-                )
-            )) / uUNIT;
+        uint256 currentPrice = _getCurrentBuyPrice(_auctionState.startPrice, _auctionState.startTime);
 
         uint256 burnPrice = bondingCurve.getBurnPrice();
         if (currentPrice < burnPrice) {
@@ -275,6 +251,30 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
+
+    function _getCurrentBuyPrice(uint256 startPrice, uint256 startTime) internal view returns (uint256 currentPrice) {
+        currentPrice =
+            (startPrice *
+                unwrap(
+                    pow(
+                        wrap(EXPANSION_PRICE_DECAY_BASE),
+                        wrap(((block.timestamp - startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
+                    )
+                )) /
+            uUNIT;
+    }
+
+    function _getCurrentSellPrice(uint256 startPrice, uint256 startTime) internal view returns (uint256 currentPrice) {
+        currentPrice =
+            (startPrice *
+                unwrap(
+                    pow(
+                        wrap(CONTRACTION_PRICE_DECAY_BASE),
+                        wrap(((block.timestamp - startTime) * uUNIT) / CONTRACTION_PRICE_DECAY_TIME_INTERVAL)
+                    )
+                )) /
+            uUNIT;
+    }
 
     function _getNewContractionAuction() internal view returns (AuctionState memory _auctionState) {
         _auctionState = AuctionState(
