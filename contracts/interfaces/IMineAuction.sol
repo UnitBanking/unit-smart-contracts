@@ -9,7 +9,7 @@ import './IERC20.sol';
 interface IMineAuction {
     event AuctionBid(uint256 auctionGroupId, uint256 auctionId, address bidder, uint256 amount);
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
-    event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleTime, uint256 bidTime);
+    event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration);
 
     error MineAuctionNoDirectTransfer();
     error MineAuctionAuctionGroupIdInFuture(uint256 auctionGroupId);
@@ -32,22 +32,20 @@ interface IMineAuction {
 
     struct AuctionGroup {
         uint64 startTime;
-        uint32 settleTime;
-        uint32 bidTime;
+        uint32 settleDuration;
+        uint32 bidDuration;
     }
-
-    function initialize(uint256 initialAuctionTime) external;
 
     function getAuctionGroup(
         uint256 auctionGroupId
-    ) external view returns (uint256 startTime, uint256 settleTime, uint256 bidTime);
+    ) external view returns (uint256 startTime, uint256 settleDuration, uint256 bidDuration);
 
     function getAuctionGroupCount() external view returns (uint256);
 
     function getCurrentAuctionGroup()
         external
         view
-        returns (uint256 auctionGroupId, uint256 startTime, uint256 settleTime, uint256 bidTime);
+        returns (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration);
 
     function getAuction(
         uint256 auctionGroupId,
@@ -65,8 +63,8 @@ interface IMineAuction {
             uint256 totalBidAmount,
             uint256 rewardAmount,
             uint256 startTime,
-            uint256 settleTime,
-            uint256 bidTime,
+            uint256 settleDuration,
+            uint256 bidDuration,
             uint256 bidAmount,
             uint256 claimedAmount,
             uint256 claimableAmount
@@ -84,7 +82,7 @@ interface IMineAuction {
         address bidder
     ) external view returns (uint256 claimedAmount);
 
-    function setAuctionGroup(uint64 startTime, uint32 settleTime, uint32 bidTime) external;
+    function setAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) external;
 
     function bid(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 

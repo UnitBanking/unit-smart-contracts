@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.21;
 
-/// @title Pausable contract for pausing and unpausing the contract
-/// @notice You can use this contract to control the pause state
-/// @dev The modifier onlyNotPaused should be used
+/**
+ * @title Pausable contract for pausing and unpausing the contract
+ * @notice You can use this contract to control the pause state
+ * @dev The modifier onlyNotPaused should be used
+ */
 abstract contract Pausable {
     bool public paused;
 
@@ -28,8 +30,10 @@ abstract contract Pausable {
         emit PausedSet(_paused);
     }
 
-    /// @notice Set the paused state
-    /// @dev This function can only be called by the owner
+    /**
+     * @notice Set the paused state
+     * @dev This function can only be called by the owner
+     */
     function setPaused(bool _paused) public virtual {
         _setPaused(_paused);
     }
