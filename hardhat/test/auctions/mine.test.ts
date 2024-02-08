@@ -113,6 +113,30 @@ describe('Mine Auctions', () => {
       await expect(auction.bid(auctionGroupId, auctionId, 100)).to.be.reverted
     })
 
+    it('revert if bid in the gap of two auction group', async () => {
+      const [, , settleDuration, bidDuration] = await auction.getCurrentAuctionGroup()
+      // explicitly create auctionGroupGap of 10n secs
+      const expectedStartTime = auctionStartTime + bidDuration + settleDuration + 10n
+      const expectedBidDuration = 2 * 60 * 60
+      const expectedSettleDuration = 60 * 30
+      await expect(auction.setAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
+        .to.emit(auction, 'AuctionGroupSet')
+        .withArgs(1, expectedStartTime, expectedSettleDuration, expectedBidDuration)
+
+      await setNextBlockTimestamp(expectedStartTime - 5n)
+      await expect(auction.bid(auctionGroupId, auctionId, 100)).to.be.revertedWithCustomError(
+        auction,
+        'MineAuctionCurrentAuctionDisabled'
+      )
+    })
+
+    it('revert if invalid bid amount', async () => {
+      await expect(auction.bid(auctionGroupId, auctionId, 0)).to.be.revertedWithCustomError(
+        auction,
+        'MineAuctionInvalidBidAmount'
+      )
+    })
+
     it('can bid when there are skipped auctions', async () => {
       const [groupId0, auctionId0] = [auctionGroupId, auctionId]
       await expect(auction.bid(groupId0, auctionId0, 100))
@@ -181,6 +205,29 @@ describe('Mine Auctions', () => {
         .to.be.revertedWithCustomError(auction, 'MineAuctionInvalidAuctionGroupId')
         .withArgs(groupId + 2n)
     })
+
+    it('get auction info', async () => {
+      const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
+      const [
+        totalBidAmount,
+        rewardAmount,
+        startTime,
+        settleDuration,
+        bidDuration,
+        bidAmount,
+        claimedAmount,
+        claimableAmount,
+      ] = await auction.getAuctionInfo(groupId, auctionId, owner.address)
+      expect(totalBidAmount).to.equal(201n)
+      expect(rewardAmount).to.be.greaterThan(0n)
+      expect(startTime).to.be.greaterThan(0n)
+      expect(settleDuration).to.be.greaterThan(0n)
+      expect(bidDuration).to.be.greaterThan(0n)
+      expect(bidAmount).to.equal(100n)
+      expect(claimedAmount).to.equal(0n)
+      expect(claimableAmount).to.greaterThan(0n)
+    })
+
     it('reverts when auctionId is too large', async () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
       await expect(auction.claim(groupId, auctionId, 10))
@@ -225,12 +272,21 @@ describe('Mine Auctions', () => {
       expect(balanceAfterOwner - balanceBeforeOwner).to.equal(100n)
       expect(balanceAfterOther - balanceBeforeOther).to.equal(101n)
     })
-    it('allows to partial claim', async () => {})
+
+    it('claim to other address', async () => {
+      const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
+      await increase(DEFAULT_AUCTION_DURATION)
+
+      const balanceBeforeOwner = await mine.balanceOf(owner.address)
+      const balanceBeforeOther = await mine.balanceOf(other.address)
+      await expect(auction.claimTo(groupId, auctionId, other.address, 100))
+        .to.emit(auction, 'AuctionClaimed')
+        .withArgs(groupId, auctionId, owner.address, 100n)
+
+      const balanceAfterOwner = await mine.balanceOf(owner.address)
+      const balanceAfterOther = await mine.balanceOf(other.address)
+      expect(balanceAfterOwner).to.equal(balanceBeforeOwner)
+      expect(balanceAfterOther - balanceBeforeOther).to.equal(100n)
+    })
   })
 })
-
-// |----|---|  * |---
-
-// |----|---|  * |----|---|
-//                                   0 | 1
-// |-------*------|---|-------------|--[-*|-------------]--|--]----
