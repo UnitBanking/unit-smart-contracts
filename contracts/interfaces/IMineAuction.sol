@@ -11,7 +11,6 @@ interface IMineAuction {
     event AuctionClaimed(uint256 auctionGroupId, uint256 auctionId, address recipient, uint256 amount);
     event AuctionGroupSet(uint256 groupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration);
 
-    error MineAuctionNoDirectTransfer();
     error MineAuctionAuctionGroupIdInFuture(uint256 auctionGroupId);
     error MineAuctionAuctionIdInFuture(uint256 auctionId);
     error MineAuctionAuctionIdInFutureOrCurrent(uint256 auctionId);

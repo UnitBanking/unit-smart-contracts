@@ -17,7 +17,7 @@ import './libraries/TransferUtils.sol';
  */
 contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
-    uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR + 1;
+    uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR + 1 days;
     uint256 constant AUCTIONABLE_NUMERATOR = 8000;
     uint256 constant AUCTIONABLE_DENOMINATOR = 10000;
 
@@ -28,7 +28,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     AuctionGroup[] private auctionGroups;
     mapping(uint256 auctionGroupId => mapping(uint256 auctionId => Auction auction)) auctions;
 
-    uint256 public totalAuctionableAmount;
+    uint256 public immutable totalAuctionableAmount;
     uint64 public immutable initialAuctionStartTime;
 
     /**
@@ -45,6 +45,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         mineToken = _mineToken;
         bidToken = _bidToken;
         initialAuctionStartTime = _initialAuctionStartTime;
+        totalAuctionableAmount = (mineToken.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
     }
 
     /**
@@ -54,12 +55,11 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     function initialize() public override {
         _setOwner(msg.sender);
         _setAuctionGroup(initialAuctionStartTime, 1 hours, 23 hours);
-        totalAuctionableAmount = (mineToken.MAX_SUPPLY() * AUCTIONABLE_NUMERATOR) / AUCTIONABLE_DENOMINATOR;
         super.initialize();
     }
 
     /**
-     * @notice Append the auction group, each time when  the auction settleDuration or bitTime should be changed,
+     * @notice Append the auction group, each time when the auction settleDuration or bitTime should be changed,
      * a new auction group should be appended, then when time passed the startTime of the new group, the new group
      * will be the current group, and thus all the auction after that will be in the new group, and use the new group's
      * settleDuration and bidDuration
@@ -222,7 +222,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         bidDuration = auctionGroups[auctionGroupId].bidDuration;
         bidAmount = auction.bid[bidder];
         claimedAmount = auction.claimed[bidder];
-        claimableAmount = getClaimableAmount(auctionGroupId, auctionId, bidder);
+        claimableAmount = getClaimableAmount(auction, bidder);
     }
 
     /**
@@ -336,11 +336,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     function _claim(uint256 auctionGroupId, uint256 auctionId, address bidder, address to, uint256 amount) internal {
         revertIfAuctionGroupIdOutOfBounds(auctionGroupId);
         revertIfAuctionIdInFutureOrCurrent(auctionGroupId, auctionId);
-        uint256 claimable = getClaimableAmount(auctionGroupId, auctionId, bidder);
+        Auction storage auction = auctions[auctionGroupId][auctionId];
+        uint256 claimable = getClaimableAmount(auction, bidder);
         if (amount > claimable) {
             revert MineAuctionInsufficientClaimAmount(amount);
         }
-        auctions[auctionGroupId][auctionId].claimed[bidder] += amount;
+        auction.claimed[bidder] += amount;
         mineToken.mint(to, amount);
         emit AuctionClaimed(auctionGroupId, auctionId, bidder, amount);
     }
@@ -362,12 +363,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
      * it will revert if the auction group id is out of bounds, or the auction id is in future
      *  bidToken *  ( rewardAmount / totalBidAmount ) - claimed
      */
-    function getClaimableAmount(
-        uint256 auctionGroupId,
-        uint256 auctionId,
-        address bidder
-    ) internal view returns (uint256) {
-        Auction storage auction = auctions[auctionGroupId][auctionId];
+    function getClaimableAmount(Auction storage auction, address bidder) internal view returns (uint256) {
         if (auction.totalBidAmount == 0) {
             return 0;
         }
@@ -383,9 +379,5 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         auctionGroup.bidDuration = bidDuration;
         auctionGroups.push(auctionGroup);
         emit AuctionGroupSet(auctionGroups.length - 1, startTime, settleDuration, bidDuration);
-    }
-
-    receive() external payable {
-        revert MineAuctionNoDirectTransfer();
     }
 }
