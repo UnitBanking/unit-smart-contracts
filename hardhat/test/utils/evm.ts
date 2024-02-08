@@ -6,3 +6,8 @@ export async function getLatestBlock(wallet: ethers.Signer) {
   assert(block, 'No block found')
   return block
 }
+
+export async function getLatestBlockTimestamp(wallet: ethers.Signer) {
+  const block = await getLatestBlock(wallet)
+  return block.timestamp
+}

@@ -118,8 +118,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         override
         returns (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration)
     {
-        auctionGroupId = auctionGroups.length - 1;
-        for (; auctionGroupId >= 0; auctionGroupId--) {
+        auctionGroupId = auctionGroups.length;
+        for (; auctionGroupId > 0; ) {
+            unchecked {
+                // Underflow not possible: auctionGroupId > 0
+                auctionGroupId--;
+            }
             if (auctionGroups[auctionGroupId].startTime <= block.timestamp) {
                 break;
             }

@@ -4,6 +4,7 @@ import { type MineAuction, type Proxy, MineAuction__factory, type BaseToken, typ
 import { deployBaseTokenFixture } from './deployBaseTokenTestFixture'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { deployMineFixture } from './deployMineFixture'
+import { getLatestBlockTimestamp } from '../utils'
 
 interface MineAuctionFixtureReturnType {
   auction: MineAuction
@@ -15,11 +16,14 @@ interface MineAuctionFixtureReturnType {
   another: HardhatEthersSigner
 }
 
-export const DEFAULT_SETTLE_TIME = 1 * 60 * 60
-export const DEFAULT_BID_TIME = 23 * 60 * 60
-export const DEFAULT_AUCTION_INTERVAL = DEFAULT_SETTLE_TIME + DEFAULT_BID_TIME
+export const DEFAULT_SETTLE_DURATION = 1 * 60 * 60
+export const DEFAULT_BID_DURATION = 23 * 60 * 60
+export const DEFAULT_AUCTION_DURATION = DEFAULT_SETTLE_DURATION + DEFAULT_BID_DURATION
+export const INITIAL_AUCTION_FUTURE_OFFSET = 2 * 60 * 60 // 2 hours in the future
 
-export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType> {
+export async function mineAuctionFixture(
+  initialTimeOffset: number = INITIAL_AUCTION_FUTURE_OFFSET
+): Promise<MineAuctionFixtureReturnType> {
   const [owner, other, another] = await ethers.getSigners()
   const factory = await ethers.getContractFactory('MineAuction', { signer: owner })
   const { mine } = await loadFixture(deployMineFixture)
@@ -29,7 +33,8 @@ export async function mineAuctionFixture(): Promise<MineAuctionFixtureReturnType
   const bidTokenAddress = await base.getAddress()
 
   const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
-  const auction = await factory.deploy(dummyBondingCurve, mineAddress, bidTokenAddress, 0)
+  const now = await getLatestBlockTimestamp(owner)
+  const auction = await factory.deploy(dummyBondingCurve, mineAddress, bidTokenAddress, now + initialTimeOffset)
   const auctionAddress = await auction.getAddress()
 
   const initialize = factory.interface.encodeFunctionData('initialize()', [])

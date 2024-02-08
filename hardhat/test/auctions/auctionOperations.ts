@@ -1,37 +1,40 @@
-import { setNextBlockTimestamp } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
-import { getLatestBlock } from '../utils'
+import { increase, setNextBlockTimestamp } from '@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time'
+import { getLatestBlock, getLatestBlockTimestamp } from '../utils'
 import { type MineAuction } from '../../build/types'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { DEFAULT_AUCTION_INTERVAL, DEFAULT_SETTLE_TIME } from '../fixtures/deployMineAuctionFixture'
 
-export async function simulateAnAuction(
-  auction: MineAuction,
-  owner: HardhatEthersSigner,
-  other: HardhatEthersSigner,
-  startTime?: bigint
-) {
-  if (startTime) {
-    const block = await getLatestBlock(owner)
-    startTime = BigInt(block.timestamp) + 1n
-    await setNextBlockTimestamp(startTime)
-    await auction.setAuctionGroup(startTime, DEFAULT_SETTLE_TIME, DEFAULT_AUCTION_INTERVAL)
+export async function increaseToNextBiddingPhase(auction: MineAuction, owner: HardhatEthersSigner) {
+  const [groupId, startTime, settleDuration, bidDuration] = await auction.getCurrentAuctionGroup()
+  const blockTimestamp = await getLatestBlockTimestamp(owner)
+  let secondsToIncrease: bigint = 0n
+  if (blockTimestamp < startTime) {
+    secondsToIncrease = startTime - BigInt(blockTimestamp)
+  } else {
+    const elapsed = (BigInt(blockTimestamp) - startTime) % (bidDuration + settleDuration)
+    if (elapsed > bidDuration) {
+      const secondsToNextAuction = settleDuration - (elapsed - bidDuration)
+      const groupCount = await auction.getAuctionGroupCount()
+      const nextGroupStartTime =
+        groupCount > groupId + 1n ? (await auction.getAuctionGroup(groupId + 1n))[1] : undefined
+      if (nextGroupStartTime && secondsToNextAuction + BigInt(blockTimestamp) > nextGroupStartTime) {
+        secondsToIncrease = nextGroupStartTime - BigInt(blockTimestamp)
+      } else {
+        secondsToIncrease = secondsToNextAuction
+      }
+    }
   }
+  if (secondsToIncrease > 0n) {
+    await increase(secondsToIncrease)
+  }
+}
 
+export async function simulateAnAuction(auction: MineAuction, owner: HardhatEthersSigner, other: HardhatEthersSigner) {
+  await increaseToNextBiddingPhase(auction, owner)
   const block = await getLatestBlock(owner)
   const [groupId, auctionId] = await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
   await auction.bid(groupId, auctionId, 100)
   await auction.connect(other).bid(groupId, auctionId, 101)
   return [groupId, auctionId]
-}
-
-export async function simulateAnContinuousAuction(
-  auction: MineAuction,
-  owner: HardhatEthersSigner,
-  other: HardhatEthersSigner
-) {
-  const block = await getLatestBlock(owner)
-  const newStartTime = BigInt(block.timestamp) + 1n
-  await simulateAnAuction(auction, owner, other, newStartTime)
 }
 
 export async function getAuctionIdsAt(
@@ -42,43 +45,45 @@ export async function getAuctionIdsAt(
   if (groupId === 0n) {
     throw new Error('given timestamp is before first auction start time OR gourpId is zero')
   }
-  groupId = groupId ?? (await auction.currentAuctionGroupId())
-  const [startTime, , interval] = await auction.getAuctionGroup(groupId.toString())
+  if (!groupId) {
+    ;[groupId] = await auction.getCurrentAuctionGroup()
+  }
+  const [startTime, settleDuration, bidDuration] = await auction.getAuctionGroup(groupId.toString())
   if (timestamp < startTime) {
     return await getAuctionIdsAt(timestamp, auction, groupId - 1n)
   }
-  const auctionId = (timestamp - startTime) / interval
+  const auctionId = (timestamp - startTime) / (settleDuration + bidDuration)
   return [groupId, auctionId]
 }
 
 export async function getBiddingAuctionIdAt(timestamp: bigint, auction: MineAuction) {
-  const [auctionGroupId, startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
-  const interval = settleTime + bidTime
+  const [auctionGroupId, startTime, settleDuration, bidDuration] = await auction.getCurrentAuctionGroup()
+  const interval = settleDuration + bidDuration
   if (timestamp < startTime) {
-    throw new Error('given timestamp is before first auction start time')
+    throw new Error('given timestamp is before initial auction start time')
   }
   const auctionId = (timestamp - startTime) / interval
   const elapsed = (timestamp - startTime) % interval
-  if (elapsed > interval - settleTime) {
+  if (elapsed > interval - settleDuration) {
     throw new Error(`given timestamp is in settlement of auction ${auctionId}`)
   }
   return [auctionGroupId, auctionId]
 }
 
 export async function getBiddingAuctionIdAtLatestBlock(auction: MineAuction, owner: HardhatEthersSigner) {
-  const block = await getLatestBlock(owner)
-  return await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
+  const now = await getLatestBlockTimestamp(owner)
+  return await getBiddingAuctionIdAt(BigInt(now), auction)
 }
 
 export async function setNextBlockTimestampToSettlement(
   auction: MineAuction,
   owner: HardhatEthersSigner
 ): Promise<bigint> {
-  const block = await getLatestBlock(owner)
-  const [, startTime, settleTime, bidTime] = await auction.getCurrentAuctionGroup()
-  const interval = bidTime + settleTime
-  const auctionId = (BigInt(block.timestamp) - startTime) / interval
-  const nextBlockTimestamp = auctionId * interval + interval - settleTime
+  const blockTimestamp = await getLatestBlockTimestamp(owner)
+  const [, startTime, settleDuration, bidDuration] = await auction.getCurrentAuctionGroup()
+  const auctionDuration = bidDuration + settleDuration
+  const auctionId = (BigInt(blockTimestamp) - startTime) / auctionDuration
+  const nextBlockTimestamp = startTime + auctionId * auctionDuration + auctionDuration - settleDuration
   await setNextBlockTimestamp(nextBlockTimestamp)
   return nextBlockTimestamp
 }
