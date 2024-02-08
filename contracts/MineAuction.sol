@@ -230,9 +230,9 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
      * @param auctionGroupId The auction group id, e.g. 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
      * @param auctionId The auction id, e.g. 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
      * @param amount The amount of the bid token
-     * @dev  both the group id and auction is are passed from the client, so the client should calculate the auction group id and auction id
+     * @dev both the group id and auction is are passed from the client, so the client should calculate the auction group id and auction id
      * we validate the auction group id and auction id, and then calculate the start time and end time of the auction,
-     * and then validate  current time is in the middle of a auction, it should not be during a settlement, and it should
+     * and then validate current time is in the middle of a auction, it should not be during a settlement, and it should
      * not be the future or past auction
      */
     function bid(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external override onlyNotPaused {
@@ -361,7 +361,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     /**
      * @dev Get the claimable amount token by the auction group id, auction id and bidder,
      * it will revert if the auction group id is out of bounds, or the auction id is in future
-     *  bidToken *  ( rewardAmount / totalBidAmount ) - claimed
+     *  bidToken * ( rewardAmount / totalBidAmount ) - claimed
      */
     function getClaimableAmount(Auction storage auction, address bidder) internal view returns (uint256) {
         if (auction.totalBidAmount == 0) {

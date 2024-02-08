@@ -3,7 +3,7 @@ import { getLatestBlock, getLatestBlockTimestamp } from '../utils'
 import { type MineAuction } from '../../build/types'
 import { type HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
-export async function increaseToNextBiddingPhase(auction: MineAuction, owner: HardhatEthersSigner) {
+export async function increaseToBiddingPhase(auction: MineAuction, owner: HardhatEthersSigner) {
   const [groupId, startTime, settleDuration, bidDuration] = await auction.getCurrentAuctionGroup()
   const blockTimestamp = await getLatestBlockTimestamp(owner)
   let secondsToIncrease: bigint = 0n
@@ -29,7 +29,7 @@ export async function increaseToNextBiddingPhase(auction: MineAuction, owner: Ha
 }
 
 export async function simulateAnAuction(auction: MineAuction, owner: HardhatEthersSigner, other: HardhatEthersSigner) {
-  await increaseToNextBiddingPhase(auction, owner)
+  await increaseToBiddingPhase(auction, owner)
   const block = await getLatestBlock(owner)
   const [groupId, auctionId] = await getBiddingAuctionIdAt(BigInt(block.timestamp), auction)
   await auction.bid(groupId, auctionId, 100)
