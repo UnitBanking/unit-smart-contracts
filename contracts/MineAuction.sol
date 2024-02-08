@@ -361,7 +361,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     /**
      * @dev Get the claimable amount token by the auction group id, auction id and bidder,
      * it will revert if the auction group id is out of bounds, or the auction id is in future
-     *  bidToken * ( rewardAmount / totalBidAmount ) - claimed
+     * bidToken * ( rewardAmount / totalBidAmount ) - claimed
      */
     function getClaimableAmount(Auction storage auction, address bidder) internal view returns (uint256) {
         if (auction.totalBidAmount == 0) {
