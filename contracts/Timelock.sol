@@ -5,15 +5,15 @@ import './interfaces/ITimelock.sol';
 import './abstracts/Ownable.sol';
 
 contract Timelock is ITimelock, Ownable {
-    uint public constant GRACE_PERIOD = 14 days;
-    uint public constant MINIMUM_DELAY = 2 days;
-    uint public constant MAXIMUM_DELAY = 30 days;
+    uint256 public constant GRACE_PERIOD = 14 days;
+    uint256 public constant MINIMUM_DELAY = 2 days;
+    uint256 public constant MAXIMUM_DELAY = 30 days;
 
-    uint public delay;
+    uint256 public delay;
 
     mapping(bytes32 => bool) public queuedTransactions;
 
-    constructor(uint _delay) {
+    constructor(uint256 _delay) {
         require(_delay >= MINIMUM_DELAY, 'Timelock::constructor: Delay must exceed minimum delay.');
         require(_delay <= MAXIMUM_DELAY, 'Timelock::setDelay: Delay must not exceed maximum delay.');
 
@@ -21,7 +21,7 @@ contract Timelock is ITimelock, Ownable {
         _setOwner(msg.sender);
     }
 
-    function setDelay(uint _delay) public {
+    function setDelay(uint256 _delay) public {
         require(msg.sender == address(this), 'Timelock::setDelay: Call must come from Timelock.');
         require(_delay >= MINIMUM_DELAY, 'Timelock::setDelay: Delay must exceed minimum delay.');
         require(_delay <= MAXIMUM_DELAY, 'Timelock::setDelay: Delay must not exceed maximum delay.');
@@ -32,10 +32,10 @@ contract Timelock is ITimelock, Ownable {
 
     function queueTransaction(
         address target,
-        uint value,
+        uint256 value,
         string memory signature,
         bytes memory data,
-        uint eta
+        uint256 eta
     ) public returns (bytes32) {
         require(msg.sender == owner, 'Timelock::queueTransaction: Call must come from owner.');
         require(
@@ -52,10 +52,10 @@ contract Timelock is ITimelock, Ownable {
 
     function cancelTransaction(
         address target,
-        uint value,
+        uint256 value,
         string memory signature,
         bytes memory data,
-        uint eta
+        uint256 eta
     ) public {
         require(msg.sender == owner, 'Timelock::cancelTransaction: Call must come from owner.');
 
@@ -67,10 +67,10 @@ contract Timelock is ITimelock, Ownable {
 
     function executeTransaction(
         address target,
-        uint value,
+        uint256 value,
         string memory signature,
         bytes memory data,
-        uint eta
+        uint256 eta
     ) public payable returns (bytes memory) {
         require(msg.sender == owner, 'Timelock::executeTransaction: Call must come from owner.');
 

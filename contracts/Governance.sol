@@ -13,28 +13,28 @@ contract Governance is IGovernance, IProxiable, Ownable {
     string public constant name = 'Mine Governance';
 
     /// @notice The minimum setable proposal threshold
-    uint public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Mine
+    uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Mine
 
     /// @notice The maximum setable proposal threshold
-    uint public constant MAX_PROPOSAL_THRESHOLD = 100000e18; //100,000 Mine
+    uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; //100,000 Mine
 
     /// @notice The minimum setable voting period
-    uint public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
+    uint256 public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
 
     /// @notice The max setable voting period
-    uint public constant MAX_VOTING_PERIOD = 80640; // About 2 weeks
+    uint256 public constant MAX_VOTING_PERIOD = 80640; // About 2 weeks
 
     /// @notice The min setable voting delay
-    uint public constant MIN_VOTING_DELAY = 1;
+    uint256 public constant MIN_VOTING_DELAY = 1;
 
     /// @notice The max setable voting delay
-    uint public constant MAX_VOTING_DELAY = 40320; // About 1 week
+    uint256 public constant MAX_VOTING_DELAY = 40320; // About 1 week
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
-    uint public constant quorumVotes = 400000e18; // 400,000 = 4% of Mine
+    uint256 public constant quorumVotes = 400000e18; // 400,000 = 4% of Mine
 
     /// @notice The maximum number of actions that can be included in a proposal
-    uint public constant proposalMaxOperations = 10; // 10 actions
+    uint256 public constant proposalMaxOperations = 10; // 10 actions
 
     /// @notice The EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH =
@@ -44,16 +44,16 @@ contract Governance is IGovernance, IProxiable, Ownable {
     bytes32 public constant BALLOT_TYPEHASH = keccak256('Ballot(uint256 proposalId,uint8 support)');
 
     /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
-    uint public votingDelay;
+    uint256 public votingDelay;
 
     /// @notice The duration of voting on a proposal, in blocks
-    uint public votingPeriod;
+    uint256 public votingPeriod;
 
     /// @notice The number of votes required in order for a voter to become a proposer
-    uint public proposalThreshold;
+    uint256 public proposalThreshold;
 
     /// @notice The total number of proposals
-    uint public proposalCount;
+    uint256 public proposalCount;
 
     /// @notice The address of the Mine Governance Protocol Timelock
     ITimelock public timelock;
@@ -62,7 +62,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
     IVotes public mineToken;
 
     /// @notice The official record of all proposals ever proposed
-    mapping(uint => Proposal) public proposals;
+    mapping(uint256 => Proposal) public proposals;
 
     /// @notice The latest proposal for each proposer
     mapping(address => uint) public latestProposalIds;
@@ -87,10 +87,10 @@ contract Governance is IGovernance, IProxiable, Ownable {
      */
     function initiate(
         address _mineToken,
-        uint _votingPeriod,
-        uint _votingDelay,
-        uint _proposalThreshold,
-        uint _timelockDelay
+        uint256 _votingPeriod,
+        uint256 _votingDelay,
+        uint256 _proposalThreshold,
+        uint256 _timelockDelay
     ) external override onlyOwner {
         require(address(timelock) == address(0), 'Governance::initiate: can only initiate once');
         require(msg.sender == owner, 'Governance::initiate: owner only');
@@ -148,7 +148,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
         require(targets.length != 0, 'Governance::propose: must provide actions');
         require(targets.length <= proposalMaxOperations, 'Governance::propose: too many actions');
 
-        uint latestProposalId = latestProposalIds[msg.sender];
+        uint256 latestProposalId = latestProposalIds[msg.sender];
         if (latestProposalId != 0) {
             ProposalState proposersLatestProposalState = state(latestProposalId);
             require(
@@ -161,10 +161,10 @@ contract Governance is IGovernance, IProxiable, Ownable {
             );
         }
 
-        uint startBlock = block.number + votingDelay;
-        uint endBlock = startBlock + votingPeriod;
+        uint256 startBlock = block.number + votingDelay;
+        uint256 endBlock = startBlock + votingPeriod;
 
-        uint newProposalID = ++proposalCount;
+        uint256 newProposalID = ++proposalCount;
         Proposal storage newProposal = proposals[newProposalID];
 
         // This should never happen but add a check in case.
@@ -205,14 +205,14 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Queues a proposal of state succeeded
      * @param proposalId The id of the proposal to queue
      */
-    function queue(uint proposalId) external {
+    function queue(uint256 proposalId) external {
         require(
             state(proposalId) == ProposalState.Succeeded,
             'Governance::queue: proposal can only be queued if it is succeeded'
         );
         Proposal storage proposal = proposals[proposalId];
-        uint eta = block.timestamp + timelock.delay();
-        for (uint i; i < proposal.targets.length; ) {
+        uint256 eta = block.timestamp + timelock.delay();
+        for (uint256 i; i < proposal.targets.length; ) {
             queueOrRevertInternal(
                 proposal.targets[i],
                 proposal.values[i],
@@ -231,10 +231,10 @@ contract Governance is IGovernance, IProxiable, Ownable {
 
     function queueOrRevertInternal(
         address target,
-        uint value,
+        uint256 value,
         string memory signature,
         bytes memory data,
-        uint eta
+        uint256 eta
     ) internal {
         require(
             !timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))),
@@ -247,14 +247,14 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Executes a queued proposal if eta has passed
      * @param proposalId The id of the proposal to execute
      */
-    function execute(uint proposalId) external payable {
+    function execute(uint256 proposalId) external payable {
         require(
             state(proposalId) == ProposalState.Queued,
             'Governance::execute: proposal can only be executed if it is queued'
         );
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
             timelock.executeTransaction{ value: proposal.values[i] }(
                 proposal.targets[i],
                 proposal.values[i],
@@ -270,7 +270,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Cancels a proposal only if sender is the proposer, or proposer delegates dropped below proposal threshold
      * @param proposalId The id of the proposal to cancel
      */
-    function cancel(uint proposalId) external {
+    function cancel(uint256 proposalId) external {
         require(state(proposalId) != ProposalState.Executed, 'Governance::cancel: cannot cancel executed proposal');
 
         Proposal storage proposal = proposals[proposalId];
@@ -293,7 +293,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
         }
 
         proposal.canceled = true;
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
             timelock.cancelTransaction(
                 proposal.targets[i],
                 proposal.values[i],
@@ -315,7 +315,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @return calldatas of the proposal actions
      */
     function getActions(
-        uint proposalId
+        uint256 proposalId
     )
         external
         view
@@ -331,7 +331,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param voter The address of the voter
      * @return The voting receipt
      */
-    function getReceipt(uint proposalId, address voter) external view returns (Receipt memory) {
+    function getReceipt(uint256 proposalId, address voter) external view returns (Receipt memory) {
         return proposals[proposalId].receipts[voter];
     }
 
@@ -340,7 +340,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param proposalId The id of the proposal
      * @return Proposal state
      */
-    function state(uint proposalId) public view returns (ProposalState) {
+    function state(uint256 proposalId) public view returns (ProposalState) {
         require(proposalId > 0 && proposalId <= proposalCount, 'Governance::state: invalid proposal id');
         Proposal storage proposal = proposals[proposalId];
         if (proposal.canceled) {
@@ -367,7 +367,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param proposalId The id of the proposal to vote on
      * @param support The support value for the vote. 0=against, 1=for, 2=abstain
      */
-    function castVote(uint proposalId, uint8 support) external {
+    function castVote(uint256 proposalId, uint8 support) external {
         emit VoteCast(msg.sender, proposalId, support, castVoteInternal(msg.sender, proposalId, support), '');
     }
 
@@ -377,7 +377,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param support The support value for the vote. 0=against, 1=for, 2=abstain
      * @param reason The reason given for the vote by the voter
      */
-    function castVoteWithReason(uint proposalId, uint8 support, string calldata reason) external {
+    function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) external {
         emit VoteCast(msg.sender, proposalId, support, castVoteInternal(msg.sender, proposalId, support), reason);
     }
 
@@ -385,7 +385,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Cast a vote for a proposal by signature
      * @dev External function that accepts EIP-712 signatures for voting on proposals.
      */
-    function castVoteBySig(uint proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
+    function castVoteBySig(uint256 proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainIdInternal(), address(this))
         );
@@ -403,7 +403,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param support The support value for the vote. 0=against, 1=for, 2=abstain
      * @return The number of votes cast
      */
-    function castVoteInternal(address voter, uint proposalId, uint8 support) internal returns (uint96) {
+    function castVoteInternal(address voter, uint256 proposalId, uint8 support) internal returns (uint96) {
         require(state(proposalId) == ProposalState.Active, 'Governance::castVoteInternal: voting is closed');
         require(support <= 2, 'Governance::castVoteInternal: invalid vote type');
         Proposal storage proposal = proposals[proposalId];
@@ -439,13 +439,13 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Admin function for setting the voting delay
      * @param newVotingDelay new voting delay, in blocks
      */
-    function _setVotingDelay(uint newVotingDelay) external {
+    function _setVotingDelay(uint256 newVotingDelay) external {
         require(msg.sender == owner, 'Governance::_setVotingDelay: owner only');
         require(
             newVotingDelay >= MIN_VOTING_DELAY && newVotingDelay <= MAX_VOTING_DELAY,
             'Governance::_setVotingDelay: invalid voting delay'
         );
-        uint oldVotingDelay = votingDelay;
+        uint256 oldVotingDelay = votingDelay;
         votingDelay = newVotingDelay;
 
         emit VotingDelaySet(oldVotingDelay, votingDelay);
@@ -455,13 +455,13 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Admin function for setting the voting period
      * @param newVotingPeriod new voting period, in blocks
      */
-    function _setVotingPeriod(uint newVotingPeriod) external {
+    function _setVotingPeriod(uint256 newVotingPeriod) external {
         require(msg.sender == owner, 'Governance::_setVotingPeriod: owner only');
         require(
             newVotingPeriod >= MIN_VOTING_PERIOD && newVotingPeriod <= MAX_VOTING_PERIOD,
             'Governance::_setVotingPeriod: invalid voting period'
         );
-        uint oldVotingPeriod = votingPeriod;
+        uint256 oldVotingPeriod = votingPeriod;
         votingPeriod = newVotingPeriod;
 
         emit VotingPeriodSet(oldVotingPeriod, votingPeriod);
@@ -472,13 +472,13 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @dev newProposalThreshold must be greater than the hardcoded min
      * @param newProposalThreshold new proposal threshold
      */
-    function _setProposalThreshold(uint newProposalThreshold) external {
+    function _setProposalThreshold(uint256 newProposalThreshold) external {
         require(msg.sender == owner, 'Governance::_setProposalThreshold: owner only');
         require(
             newProposalThreshold >= MIN_PROPOSAL_THRESHOLD && newProposalThreshold <= MAX_PROPOSAL_THRESHOLD,
             'Governance::_setProposalThreshold: invalid proposal threshold'
         );
-        uint oldProposalThreshold = proposalThreshold;
+        uint256 oldProposalThreshold = proposalThreshold;
         proposalThreshold = newProposalThreshold;
 
         emit ProposalThresholdSet(oldProposalThreshold, proposalThreshold);
@@ -489,7 +489,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param account Account address to set whitelist expiration for
      * @param expiration Expiration for account whitelist status as timestamp (if now < expiration, whitelisted)
      */
-    function _setWhitelistAccountExpiration(address account, uint expiration) external {
+    function _setWhitelistAccountExpiration(address account, uint256 expiration) external {
         require(
             msg.sender == owner || msg.sender == whitelistGuardian,
             'Governance::_setWhitelistAccountExpiration: owner only'
@@ -512,7 +512,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
     }
 
     function getChainIdInternal() internal view returns (uint) {
-        uint chainId;
+        uint256 chainId;
         assembly {
             chainId := chainid()
         }
