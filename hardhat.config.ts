@@ -1,36 +1,39 @@
 import dotenv from 'dotenv'
+import { type HardhatUserConfig } from 'hardhat/config'
+import '@nomicfoundation/hardhat-toolbox'
+import '@nomicfoundation/hardhat-ethers'
 dotenv.config()
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-import "@nomicfoundation/hardhat-ethers";
 
 const config: HardhatUserConfig = {
-  defaultNetwork: "hardhat",
+  defaultNetwork: 'hardhat',
   networks: {
-    hardhat: {
-    },
+    hardhat: {},
     local: {
-      url: "http://127.0.0.1:8545",
-      accounts: 'remote'
+      url: 'http://127.0.0.1:8545',
+      accounts: 'remote',
     },
     sepolia: {
       url: process.env.SEPOLIA_URL ?? '',
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
-    }
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   etherscan: {
     apiKey: {
       sepolia: process.env.SEPOLIA_ETHERSCAN_API_KEY ?? '',
-    }
+    },
   },
   solidity: {
-    version: "0.8.21",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
+    compilers: [
+      {
+        version: '0.8.23',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+    ],
   },
   paths: {
     sources: './contracts',
