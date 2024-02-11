@@ -47,9 +47,15 @@ interface IUnitAuction {
 
     function sellUnit(uint256 unitAmount) external;
 
-    function buyUnit(uint256 collateralAmount) external;
+    function quoteSellUnit(
+        uint256 desiredUnitAmount
+    ) external returns (uint256 possibleUnitAmount, uint256 collateralAmount);
 
-    function quoteSellUnit(uint256 unitAmount) external returns (uint256 collateralAmount);
+    function getMaxSellAmount() external returns (uint256 maxUnitAmount, uint256 collateralAmount);
+
+    function getCurrentSellPrice() external returns (uint256 currentSellPrice);
+
+    function buyUnit(uint256 collateralAmount) external;
 
     function quoteBuyUnit(uint256 collateralAmount) external returns (uint256 unitAmount);
 }

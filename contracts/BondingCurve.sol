@@ -151,7 +151,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @inheritdoc IBondingCurve
      */
     function mint(address receiver, uint256 collateralAmountIn) external nonReentrant {
-        if (_getReserveRatio() < ReserveRatio.HIGH_RR) {
+        if (getReserveRatio() < ReserveRatio.HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
@@ -223,8 +223,16 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     }
 
     // RR(t) = (EP(t) * BalanceCollateral(t)) / (IP(t) * SupplyUnit(t))
-    function getReserveRatio() public view returns (uint256) {
-        return _getReserveRatio();
+    function getReserveRatio() public view returns (uint256 reserveRatio) {
+        uint256 unitUsdPrice = getUnitUsdPrice();
+        uint256 unitTokenTotalSupply = unitToken.totalSupply();
+
+        if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
+            reserveRatio =
+                ((collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) *
+                    ReserveRatio.RR_PRECISION) /
+                (unitUsdPrice * unitTokenTotalSupply);
+        }
     }
 
     function getSpread() public pure returns (uint256) {
@@ -266,14 +274,15 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * ================ HELPER READ-ONLY FUNCTIONS ================
      *
      * The following functions are included to help determine the amount of tokens the end-user will receive in minting,
-     * burning, or redeeming scenarios based on the tokens they provide. Given that these amounts depend on market
-     * conditions, and more specifically, price feeds from oracles, the results may vary even within the same block.
-     * For this reason, they're only to be used for informational purposes (e.g. in frontends) and the end-user should
-     * be made aware of potential variations.
+     * burning, redeeming, or in auction scenarios, based on the tokens they provide. Given that these amounts depend
+     * on market conditions, and more specifically, price feeds from oracles, the results may vary even within the same
+     * block. For this reason, they are meant to be used only for informational purposes (e.g. in frontends)
+     * and the end-user should be made aware of potential result variations between one of these functions is called
+     * and the trade call.
      */
 
     function quoteMint(uint256 collateralAmount) external view returns (uint256) {
-        if (_getReserveRatio() < ReserveRatio.HIGH_RR) {
+        if (getReserveRatio() < ReserveRatio.HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
@@ -286,6 +295,24 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
 
     function quoteRedeem(uint256 mineTokenAmount) external view returns (uint256, uint256) {
         return _getRedemptionAmounts(mineTokenAmount, getExcessCollateralReserve());
+    }
+
+    /**
+     * @inheritdoc IBondingCurve
+     * @dev The result is in UNIT token precision.
+     */
+    function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount) {
+        uint256 desiredRR = ReserveRatio.HIGH_RR - 1;
+        uint256 unitUsdPrice = getUnitUsdPrice();
+
+        unitAmount =
+            ((unitToken.totalSupply() * unitUsdPrice * desiredRR) -
+                (collateralUsdOracle.getCollateralUsdPrice() *
+                    collateralToken.balanceOf(address(this)) *
+                    ReserveRatio.RR_PRECISION)) /
+            ((desiredRR * unitUsdPrice) -
+                ((unitCollateralPrice * ReserveRatio.RR_PRECISION * ReserveRatio.RR_PRECISION) /
+                    UNITUSD_PRICE_PRECISION));
     }
 
     /**
@@ -383,18 +410,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
             return
                 (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * COLLATERALUSD_PRICE_PRECISION) /
                 collateralUsdOracle.getCollateralUsdPrice();
-        }
-    }
-
-    function _getReserveRatio() internal view returns (uint256 reserveRatio) {
-        uint256 unitUsdPrice = getUnitUsdPrice();
-        uint256 unitTokenTotalSupply = unitToken.totalSupply();
-
-        if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
-            reserveRatio =
-                ((collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) *
-                    ReserveRatio.RR_PRECISION) /
-                (unitUsdPrice * unitTokenTotalSupply);
         }
     }
 

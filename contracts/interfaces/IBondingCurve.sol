@@ -120,4 +120,14 @@ interface IBondingCurve {
     function getReserveRatio() external view returns (uint256);
 
     function getExcessCollateralReserve() external view returns (uint256);
+
+    /**
+     * @notice Calculates the maximum amount of UNIT that can be burned to move the reserve ratio to just below
+     * {ReserveRatio.HIGH_RR}. As UNIT is burned, an equivalent amount of collateral is removed from the reserve based
+     * on the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
+     * @param unitCollateralPrice UNIT price, expressed in collateral token, that is used in the calculation.
+     * @return unitAmount The maximum amount of UNIT that can be successfully burned without causing the reserve ratio to reach
+     * or exceed {ReserveRatio.HIGH_RR}.
+     */
+    function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount);
 }

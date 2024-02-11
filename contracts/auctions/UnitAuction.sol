@@ -19,7 +19,8 @@ TODO:
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
 - Add amount in max/amount out min in bid calls
-- Use past tense in event naming convention, e.g. UnitSold, UnitBought, AuctionStarted, AuctionTerminated? 
+- Use past tense in the event naming convention, e.g. UnitSold, UnitBought, AuctionStarted, AuctionTerminated?
+- Move comments for the IUnitAuction fuctions to the interface
 */
 
 /**
@@ -154,8 +155,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     /**
      * @notice Bids in the UNIT contraction auction.
-     * @dev If changing the collateral token to an untrusted one (e.g. with unexpected side effects),
-     * consider using the `nonReentrant` modifier to prevent potential reentrancy attacks.
+     * @dev Assumes a non-reentrant and non-rebasing collateral token.
+     * TODO: When changing the collateral token to an untrusted one (e.g. with unexpected side effects), consider
+     * taking measures to prevent potential reentrancy.
      * @param unitAmount Unit token amount to be sold for collateral token.
      */
     function sellUnit(uint256 unitAmount) external {
@@ -182,21 +184,63 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         emit SellUnit(msg.sender, unitAmount, collateralAmount);
     }
 
-    function quoteSellUnit(uint256 unitAmount) external returns (uint256 collateralAmount) {
-        (uint256 reserveRatioBefore, AuctionState memory _auctionState) = _refreshStateInMemory();
+    /**
+     * @notice Returns the maximum UNIT amount a user can successfully sell in a contraction auction at the moment
+     * and the corresponding collateral amount they will receive.
+     * If no contraction auction is active, the call reverts.
+     * @return maxUnitAmount The maximum UNIT amount that will result in a successfull bid in a contraction auction.
+     * @return collateralAmount The collateral amount that will be bought in the bid.
+     */
+    function getMaxSellAmount() external returns (uint256 maxUnitAmount, uint256 collateralAmount) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = _refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
-            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
         }
 
-        uint256 currentPrice = _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime);
+        return _getMaxSellAmount(_getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime));
+    }
 
-        collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
+    /**
+     * @notice Returns the current UNIT price in collateral token in a contraction auction (if one is active).
+     * If no contraction auction is active, the call reverts.
+     */
+    function getCurrentSellPrice() external returns (uint256 currentSellPrice) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = _refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
+        }
+
+        return _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime);
+    }
+
+    /**
+     * @notice Given the desired UNIT sell amount, calculates the possible sell amount and the corresponding collateral
+     * amount that can be bought in a UNIT contraction auction at the moment. If the desired sell amount is greater
+     * than the protocol can allow, returns the maximum possible at the moment.
+     * If no contraction auction is active, the call reverts.
+     * @param desiredSellAmount The UNIT amount the caller wishes to sell in an auction.
+     * @return possibleSellAmount The maximum possible UNIT amount that can be currently sold.
+     * @return collateralAmount The collateral amount that would be bought for {possibleSellAmount}.
+     */
+    function quoteSellUnit(
+        uint256 desiredSellAmount
+    ) external returns (uint256 possibleSellAmount, uint256 collateralAmount) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = _refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
+        }
+
+        (possibleSellAmount, collateralAmount) = _getPossibleSellAmount(
+            desiredSellAmount,
+            _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime)
+        );
     }
 
     /**
      * @notice Bids in the UNIT expansion auction.
-     * @dev If changing the collateral token to an untrusted one (e.g. with unexpected side effects),
-     * consider using the `nonReentrant` modifier to prevent potential reentrancy attacks.
+     * @dev Assumes a non-reentrant and non-rebasing collateral token.
+     * TODO: When changing the collateral token to an untrusted one (e.g. with unexpected side effects), consider
+     * taking measures to prevent potential reentrancy.
      * @param collateralAmount Collateral token amount to be sold for UNIT token.
      */
     function buyUnit(uint256 collateralAmount) external {
@@ -234,9 +278,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     function quoteBuyUnit(uint256 collateralAmount) external returns (uint256 unitAmount) {
-        (uint256 reserveRatioBefore, AuctionState memory _auctionState) = _refreshStateInMemory();
+        (uint256 reserveRatio, AuctionState memory _auctionState) = _refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
-            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
         }
 
         uint256 currentPrice = _getCurrentBuyPrice(_auctionState.startPrice, _auctionState.startTime);
@@ -252,25 +296,70 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
-    function _getCurrentBuyPrice(uint256 startPrice, uint256 startTime) internal view returns (uint256 currentPrice) {
-        currentPrice =
-            (startPrice *
-                unwrap(
-                    pow(
-                        wrap(EXPANSION_PRICE_DECAY_BASE),
-                        wrap(((block.timestamp - startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
-                    )
-                )) /
-            uUNIT;
-    }
-
-    function _getCurrentSellPrice(uint256 startPrice, uint256 startTime) internal view returns (uint256 currentPrice) {
-        currentPrice =
+    function _getCurrentSellPrice(
+        uint256 startPrice,
+        uint256 startTime
+    ) internal view returns (uint256 currentSellPrice) {
+        currentSellPrice =
             (startPrice *
                 unwrap(
                     pow(
                         wrap(CONTRACTION_PRICE_DECAY_BASE),
                         wrap(((block.timestamp - startTime) * uUNIT) / CONTRACTION_PRICE_DECAY_TIME_INTERVAL)
+                    )
+                )) /
+            uUNIT;
+    }
+
+    function _getMaxSellAmount(
+        uint256 unitCollateralPrice
+    ) internal view returns (uint256 maxSellAmount, uint256 collateralAmount) {
+        maxSellAmount = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
+        collateralAmount = _quoteSellUnit(maxSellAmount, unitCollateralPrice);
+    }
+
+    function _quoteSellUnit(
+        uint256 unitAmount,
+        uint256 unitCollateralPrice
+    ) internal view returns (uint256 collateralAmount) {
+        collateralAmount = (unitAmount * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
+    }
+
+    /**
+     * @notice Returns the {desiredSellAmount} or the maximum possible UNIT amount that can be sold for collateral
+     * token, whichever is smaller. Used in a UNIT contraction auction scenario.
+     * @dev All relevant checks, e.g. whether we are in a contraction auction, must be performed before calling this.
+     * @param desiredSellAmount UNIT amount the caller wishes to sell in the auction.
+     * @param unitCollateralPrice UNIT price in collateral token to be used in the quote (normally current auction
+     * price).
+     * @return possibleSellAmount The UNIT amount that can be currently sold.
+     * @return collateralAmount The collateral that will be bought for {possibleSellAmount}.
+     */
+    function _getPossibleSellAmount(
+        uint256 desiredSellAmount,
+        uint256 unitCollateralPrice
+    ) internal view returns (uint256 possibleSellAmount, uint256 collateralAmount) {
+        (uint256 maxSellAmount, uint256 maxCollateralAmount) = _getMaxSellAmount(unitCollateralPrice);
+
+        if (desiredSellAmount < maxSellAmount) {
+            possibleSellAmount = desiredSellAmount;
+            collateralAmount = _quoteSellUnit(desiredSellAmount, unitCollateralPrice);
+        } else {
+            possibleSellAmount = maxSellAmount;
+            collateralAmount = maxCollateralAmount;
+        }
+    }
+
+    function _getCurrentBuyPrice(
+        uint256 startPrice,
+        uint256 startTime
+    ) internal view returns (uint256 currentBuyPrice) {
+        currentBuyPrice =
+            (startPrice *
+                unwrap(
+                    pow(
+                        wrap(EXPANSION_PRICE_DECAY_BASE),
+                        wrap(((block.timestamp - startTime) * uUNIT) / EXPANSION_PRICE_DECAY_TIME_INTERVAL)
                     )
                 )) /
             uUNIT;
