@@ -211,13 +211,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
         Proposal storage proposal = proposals[proposalId];
         uint256 eta = block.timestamp + timelock.delay();
         for (uint256 i; i < proposal.targets.length; ) {
-            _queueOrRevert(
-                proposal.targets[i],
-                proposal.values[i],
-                proposal.signatures[i],
-                proposal.calldatas[i],
-                eta
-            );
+            _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
 
             unchecked {
                 ++i;
@@ -452,8 +446,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Admin function for setting the voting delay
      * @param newVotingDelay new voting delay, in blocks
      */
-    function setVotingDelay(uint256 newVotingDelay) external {
-        require(msg.sender == owner, 'Governance::setVotingDelay: owner only');
+    function setVotingDelay(uint256 newVotingDelay) external onlyOwner {
         if (newVotingDelay < MIN_VOTING_DELAY || newVotingDelay > MAX_VOTING_DELAY) {
             revert GovernanceInvalidVotingDelay();
         }
@@ -467,8 +460,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Admin function for setting the voting period
      * @param newVotingPeriod new voting period, in blocks
      */
-    function setVotingPeriod(uint256 newVotingPeriod) external {
-        require(msg.sender == owner, 'Governance::setVotingPeriod: owner only');
+    function setVotingPeriod(uint256 newVotingPeriod) external onlyOwner {
         if (newVotingPeriod < MIN_VOTING_PERIOD || newVotingPeriod > MAX_VOTING_PERIOD) {
             revert GovernanceInvalidVotingPeriod();
         }
@@ -483,8 +475,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @dev newProposalThreshold must be greater than the hardcoded min
      * @param newProposalThreshold new proposal threshold
      */
-    function setProposalThreshold(uint256 newProposalThreshold) external {
-        require(msg.sender == owner, 'Governance::setProposalThreshold: owner only');
+    function setProposalThreshold(uint256 newProposalThreshold) external onlyOwner {
         if (newProposalThreshold < MIN_PROPOSAL_THRESHOLD || newProposalThreshold > MAX_PROPOSAL_THRESHOLD) {
             revert GovernanceInvalidProposalThreshold();
         }
@@ -500,10 +491,9 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param expiration Expiration for account whitelist status as timestamp (if now < expiration, whitelisted)
      */
     function setWhitelistAccountExpiration(address account, uint256 expiration) external {
-        require(
-            msg.sender == owner || msg.sender == whitelistGuardian,
-            'Governance::setWhitelistAccountExpiration: owner only'
-        );
+        if (msg.sender != owner && msg.sender != whitelistGuardian) {
+            revert GovernanceUnauthorizedSender(msg.sender);
+        }
         whitelistAccountExpirations[account] = expiration;
 
         emit WhitelistAccountExpirationSet(account, expiration);
@@ -513,8 +503,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @notice Admin function for setting the whitelistGuardian. WhitelistGuardian can cancel proposals from whitelisted addresses
      * @param account Account to set whitelistGuardian to (0x0 to remove whitelistGuardian)
      */
-    function setWhitelistGuardian(address account) external {
-        require(msg.sender == owner, 'Governance::setWhitelistGuardian: owner only');
+    function setWhitelistGuardian(address account) external onlyOwner {
         address oldGuardian = whitelistGuardian;
         whitelistGuardian = account;
 

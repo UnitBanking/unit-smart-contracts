@@ -191,4 +191,7 @@ interface IGovernance {
 
     /// @notice Thrown when voting delay is outside the minimum or maximum voting delay.
     error GovernanceInvalidVotingDelay();
+
+    /// @notice Thrown when an unauthorized sender tries to call an admin function.
+    error GovernanceUnauthorizedSender(address sender);
 }
