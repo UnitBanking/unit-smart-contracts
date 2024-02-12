@@ -151,7 +151,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
 
         uint256 latestProposalId = latestProposalIds[msg.sender];
         if (latestProposalId != 0) {
-            ProposalState proposersLatestProposalState = state(latestProposalId);
+            ProposalState proposersLatestProposalState = getState(latestProposalId);
             if (proposersLatestProposalState == ProposalState.Active) {
                 revert GovernanceOnlyOneActiveProposalAllowed();
             }
@@ -205,8 +205,8 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param proposalId The id of the proposal to queue
      */
     function queue(uint256 proposalId) external {
-        if (state(proposalId) != ProposalState.Succeeded) {
-            revert GovernanceInvalidProposalState(ProposalState.Succeeded, state(proposalId));
+        if (getState(proposalId) != ProposalState.Succeeded) {
+            revert GovernanceInvalidProposalState(ProposalState.Succeeded, getState(proposalId));
         }
         Proposal storage proposal = proposals[proposalId];
         uint256 eta = block.timestamp + timelock.delay();
@@ -245,8 +245,8 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param proposalId The id of the proposal to execute
      */
     function execute(uint256 proposalId) external payable {
-        if (state(proposalId) != ProposalState.Queued) {
-            revert GovernanceInvalidProposalState(ProposalState.Queued, state(proposalId));
+        if (getState(proposalId) != ProposalState.Queued) {
+            revert GovernanceInvalidProposalState(ProposalState.Queued, getState(proposalId));
         }
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
@@ -267,7 +267,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param proposalId The id of the proposal to cancel
      */
     function cancel(uint256 proposalId) external {
-        if (state(proposalId) == ProposalState.Executed) {
+        if (getState(proposalId) == ProposalState.Executed) {
             revert GovernanceProposalAlreadyExecuted();
         }
 
@@ -343,7 +343,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @param proposalId The id of the proposal
      * @return Proposal state
      */
-    function state(uint256 proposalId) public view returns (ProposalState) {
+    function getState(uint256 proposalId) public view returns (ProposalState) {
         if (proposalId == 0 && proposalId > proposalCount) {
             revert GovernanceInvalidProposalId();
         }
@@ -411,7 +411,7 @@ contract Governance is IGovernance, IProxiable, Ownable {
      * @return The number of votes cast
      */
     function castVoteInternal(address voter, uint256 proposalId, uint8 support) internal returns (uint96) {
-        if (state(proposalId) != ProposalState.Active) {
+        if (getState(proposalId) != ProposalState.Active) {
             revert GovernanceVotingClosed();
         }
         if (support > 2) {
