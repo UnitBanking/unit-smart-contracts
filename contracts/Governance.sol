@@ -8,6 +8,10 @@ import './abstracts/Proxiable.sol';
 import './abstracts/Ownable.sol';
 import './Timelock.sol';
 
+/**
+ * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
+ * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
+ */
 contract Governance is IGovernance, Proxiable, Ownable {
     /**
      * ================ CONSTANTS ================
@@ -54,6 +58,13 @@ contract Governance is IGovernance, Proxiable, Ownable {
      * ================ STATE VARIABLES ================
      */
 
+    /**
+     * IMPORTANT:
+     * !STORAGE COLLISION WARNING!
+     * Adding, removing or rearranging undermentioned state variables can result in a storage collision after a contract
+     * upgrade. Any new state variables must be added beneath these to prevent storage conflicts.
+     */
+
     /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
     uint256 public votingDelay;
 
@@ -80,6 +91,13 @@ contract Governance is IGovernance, Proxiable, Ownable {
 
     /// @notice Address which manages whitelisted proposals and whitelist accounts
     address public whitelistGuardian;
+
+    /**
+     * IMPORTANT:
+     * !STORAGE COLLISION WARNING!
+     * Adding, removing or rearranging above state variables can result in a storage collision after a contract upgrade.
+     * Any new state variables must be added beneath these to prevent storage conflicts.
+     */
 
     /**
      * ================ CONSTRUCTOR ================
