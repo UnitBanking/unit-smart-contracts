@@ -149,6 +149,74 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
+     * @notice Admin function for setting the voting delay
+     * @param newVotingDelay new voting delay, in blocks
+     */
+    function setVotingDelay(uint256 newVotingDelay) external onlyOwner {
+        if (newVotingDelay < MIN_VOTING_DELAY || newVotingDelay > MAX_VOTING_DELAY) {
+            revert GovernanceInvalidVotingDelay();
+        }
+        uint256 oldVotingDelay = votingDelay;
+        votingDelay = newVotingDelay;
+
+        emit VotingDelaySet(oldVotingDelay, votingDelay);
+    }
+
+    /**
+     * @notice Admin function for setting the voting period
+     * @param newVotingPeriod new voting period, in blocks
+     */
+    function setVotingPeriod(uint256 newVotingPeriod) external onlyOwner {
+        if (newVotingPeriod < MIN_VOTING_PERIOD || newVotingPeriod > MAX_VOTING_PERIOD) {
+            revert GovernanceInvalidVotingPeriod();
+        }
+        uint256 oldVotingPeriod = votingPeriod;
+        votingPeriod = newVotingPeriod;
+
+        emit VotingPeriodSet(oldVotingPeriod, votingPeriod);
+    }
+
+    /**
+     * @notice Admin function for setting the proposal threshold
+     * @dev newProposalThreshold must be greater than the hardcoded min
+     * @param newProposalThreshold new proposal threshold
+     */
+    function setProposalThreshold(uint256 newProposalThreshold) external onlyOwner {
+        if (newProposalThreshold < MIN_PROPOSAL_THRESHOLD || newProposalThreshold > MAX_PROPOSAL_THRESHOLD) {
+            revert GovernanceInvalidProposalThreshold();
+        }
+        uint256 oldProposalThreshold = proposalThreshold;
+        proposalThreshold = newProposalThreshold;
+
+        emit ProposalThresholdSet(oldProposalThreshold, proposalThreshold);
+    }
+
+    /**
+     * @notice Admin function for setting the whitelist expiration as a timestamp for an account. Whitelist status allows accounts to propose without meeting threshold
+     * @param account Account address to set whitelist expiration for
+     * @param expiration Expiration for account whitelist status as timestamp (if now < expiration, whitelisted)
+     */
+    function setWhitelistAccountExpiration(address account, uint256 expiration) external {
+        if (msg.sender != owner && msg.sender != whitelistGuardian) {
+            revert GovernanceUnauthorizedSender(msg.sender);
+        }
+        whitelistAccountExpirations[account] = expiration;
+
+        emit WhitelistAccountExpirationSet(account, expiration);
+    }
+
+    /**
+     * @notice Admin function for setting the whitelistGuardian. WhitelistGuardian can cancel proposals from whitelisted addresses
+     * @param account Account to set whitelistGuardian to (0x0 to remove whitelistGuardian)
+     */
+    function setWhitelistGuardian(address account) external onlyOwner {
+        address oldGuardian = whitelistGuardian;
+        whitelistGuardian = account;
+
+        emit WhitelistGuardianSet(oldGuardian, whitelistGuardian);
+    }
+
+    /**
      * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
      * @param targets Target addresses for proposal calls
      * @param values Eth values for proposal calls
@@ -254,19 +322,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
         }
         proposal.eta = eta;
         emit ProposalQueued(proposalId, eta);
-    }
-
-    function _queueOrRevert(
-        address target,
-        uint256 value,
-        string memory signature,
-        bytes memory data,
-        uint256 eta
-    ) internal {
-        if (timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta)))) {
-            revert GovernanceDuplicatedProposal();
-        }
-        timelock.queueTransaction(target, value, signature, data, eta);
     }
 
     /**
@@ -433,6 +488,32 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
+     * @notice View function which returns if an account is whitelisted
+     * @param account Account to check white list status of
+     * @return If the account is whitelisted
+     */
+    function isWhitelisted(address account) public view returns (bool) {
+        return (whitelistAccountExpirations[account] > block.timestamp);
+    }
+
+    /**
+     * ================ INTERNAL & PRIVATE FUNCTIONS ================
+     */
+
+    function _queueOrRevert(
+        address target,
+        uint256 value,
+        string memory signature,
+        bytes memory data,
+        uint256 eta
+    ) internal {
+        if (timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta)))) {
+            revert GovernanceDuplicatedProposal();
+        }
+        timelock.queueTransaction(target, value, signature, data, eta);
+    }
+
+    /**
      * @notice Internal function that caries out voting logic
      * @param voter The voter that is casting their vote
      * @param proposalId The id of the proposal to vote on
@@ -466,83 +547,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
         receipt.votes = votes;
 
         return votes;
-    }
-
-    /**
-     * @notice View function which returns if an account is whitelisted
-     * @param account Account to check white list status of
-     * @return If the account is whitelisted
-     */
-    function isWhitelisted(address account) public view returns (bool) {
-        return (whitelistAccountExpirations[account] > block.timestamp);
-    }
-
-    /**
-     * @notice Admin function for setting the voting delay
-     * @param newVotingDelay new voting delay, in blocks
-     */
-    function setVotingDelay(uint256 newVotingDelay) external onlyOwner {
-        if (newVotingDelay < MIN_VOTING_DELAY || newVotingDelay > MAX_VOTING_DELAY) {
-            revert GovernanceInvalidVotingDelay();
-        }
-        uint256 oldVotingDelay = votingDelay;
-        votingDelay = newVotingDelay;
-
-        emit VotingDelaySet(oldVotingDelay, votingDelay);
-    }
-
-    /**
-     * @notice Admin function for setting the voting period
-     * @param newVotingPeriod new voting period, in blocks
-     */
-    function setVotingPeriod(uint256 newVotingPeriod) external onlyOwner {
-        if (newVotingPeriod < MIN_VOTING_PERIOD || newVotingPeriod > MAX_VOTING_PERIOD) {
-            revert GovernanceInvalidVotingPeriod();
-        }
-        uint256 oldVotingPeriod = votingPeriod;
-        votingPeriod = newVotingPeriod;
-
-        emit VotingPeriodSet(oldVotingPeriod, votingPeriod);
-    }
-
-    /**
-     * @notice Admin function for setting the proposal threshold
-     * @dev newProposalThreshold must be greater than the hardcoded min
-     * @param newProposalThreshold new proposal threshold
-     */
-    function setProposalThreshold(uint256 newProposalThreshold) external onlyOwner {
-        if (newProposalThreshold < MIN_PROPOSAL_THRESHOLD || newProposalThreshold > MAX_PROPOSAL_THRESHOLD) {
-            revert GovernanceInvalidProposalThreshold();
-        }
-        uint256 oldProposalThreshold = proposalThreshold;
-        proposalThreshold = newProposalThreshold;
-
-        emit ProposalThresholdSet(oldProposalThreshold, proposalThreshold);
-    }
-
-    /**
-     * @notice Admin function for setting the whitelist expiration as a timestamp for an account. Whitelist status allows accounts to propose without meeting threshold
-     * @param account Account address to set whitelist expiration for
-     * @param expiration Expiration for account whitelist status as timestamp (if now < expiration, whitelisted)
-     */
-    function setWhitelistAccountExpiration(address account, uint256 expiration) external {
-        if (msg.sender != owner && msg.sender != whitelistGuardian) {
-            revert GovernanceUnauthorizedSender(msg.sender);
-        }
-        whitelistAccountExpirations[account] = expiration;
-
-        emit WhitelistAccountExpirationSet(account, expiration);
-    }
-
-    /**
-     * @notice Admin function for setting the whitelistGuardian. WhitelistGuardian can cancel proposals from whitelisted addresses
-     * @param account Account to set whitelistGuardian to (0x0 to remove whitelistGuardian)
-     */
-    function setWhitelistGuardian(address account) external onlyOwner {
-        address oldGuardian = whitelistGuardian;
-        whitelistGuardian = account;
-
-        emit WhitelistGuardianSet(oldGuardian, whitelistGuardian);
     }
 
     function _getChainId() internal view returns (uint) {
