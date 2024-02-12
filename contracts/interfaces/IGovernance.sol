@@ -12,7 +12,7 @@ interface IGovernance {
         /// @notice the ordered list of target addresses for calls to be made
         address[] targets;
         /// @notice The ordered list of values (i.e. msg.value) to be passed to the calls to be made
-        uint[] values;
+        uint256[] values;
         /// @notice The ordered list of function signatures to be called
         string[] signatures;
         /// @notice The ordered list of calldata to be passed to each call
@@ -62,7 +62,7 @@ interface IGovernance {
         uint256 id,
         address proposer,
         address[] targets,
-        uint[] values,
+        uint256[] values,
         string[] signatures,
         bytes[] calldatas,
         uint256 startBlock,
@@ -86,6 +86,10 @@ interface IGovernance {
         uint256 _proposalThreshold,
         uint256 _timelockDelay
     ) external;
+
+    /**
+     * ================ EVENTS ================
+     */
 
     /**
      * @notice An event emitted when a vote has been cast on a proposal
@@ -129,4 +133,62 @@ interface IGovernance {
 
     /// @notice Emitted when the whitelistGuardian is set
     event WhitelistGuardianSet(address oldGuardian, address newGuardian);
+
+    /**
+     * ================ ERRORS ================
+     */
+
+    /// @notice Throwed when proposer votes below proposal threshold.
+    error GovernanceVotesBelowProposalThreshold();
+
+    /// @notice Throwed when proposer votes above proposal threshold.
+    error GovernanceVotesAboveProposalThreshold();
+
+    /// @notice Thrown when proposal function information arity mismatch.
+    error GovernanceArityMismatch();
+
+    /// @notice Thrown when no actions provided in a proposal.
+    error GovernanceNoActions();
+
+    /// @notice Thrown when too many actions provided in a proposal.
+    error GovernanceTooManyActions();
+
+    /// @notice Throw when found an already active proposal. Only one live proposal per proposer is allowed.
+    error GovernanceOnlyOneActiveProposalAllowed();
+
+    /// @notice Throw when found an already pending proposal. Only one live proposal per proposer is allowed.
+    error GovernanceOnlyOnePendingProposalAllowed();
+
+    /// @notice Thrown when a proposal is in a state other than required.
+    error GovernanceInvalidProposalState(ProposalState requiredState, ProposalState actualState);
+
+    /// @notice Thrown when a proposal id is out of bound.
+    error GovernanceInvalidProposalId();
+
+    /// @notice Thrown when an identical proposal action is already queued at eta.
+    error GovernanceDuplicatedProposal();
+
+    /// @notice Thrown when trying to cancel an already executed proposal.
+    error GovernanceProposalAlreadyExecuted();
+
+    /// @notice Thrown when a signature is invalid.
+    error GovernanceInvalidDelegateSignature();
+
+    /// @notice Thrown when voting is closed.
+    error GovernanceVotingClosed();
+
+    /// @notice Thrown when a provided vote type is invalid.
+    error GovernanceInvalidVoteType();
+
+    /// @notice Thrown when a voter has already voted.
+    error GovernanceVoterAlreadyVoted();
+
+    /// @notice Thrown when voting period is outside the minimum or maximum voting period.
+    error GovernanceInvalidVotingPeriod();
+
+    /// @notice Thrown when a proposal threshold is outside the minimum or maximum threshold.
+    error GovernanceInvalidProposalThreshold();
+
+    /// @notice Thrown when voting delay is outside the minimum or maximum voting delay.
+    error GovernanceInvalidVotingDelay();
 }
