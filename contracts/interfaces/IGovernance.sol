@@ -136,10 +136,10 @@ interface IGovernance {
      * ================ ERRORS ================
      */
 
-    /// @notice Throwed when proposer votes below proposal threshold.
+    /// @notice Thrown when proposer votes below proposal threshold.
     error GovernanceVotesBelowProposalThreshold();
 
-    /// @notice Throwed when proposer votes above proposal threshold.
+    /// @notice Thrown when proposer votes above proposal threshold.
     error GovernanceVotesAboveProposalThreshold();
 
     /// @notice Thrown when proposal function information arity mismatch.

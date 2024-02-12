@@ -69,7 +69,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
     /// @notice The address of the Mine Governance Protocol Timelock
     ITimelock public timelock;
 
-
     /// @notice The official record of all proposals ever proposed
     mapping(uint256 => Proposal) public proposals;
 
@@ -111,9 +110,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         uint256 _votingDelay,
         uint256 _proposalThreshold,
         uint256 _timelockDelay
-    ) external override onlyOwner {
-        require(address(timelock) == address(0), 'Governance::initiate: can only initiate once');
-        require(msg.sender == owner, 'Governance::initiate: owner only');
+    ) external override {
         if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) {
             revert GovernanceInvalidVotingPeriod();
         }
