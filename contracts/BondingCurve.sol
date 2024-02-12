@@ -304,15 +304,14 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount) {
         uint256 desiredRR = ReserveRatio.HIGH_RR - 1;
         uint256 unitUsdPrice = getUnitUsdPrice();
+        uint256 collateralUsdPrice = collateralUsdOracle.getCollateralUsdPrice();
 
         unitAmount =
-            ((unitToken.totalSupply() * unitUsdPrice * desiredRR) -
-                (collateralUsdOracle.getCollateralUsdPrice() *
-                    collateralToken.balanceOf(address(this)) *
-                    ReserveRatio.RR_PRECISION)) /
-            ((desiredRR * unitUsdPrice) -
-                ((unitCollateralPrice * ReserveRatio.RR_PRECISION * ReserveRatio.RR_PRECISION) /
-                    UNITUSD_PRICE_PRECISION));
+            (((unitToken.totalSupply() * unitUsdPrice * desiredRR) -
+                (collateralUsdPrice * collateralToken.balanceOf(address(this)) * ReserveRatio.RR_PRECISION)) *
+                UNITUSD_PRICE_PRECISION) /
+            ((desiredRR * unitUsdPrice * UNITUSD_PRICE_PRECISION) -
+                (collateralUsdPrice * unitCollateralPrice * ReserveRatio.RR_PRECISION));
     }
 
     /**
