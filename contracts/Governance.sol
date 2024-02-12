@@ -2,13 +2,17 @@
 pragma solidity ^0.8.23;
 
 import './interfaces/IGovernance.sol';
-import './interfaces/IProxiable.sol';
 import './interfaces/ITimelock.sol';
 import './interfaces/IVote.sol';
+import './abstracts/Proxiable.sol';
 import './abstracts/Ownable.sol';
 import './Timelock.sol';
 
-contract Governance is IGovernance, IProxiable, Ownable {
+contract Governance is IGovernance, Proxiable, Ownable {
+    /**
+     * ================ CONSTANTS ================
+     */
+
     /// @notice The name of this contract
     string public constant name = 'Mine Governance';
 
@@ -43,6 +47,13 @@ contract Governance is IGovernance, IProxiable, Ownable {
     /// @notice The EIP-712 typehash for the ballot struct used by the contract
     bytes32 public constant BALLOT_TYPEHASH = keccak256('Ballot(uint256 proposalId,uint8 support)');
 
+    /// @notice The address of the Mine token
+    IVotes public immutable mineToken;
+
+    /**
+     * ================ STATE VARIABLES ================
+     */
+
     /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
     uint256 public votingDelay;
 
@@ -58,8 +69,6 @@ contract Governance is IGovernance, IProxiable, Ownable {
     /// @notice The address of the Mine Governance Protocol Timelock
     ITimelock public timelock;
 
-    /// @notice The address of the Mine token
-    IVotes public mineToken;
 
     /// @notice The official record of all proposals ever proposed
     mapping(uint256 => Proposal) public proposals;
@@ -73,20 +82,31 @@ contract Governance is IGovernance, IProxiable, Ownable {
     /// @notice Address which manages whitelisted proposals and whitelist accounts
     address public whitelistGuardian;
 
-    function initialize() public override {
-        _setOwner(msg.sender);
+    /**
+     * ================ CONSTRUCTOR ================
+     */
+
+    /**
+     * @notice This contract employs a proxy pattern, so the main purpose of the constructor is to render the
+     * implementation contract unusable. It initializes certain immutables to optimize gas usage when accessing these
+     * variables. Primarily, it calls `super.initialize()` to ensure the contract cannot be initialized with valid
+     * values for the remaining variables.
+     * @param _mineToken The address of the Mine token
+     */
+    constructor(address _mineToken) {
+        mineToken = IVotes(_mineToken);
+
+        super.initialize();
     }
 
     /**
-     * @notice Initiate the Gavornance contract
-     * @dev Owner only. Sets initial proposal id which initiates the contract, ensuring a continuous proposal id count
-     * @param _mineToken The address of the Mine token
-     * @param _votingPeriod The initial voting period
-     * @param _votingDelay The initial voting delay
-     * @param _proposalThreshold The initial proposal threshold
+     * ================ EXTERNAL & PUBLIC FUNCTIONS ================
+     */
+
+    /**
+     * @inheritdoc IGovernance
      */
     function initiate(
-        address _mineToken,
         uint256 _votingPeriod,
         uint256 _votingDelay,
         uint256 _proposalThreshold,
@@ -94,7 +114,6 @@ contract Governance is IGovernance, IProxiable, Ownable {
     ) external override onlyOwner {
         require(address(timelock) == address(0), 'Governance::initiate: can only initiate once');
         require(msg.sender == owner, 'Governance::initiate: owner only');
-        require(_mineToken != address(0), 'Governance::initiate: invalid mine token address');
         if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) {
             revert GovernanceInvalidVotingPeriod();
         }
@@ -106,11 +125,12 @@ contract Governance is IGovernance, IProxiable, Ownable {
         }
         address _timelock = address(new Timelock(_timelockDelay));
         timelock = ITimelock(_timelock);
-        mineToken = IVotes(_mineToken);
         votingPeriod = _votingPeriod;
         votingDelay = _votingDelay;
         proposalThreshold = _proposalThreshold;
         _setOwner(_timelock);
+
+        super.initialize();
     }
 
     /**

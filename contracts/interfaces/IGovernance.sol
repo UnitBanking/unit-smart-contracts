@@ -71,16 +71,14 @@ interface IGovernance {
     );
 
     /**
-     * @notice Initiate the Gavornance contract
+     * @notice Initiate the Governance contract
      * @dev Owner only. Deploy timelock contract which initiates the contract
-     * @param _mineToken The address of the Mine token
      * @param _votingPeriod The initial voting period
      * @param _votingDelay The initial voting delay
      * @param _proposalThreshold The initial proposal threshold
      * @param _timelockDelay The initial timelock delay
      */
     function initiate(
-        address _mineToken,
         uint256 _votingPeriod,
         uint256 _votingDelay,
         uint256 _proposalThreshold,
