@@ -84,10 +84,10 @@ contract Governance is IGovernance, Proxiable, Ownable {
     mapping(uint256 => Proposal) public proposals;
 
     /// @notice The latest proposal for each proposer
-    mapping(address => uint) public latestProposalIds;
+    mapping(address => uint256) public latestProposalIds;
 
     /// @notice Stores the expiration of account whitelist status as a timestamp
-    mapping(address => uint) public whitelistAccountExpirations;
+    mapping(address => uint256) public whitelistAccountExpirations;
 
     /// @notice Address which manages whitelisted proposals and whitelist accounts
     address public whitelistGuardian;
@@ -217,13 +217,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
-     * @param targets Target addresses for proposal calls
-     * @param values Eth values for proposal calls
-     * @param signatures Function signatures for proposal calls
-     * @param calldatas Calldatas for proposal calls
-     * @param description String description of the proposal
-     * @return Proposal id of new proposal
+     * @inheritdoc IGovernance
      */
     function propose(
         address[] memory targets,
@@ -231,7 +225,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         string[] memory signatures,
         bytes[] memory calldatas,
         string memory description
-    ) public returns (uint) {
+    ) public returns (uint256) {
         // Reject proposals before initiating as Governor
         require(address(timelock) != address(0), 'Governance::propose: Governance not active');
         // Allow addresses above proposal threshold and whitelisted addresses to propose
@@ -304,8 +298,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Queues a proposal of state succeeded
-     * @param proposalId The id of the proposal to queue
+     * @inheritdoc IGovernance
      */
     function queue(uint256 proposalId) external {
         if (getState(proposalId) != ProposalState.Succeeded) {
@@ -325,8 +318,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Executes a queued proposal if eta has passed
-     * @param proposalId The id of the proposal to execute
+     * @inheritdoc IGovernance
      */
     function execute(uint256 proposalId) external payable {
         if (getState(proposalId) != ProposalState.Queued) {
@@ -347,8 +339,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Cancels a proposal only if sender is the proposer, or proposer delegates dropped below proposal threshold
-     * @param proposalId The id of the proposal to cancel
+     * @inheritdoc IGovernance
      */
     function cancel(uint256 proposalId) external {
         if (getState(proposalId) == ProposalState.Executed) {
@@ -386,6 +377,45 @@ contract Governance is IGovernance, Proxiable, Ownable {
         }
 
         emit ProposalCanceled(proposalId);
+    }
+
+    /**
+     * @inheritdoc IGovernance
+     */
+    function castVote(uint256 proposalId, uint8 support) external {
+        emit VoteCast(msg.sender, proposalId, support, _castVote(msg.sender, proposalId, support), '');
+    }
+
+    /**
+     * @inheritdoc IGovernance
+     */
+    function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) external {
+        emit VoteCast(msg.sender, proposalId, support, _castVote(msg.sender, proposalId, support), reason);
+    }
+
+    /**
+     * @inheritdoc IGovernance
+     */
+    function castVoteBySig(uint256 proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
+        bytes32 domainSeparator = keccak256(
+            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), _getChainId(), address(this))
+        );
+        bytes32 structHash = keccak256(abi.encode(BALLOT_TYPEHASH, proposalId, support));
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));
+        address signatory = ecrecover(digest, v, r, s);
+        if (signatory == address(0)) {
+            revert GovernanceInvalidDelegateSignature();
+        }
+        emit VoteCast(signatory, proposalId, support, _castVote(signatory, proposalId, support), '');
+    }
+
+    /**
+     * @notice View function which returns if an account is whitelisted
+     * @param account Account to check white list status of
+     * @return If the account is whitelisted
+     */
+    function isWhitelisted(address account) public view returns (bool) {
+        return (whitelistAccountExpirations[account] > block.timestamp);
     }
 
     /**
@@ -452,51 +482,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Cast a vote for a proposal
-     * @param proposalId The id of the proposal to vote on
-     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
-     */
-    function castVote(uint256 proposalId, uint8 support) external {
-        emit VoteCast(msg.sender, proposalId, support, _castVote(msg.sender, proposalId, support), '');
-    }
-
-    /**
-     * @notice Cast a vote for a proposal with a reason
-     * @param proposalId The id of the proposal to vote on
-     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
-     * @param reason The reason given for the vote by the voter
-     */
-    function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) external {
-        emit VoteCast(msg.sender, proposalId, support, _castVote(msg.sender, proposalId, support), reason);
-    }
-
-    /**
-     * @notice Cast a vote for a proposal by signature
-     * @dev External function that accepts EIP-712 signatures for voting on proposals.
-     */
-    function castVoteBySig(uint256 proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), _getChainId(), address(this))
-        );
-        bytes32 structHash = keccak256(abi.encode(BALLOT_TYPEHASH, proposalId, support));
-        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));
-        address signatory = ecrecover(digest, v, r, s);
-        if (signatory == address(0)) {
-            revert GovernanceInvalidDelegateSignature();
-        }
-        emit VoteCast(signatory, proposalId, support, _castVote(signatory, proposalId, support), '');
-    }
-
-    /**
-     * @notice View function which returns if an account is whitelisted
-     * @param account Account to check white list status of
-     * @return If the account is whitelisted
-     */
-    function isWhitelisted(address account) public view returns (bool) {
-        return (whitelistAccountExpirations[account] > block.timestamp);
-    }
-
-    /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
@@ -549,7 +534,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         return votes;
     }
 
-    function _getChainId() internal view returns (uint) {
+    function _getChainId() internal view returns (uint256) {
         uint256 chainId;
         assembly {
             chainId := chainid()

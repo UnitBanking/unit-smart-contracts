@@ -2,6 +2,9 @@
 pragma solidity ^0.8.23;
 
 interface IGovernance {
+    /**
+     * ================ STRUCTS ================
+     */
     struct Proposal {
         /// @notice Unique id for looking up a proposal
         uint256 id;
@@ -45,6 +48,10 @@ interface IGovernance {
         uint96 votes;
     }
 
+    /**
+     * ================ ENUMS ================
+     */
+
     /// @notice Possible states that a proposal may be in
     enum ProposalState {
         Pending,
@@ -57,18 +64,9 @@ interface IGovernance {
         Executed
     }
 
-    /// @notice An event emitted when a new proposal is created
-    event ProposalCreated(
-        uint256 id,
-        address proposer,
-        address[] targets,
-        uint256[] values,
-        string[] signatures,
-        bytes[] calldatas,
-        uint256 startBlock,
-        uint256 endBlock,
-        string description
-    );
+    /**
+     * ================ CORE FUNCTIONALITY ================
+     */
 
     /**
      * @notice Initiate the Governance contract
@@ -86,8 +84,77 @@ interface IGovernance {
     ) external;
 
     /**
+     * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
+     * @param targets Target addresses for proposal calls
+     * @param values Eth values for proposal calls
+     * @param signatures Function signatures for proposal calls
+     * @param calldatas Calldatas for proposal calls
+     * @param description String description of the proposal
+     * @return Proposal id of new proposal
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        string[] memory signatures,
+        bytes[] memory calldatas,
+        string memory description
+    ) external returns (uint256);
+
+    /**
+     * @notice Queues a proposal of state succeeded
+     * @param proposalId The id of the proposal to queue
+     */
+    function queue(uint256 proposalId) external;
+
+    /**
+     * @notice Executes a queued proposal if eta has passed
+     * @param proposalId The id of the proposal to execute
+     */
+    function execute(uint256 proposalId) external payable;
+
+    /**
+     * @notice Cancels a proposal only if sender is the proposer, or proposer delegates dropped below proposal threshold
+     * @param proposalId The id of the proposal to cancel
+     */
+    function cancel(uint256 proposalId) external;
+
+    /**
+     * @notice Cast a vote for a proposal
+     * @param proposalId The id of the proposal to vote on
+     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
+     */
+    function castVote(uint256 proposalId, uint8 support) external;
+
+    /**
+     * @notice Cast a vote for a proposal with a reason
+     * @param proposalId The id of the proposal to vote on
+     * @param support The support value for the vote. 0=against, 1=for, 2=abstain
+     * @param reason The reason given for the vote by the voter
+     */
+    function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) external;
+
+    /**
+     * @notice Cast a vote for a proposal by signature
+     * @dev External function that accepts EIP-712 signatures for voting on proposals.
+     */
+    function castVoteBySig(uint256 proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external;
+
+    /**
      * ================ EVENTS ================
      */
+
+    /// @notice An event emitted when a new proposal is created
+    event ProposalCreated(
+        uint256 id,
+        address proposer,
+        address[] targets,
+        uint256[] values,
+        string[] signatures,
+        bytes[] calldatas,
+        uint256 startBlock,
+        uint256 endBlock,
+        string description
+    );
 
     /**
      * @notice An event emitted when a vote has been cast on a proposal
