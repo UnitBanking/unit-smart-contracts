@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.23;
 
 import './interfaces/IGovernance.sol';
@@ -264,7 +265,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         Proposal storage newProposal = proposals[newProposalID];
 
         // This should never happen but add a check in case.
-        require(newProposal.id == 0, 'Governance::propose: ProposalID collsion'); // TODO: is this really recessary?
+        require(newProposal.id == 0, 'Governance::propose: ProposalID collsion'); // TODO: is this really necessary?
 
         newProposal.id = newProposalID;
         newProposal.proposer = msg.sender;
@@ -534,11 +535,9 @@ contract Governance is IGovernance, Proxiable, Ownable {
         return votes;
     }
 
-    function _getChainId() internal view returns (uint256) {
-        uint256 chainId;
+    function _getChainId() internal view returns (uint256 chainId) {
         assembly {
             chainId := chainid()
         }
-        return chainId;
     }
 }
