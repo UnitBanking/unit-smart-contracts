@@ -123,7 +123,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
     /**
      * @inheritdoc IGovernance
      */
-    function initiate(
+    function initialize(
         uint256 _votingPeriod,
         uint256 _votingDelay,
         uint256 _proposalThreshold,
@@ -143,7 +143,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         votingPeriod = _votingPeriod;
         votingDelay = _votingDelay;
         proposalThreshold = _proposalThreshold;
-        _setOwner(_timelock);
+        _setOwner(msg.sender);
 
         super.initialize();
     }

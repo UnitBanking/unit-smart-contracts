@@ -69,14 +69,14 @@ interface IGovernance {
      */
 
     /**
-     * @notice Initiate the Governance contract
-     * @dev Owner only. Deploy timelock contract which initiates the contract
+     * @notice initialize the Governance contract
+     * @dev Owner only. Deploy timelock contract which initializes the contract
      * @param _votingPeriod The initial voting period
      * @param _votingDelay The initial voting delay
      * @param _proposalThreshold The initial proposal threshold
      * @param _timelockDelay The initial timelock delay
      */
-    function initiate(
+    function initialize(
         uint256 _votingPeriod,
         uint256 _votingDelay,
         uint256 _proposalThreshold,
