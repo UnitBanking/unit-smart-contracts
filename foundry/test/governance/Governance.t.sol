@@ -10,6 +10,32 @@ import 'forge-std/console.sol';
 
 contract GovernanceHarnessTest is GovernanceTestBase {
     /**
+     * ================ constants ================
+     */
+    function test_constants_HaveCorrectValues() public {
+        // Arrange & Act
+        string memory name = governanceProxy.name();
+        uint256 minProposalThreshold = governanceProxy.MIN_PROPOSAL_THRESHOLD();
+        uint256 maxProposalThreshold = governanceProxy.MAX_PROPOSAL_THRESHOLD();
+        uint256 minVotingPeriod = governanceProxy.MIN_VOTING_PERIOD();
+        uint256 maxVotingPeriod = governanceProxy.MAX_VOTING_PERIOD();
+        uint256 minVotingDelay = governanceProxy.MIN_VOTING_DELAY();
+        uint256 maxVotingDelay = governanceProxy.MAX_VOTING_DELAY();
+        uint256 quorumVotes = governanceProxy.quorumVotes();
+        uint256 proposalMaxOperations = governanceProxy.proposalMaxOperations();
+
+        // Assert
+        assertEq(name, 'Mine Governance');
+        assertEq(minProposalThreshold, 1000e18);
+        assertEq(maxProposalThreshold, 100000e18);
+        assertEq(minVotingPeriod, 5760);
+        assertEq(maxVotingPeriod, 80640);
+        assertEq(minVotingDelay, 1);
+        assertEq(maxVotingDelay, 40320);
+        assertEq(quorumVotes, 400000e18);
+        assertEq(proposalMaxOperations, 10);
+    }
+    /**
      * ================ constructor() ================
      */
     function test_constructor_SuccessfullySetsValues() public {
