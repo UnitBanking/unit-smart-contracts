@@ -35,6 +35,7 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         assertEq(quorumVotes, 400000e18);
         assertEq(proposalMaxOperations, 10);
     }
+
     /**
      * ================ constructor() ================
      */
