@@ -22,17 +22,4 @@ contract GovernanceQueueTest is GovernanceTestBase {
         );
         governanceProxy.queue(proposalId);
     }
-
-    function _propose(address proposer) private returns (uint256 proposalId) {
-        address[] memory targets = new address[](1);
-        uint256[] memory values = new uint256[](1);
-        string[] memory signatures = new string[](1);
-        bytes[] memory calldatas = new bytes[](1);
-        string memory description = 'proposal #1';
-
-        vm.prank(proposer);
-        governanceProxy.propose(targets, values, signatures, calldatas, description);
-
-        proposalId = governanceProxy.proposalCount();
-    }
 }

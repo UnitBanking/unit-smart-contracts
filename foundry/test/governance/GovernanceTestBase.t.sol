@@ -52,18 +52,25 @@ abstract contract GovernanceTestBase is Test {
         governanceProxy = GovernanceHarness(payable(governanceProxyType));
     }
 
-    function _createUserAndMintMine(uint256 mineTokenAmount) internal returns (address user) {
+    function _createUserAndMintMineToken(uint256 mineTokenAmount) internal returns (address user) {
         user = vm.addr(2);
 
         vm.warp(START_TIMESTAMP + 10 days);
 
-        vm.prank(user);
+        vm.prank(wallet);
         mineToken.mint(user, mineTokenAmount);
     }
 
-    function _mintMineToken(address receiver, uint256 value) internal {}
+    function _propose(address proposer) internal returns (uint256 proposalId) {
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        string[] memory signatures = new string[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        string memory description = 'proposal #1';
 
-    function _createUserAndMintMineToken(uint256 mineTokenAmount) internal returns (address user) {
-        user = _createUserAndMintMine(mineTokenAmount);
+        vm.prank(proposer);
+        governanceProxy.propose(targets, values, signatures, calldatas, description);
+
+        proposalId = governanceProxy.proposalCount();
     }
 }
