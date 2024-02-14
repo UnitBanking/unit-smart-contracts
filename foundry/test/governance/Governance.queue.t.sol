@@ -13,7 +13,13 @@ contract GovernanceQueueTest is GovernanceTestBase {
 
         // Act & Assert
         IGovernance.ProposalState state = governanceProxy.getState(proposalId);
-        vm.expectRevert(abi.encodeWithSelector(IGovernance.GovernanceInvalidProposalState.selector, IGovernance.ProposalState.Succeeded, state));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGovernance.GovernanceInvalidProposalState.selector,
+                IGovernance.ProposalState.Succeeded,
+                state
+            )
+        );
         governanceProxy.queue(proposalId);
     }
 

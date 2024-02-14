@@ -14,17 +14,21 @@ contract Timelock is ITimelock, Ownable {
     mapping(bytes32 => bool) public queuedTransactions;
 
     constructor(uint256 _delay) {
-        require(_delay >= MINIMUM_DELAY, 'Timelock::constructor: Delay must exceed minimum delay.');
-        require(_delay <= MAXIMUM_DELAY, 'Timelock::setDelay: Delay must not exceed maximum delay.');
+        if (_delay < MINIMUM_DELAY || _delay > MAXIMUM_DELAY) {
+            revert TimelockInvalidDelay();
+        }
 
         delay = _delay;
         _setOwner(msg.sender);
     }
 
     function setDelay(uint256 _delay) public {
-        require(msg.sender == address(this), 'Timelock::setDelay: Call must come from Timelock.');
-        require(_delay >= MINIMUM_DELAY, 'Timelock::setDelay: Delay must exceed minimum delay.');
-        require(_delay <= MAXIMUM_DELAY, 'Timelock::setDelay: Delay must not exceed maximum delay.');
+        if (msg.sender != address(this)) {
+            revert TimelockInvalidSender(msg.sender);
+        }
+        if (_delay < MINIMUM_DELAY || _delay > MAXIMUM_DELAY) {
+            revert TimelockInvalidDelay();
+        }
         delay = _delay;
 
         emit NewDelay(_delay);
@@ -36,12 +40,10 @@ contract Timelock is ITimelock, Ownable {
         string memory signature,
         bytes memory data,
         uint256 eta
-    ) public returns (bytes32) {
-        require(msg.sender == owner, 'Timelock::queueTransaction: Call must come from owner.');
-        require(
-            eta >= (block.timestamp + delay),
-            'Timelock::queueTransaction: Estimated execution block must satisfy delay.'
-        );
+    ) public onlyOwner returns (bytes32) {
+        if (eta < block.timestamp + delay) {
+            revert TimelockInvalidEta();
+        }
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = true;
@@ -56,9 +58,7 @@ contract Timelock is ITimelock, Ownable {
         string memory signature,
         bytes memory data,
         uint256 eta
-    ) public {
-        require(msg.sender == owner, 'Timelock::cancelTransaction: Call must come from owner.');
-
+    ) public onlyOwner {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
 
@@ -71,13 +71,17 @@ contract Timelock is ITimelock, Ownable {
         string memory signature,
         bytes memory data,
         uint256 eta
-    ) public payable returns (bytes memory) {
-        require(msg.sender == owner, 'Timelock::executeTransaction: Call must come from owner.');
-
+    ) public payable onlyOwner returns (bytes memory) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        require(queuedTransactions[txHash], "Timelock::executeTransaction: Transaction hasn't been queued.");
-        require(block.timestamp >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
-        require(block.timestamp <= (eta + GRACE_PERIOD), 'Timelock::executeTransaction: Transaction is stale.');
+        if (!queuedTransactions[txHash]) {
+            revert TimelockTransactionNotQueued();
+        }
+        if (block.timestamp < eta) {
+            revert TimelockTransactionTimeLockNotSurpassed();
+        }
+        if (block.timestamp > eta + GRACE_PERIOD) {
+            revert TimelockStaleTransaction();
+        }
 
         queuedTransactions[txHash] = false;
 
@@ -91,7 +95,9 @@ contract Timelock is ITimelock, Ownable {
 
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{ value: value }(callData);
-        require(success, 'Timelock::executeTransaction: Transaction execution reverted.');
+        if (!success) {
+            revert TimelockTransactionExecutionFailed();
+        }
 
         emit ExecuteTransaction(txHash, target, value, signature, data, eta);
 
