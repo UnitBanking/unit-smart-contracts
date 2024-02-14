@@ -194,6 +194,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
 
     /**
      * @notice Admin function for setting the whitelist expiration as a timestamp for an account. Whitelist status allows accounts to propose without meeting threshold
+     * @dev Cannot use `onlyOwner` modifier, since this function can also be called by the `whitelistGuardian`.
      * @param account Account address to set whitelist expiration for
      * @param expiration Expiration for account whitelist status as timestamp (if now < expiration, whitelisted)
      */

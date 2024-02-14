@@ -23,7 +23,7 @@ contract Timelock is ITimelock, Ownable {
     }
 
     /**
-     * @notice Sets `delay`. Can only be called by Timelock contract itself.
+     * @notice Sets `delay`. Can only be called by the Timelock contract itself.
      * @param _delay New delay.
      */
     function setDelay(uint256 _delay) public {

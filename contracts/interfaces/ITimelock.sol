@@ -74,7 +74,7 @@ interface ITimelock {
     /// @notice Returns the grace period.
     function GRACE_PERIOD() external view returns (uint);
 
-    /// @notice Returns `true` if the transaction has beed queued, returns `false` otherwise. 
+    /// @notice Returns `true` if the transaction has beed queued, returns `false` otherwise.
     function queuedTransactions(bytes32 hash) external view returns (bool);
 
     /**
