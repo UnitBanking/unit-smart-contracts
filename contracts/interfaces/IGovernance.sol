@@ -69,7 +69,7 @@ interface IGovernance {
      */
 
     /**
-     * @notice initialize the Governance contract
+     * @notice Initializes the Governance contract
      * @dev Owner only. Deploy timelock contract which initializes the contract
      * @param _votingPeriod The initial voting period
      * @param _votingDelay The initial voting delay
@@ -224,10 +224,10 @@ interface IGovernance {
     /// @notice Throw when found an already pending proposal. Only one live proposal per proposer is allowed.
     error GovernanceOnlyOnePendingProposalAllowed();
 
-    /// @notice Thrown when a proposal is in a state other than required.
+    /// @notice Thrown when the proposal is in a state other than required.
     error GovernanceInvalidProposalState(ProposalState requiredState, ProposalState actualState);
 
-    /// @notice Thrown when a proposal id is out of bound.
+    /// @notice Thrown when the proposal id is out of bound.
     error GovernanceInvalidProposalId();
 
     /// @notice Thrown when an identical proposal action is already queued at eta.
@@ -236,25 +236,25 @@ interface IGovernance {
     /// @notice Thrown when trying to cancel an already executed proposal.
     error GovernanceProposalAlreadyExecuted();
 
-    /// @notice Thrown when a signature is invalid.
+    /// @notice Thrown when the signature is invalid.
     error GovernanceInvalidDelegateSignature();
 
     /// @notice Thrown when voting is closed.
     error GovernanceVotingClosed();
 
-    /// @notice Thrown when a provided vote type is invalid.
+    /// @notice Thrown when the provided vote type is invalid.
     error GovernanceInvalidVoteType();
 
-    /// @notice Thrown when a voter has already voted.
+    /// @notice Thrown when the voter has already voted.
     error GovernanceVoterAlreadyVoted();
 
-    /// @notice Thrown when voting period is outside the minimum or maximum voting period.
+    /// @notice Thrown when the voting period is outside the minimum or maximum voting period.
     error GovernanceInvalidVotingPeriod();
 
-    /// @notice Thrown when a proposal threshold is outside the minimum or maximum threshold.
+    /// @notice Thrown when the proposal threshold is outside the minimum or maximum threshold.
     error GovernanceInvalidProposalThreshold();
 
-    /// @notice Thrown when voting delay is outside the minimum or maximum voting delay.
+    /// @notice Thrown when the voting delay is outside the minimum or maximum voting delay.
     error GovernanceInvalidVotingDelay();
 
     /// @notice Thrown when an unauthorized sender tries to call an admin function.

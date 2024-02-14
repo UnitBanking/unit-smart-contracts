@@ -22,6 +22,10 @@ contract Timelock is ITimelock, Ownable {
         _setOwner(msg.sender);
     }
 
+    /**
+     * @notice Sets `delay`. Can only be called by Timelock contract itself.
+     * @param _delay New delay.
+     */
     function setDelay(uint256 _delay) public {
         if (msg.sender != address(this)) {
             revert TimelockInvalidSender(msg.sender);
@@ -34,6 +38,9 @@ contract Timelock is ITimelock, Ownable {
         emit NewDelay(_delay);
     }
 
+    /**
+     * @inheritdoc ITimelock
+     */
     function queueTransaction(
         address target,
         uint256 value,
@@ -52,6 +59,9 @@ contract Timelock is ITimelock, Ownable {
         return txHash;
     }
 
+    /**
+     * @inheritdoc ITimelock
+     */
     function cancelTransaction(
         address target,
         uint256 value,
@@ -65,6 +75,9 @@ contract Timelock is ITimelock, Ownable {
         emit CancelTransaction(txHash, target, value, signature, data, eta);
     }
 
+    /**
+     * @inheritdoc ITimelock
+     */
     function executeTransaction(
         address target,
         uint256 value,

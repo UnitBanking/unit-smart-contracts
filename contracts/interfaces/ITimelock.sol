@@ -40,22 +40,22 @@ interface ITimelock {
     /// @notice Thrown when a call didn't come from the Timelock contract itself.
     error TimelockInvalidSender(address sender);
 
-    /// @notice Thrown when delay is out of bound.
+    /// @notice Thrown when the delay is out of bound.
     error TimelockInvalidDelay();
 
-    /// @notice Thrown when an estimated execution block (eta) does not satisfy delay.
+    /// @notice Thrown when the estimated execution block (eta) does not satisfy the delay.
     error TimelockInvalidEta();
 
-    /// @notice Thrown when a transaction hasn't been queued.
+    /// @notice Thrown when the transaction hasn't been queued.
     error TimelockTransactionNotQueued();
 
-    /// @notice Thrown when a transaction hasn't surpassed its time lock.
+    /// @notice Thrown when the transaction hasn't surpassed its time lock.
     error TimelockTransactionTimeLockNotSurpassed();
 
-    /// @notice Thrown when a transaction is stale.
+    /// @notice Thrown when the transaction is stale.
     error TimelockStaleTransaction();
 
-    /// @notice Thrown when a transaction execution reverted.
+    /// @notice Thrown when the transaction execution reverted.
     error TimelockTransactionExecutionFailed();
 
     /**
@@ -71,6 +71,15 @@ interface ITimelock {
      * ================ CORE FUNCTIONALITY ================
      */
 
+    /**
+     * @notice Queues a transaction for a future execution.
+     * @param target Target address for the transaction.
+     * @param value Eth value for the transaction.
+     * @param signature Function signature for the transaction.
+     * @param data Calldata for the transaction.
+     * @param eta Timestamp that the transaction will be available for execution.
+     * @return Transaction hash
+     */
     function queueTransaction(
         address target,
         uint256 value,
@@ -79,6 +88,14 @@ interface ITimelock {
         uint256 eta
     ) external returns (bytes32);
 
+    /**
+     * @notice Cancels a previously queued transaction.
+     * @param target Target address for the transaction.
+     * @param value Eth value for the transaction.
+     * @param signature Function signature for the transaction.
+     * @param data Calldata for the transaction.
+     * @param eta Timestamp that the transaction will be available for execution.
+     */
     function cancelTransaction(
         address target,
         uint256 value,
@@ -87,6 +104,15 @@ interface ITimelock {
         uint256 eta
     ) external;
 
+    /**
+     * @notice Executes a previously queued transaction.
+     * @param target Target address for the transaction.
+     * @param value Eth value for the transaction.
+     * @param signature Function signature for the transaction.
+     * @param data Calldata for the transaction.
+     * @param eta Timestamp that the transaction will be available for execution.
+     * @return Data returned from a low-level call.
+     */
     function executeTransaction(
         address target,
         uint256 value,
