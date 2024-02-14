@@ -5,10 +5,12 @@ interface ITimelock {
     /**
      * ================ EVENTS ================
      */
-    event NewAdmin(address indexed newAdmin);
-    event NewPendingAdmin(address indexed newPendingAdmin);
-    event NewDelay(uint256 indexed newDelay);
-    event CancelTransaction(
+
+    /// @notice An event emitted when the delay is set.
+    event DelaySet(uint256 indexed newDelay);
+
+    /// @notice An event emitted when a transaction has been canceled.
+    event TransactionCanceled(
         bytes32 indexed txHash,
         address indexed target,
         uint256 value,
@@ -16,7 +18,9 @@ interface ITimelock {
         bytes data,
         uint256 eta
     );
-    event ExecuteTransaction(
+
+    /// @notice An event emitted when a transaction has been executed.
+    event TransactionExecuted(
         bytes32 indexed txHash,
         address indexed target,
         uint256 value,
@@ -24,7 +28,9 @@ interface ITimelock {
         bytes data,
         uint256 eta
     );
-    event QueueTransaction(
+
+    /// @notice An event emitted when a transaction has been queued.
+    event TransactionQueued(
         bytes32 indexed txHash,
         address indexed target,
         uint256 value,
@@ -61,10 +67,14 @@ interface ITimelock {
     /**
      * ================ GETTERS ================
      */
+
+    /// @notice Returns the delay.
     function delay() external view returns (uint);
 
+    /// @notice Returns the grace period.
     function GRACE_PERIOD() external view returns (uint);
 
+    /// @notice Returns `true` if the transaction has beed queued, returns `false` otherwise. 
     function queuedTransactions(bytes32 hash) external view returns (bool);
 
     /**

@@ -181,17 +181,8 @@ interface IGovernance {
     /// @notice An event emitted when the voting period is set
     event VotingPeriodSet(uint256 oldVotingPeriod, uint256 newVotingPeriod);
 
-    /// @notice Emitted when implementation is changed
-    event NewImplementation(address oldImplementation, address newImplementation);
-
     /// @notice Emitted when proposal threshold is set
     event ProposalThresholdSet(uint256 oldProposalThreshold, uint256 newProposalThreshold);
-
-    /// @notice Emitted when pendingAdmin is changed
-    event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
-
-    /// @notice Emitted when pendingAdmin is accepted, which means admin is updated
-    event NewAdmin(address oldAdmin, address newAdmin);
 
     /// @notice Emitted when whitelist account expiration is set
     event WhitelistAccountExpirationSet(address account, uint256 expiration);

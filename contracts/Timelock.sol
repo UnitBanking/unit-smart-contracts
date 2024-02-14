@@ -35,7 +35,7 @@ contract Timelock is ITimelock, Ownable {
         }
         delay = _delay;
 
-        emit NewDelay(_delay);
+        emit DelaySet(_delay);
     }
 
     /**
@@ -55,7 +55,7 @@ contract Timelock is ITimelock, Ownable {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = true;
 
-        emit QueueTransaction(txHash, target, value, signature, data, eta);
+        emit TransactionQueued(txHash, target, value, signature, data, eta);
         return txHash;
     }
 
@@ -72,7 +72,7 @@ contract Timelock is ITimelock, Ownable {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
 
-        emit CancelTransaction(txHash, target, value, signature, data, eta);
+        emit TransactionCanceled(txHash, target, value, signature, data, eta);
     }
 
     /**
@@ -112,7 +112,7 @@ contract Timelock is ITimelock, Ownable {
             revert TimelockTransactionExecutionFailed();
         }
 
-        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
+        emit TransactionExecuted(txHash, target, value, signature, data, eta);
 
         return returnData;
     }
