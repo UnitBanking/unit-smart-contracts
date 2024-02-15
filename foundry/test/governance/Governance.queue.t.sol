@@ -8,7 +8,6 @@ import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 contract GovernanceQueueTest is GovernanceTestBase {
     function test_queue_RevertsWhenInvalidProposalState() public {
         // Arrange
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
         uint256 proposalId = _propose(wallet);
 
         // Act & Assert
@@ -20,6 +19,37 @@ contract GovernanceQueueTest is GovernanceTestBase {
                 state
             )
         );
+        governanceProxy.queue(proposalId);
+    }
+
+    function test_queue_RevertsWhenDuplicatedProposal() public {
+        // Arrange
+        uint256 quorumVotes = governanceProxy.quorumVotes();
+        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        vm.prank(user);
+        mineToken.delegate(user);
+        governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
+        uint256 proposalId = _proposeWithDuplicatedTxs(user);
+        _voteAndRollToEndBlock(proposalId, user);
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceDuplicatedProposal.selector);
+        governanceProxy.queue(proposalId);
+    }
+
+    function test_queue_SuccessfullyQueuesProposal() public {
+        // Arrange
+        uint256 quorumVotes = governanceProxy.quorumVotes();
+        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        vm.prank(user);
+        mineToken.delegate(user);
+        governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
+        uint256 proposalId = _propose(user);
+        _voteAndRollToEndBlock(proposalId, user);
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IGovernance.ProposalQueued(proposalId, block.timestamp + timelock.delay());
         governanceProxy.queue(proposalId);
     }
 }

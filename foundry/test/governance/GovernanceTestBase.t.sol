@@ -38,6 +38,9 @@ abstract contract GovernanceTestBase is Test {
 
         // set up Timelock contract
         timelock = new Timelock(3 days);
+        mineToken.setMinter(address(timelock), true);
+        vm.prank(wallet);
+        mineToken.mint(address(timelock), 10e18);
 
         // set up Governance contract
         governanceImplementation = new GovernanceHarness(address(mineToken));
@@ -55,6 +58,7 @@ abstract contract GovernanceTestBase is Test {
         );
 
         governanceProxy = GovernanceHarness(payable(governanceProxyType));
+        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10_000);
 
         // set Timelock owner
         timelock.setOwner(address(governanceProxy));
@@ -71,14 +75,50 @@ abstract contract GovernanceTestBase is Test {
 
     function _propose(address proposer) internal returns (uint256 proposalId) {
         address[] memory targets = new address[](1);
+        targets[0] = address(mineToken);
         uint256[] memory values = new uint256[](1);
+        values[0] = 0;
         string[] memory signatures = new string[](1);
+        signatures[0] = 'transfer(address,uint256)';
         bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encode(proposer, 1e18);
         string memory description = 'proposal #1';
 
         vm.prank(proposer);
         governanceProxy.propose(targets, values, signatures, calldatas, description);
 
         proposalId = governanceProxy.proposalCount();
+    }
+
+    function _proposeWithDuplicatedTxs(address proposer) internal returns (uint256 proposalId) {
+        address[] memory targets = new address[](2);
+        targets[0] = address(mineToken);
+        targets[1] = address(mineToken);
+        uint256[] memory values = new uint256[](2);
+        values[0] = 0;
+        values[1] = 0;
+        string[] memory signatures = new string[](2);
+        signatures[0] = 'transfer(address,uint256)';
+        signatures[1] = 'transfer(address,uint256)';
+        bytes[] memory calldatas = new bytes[](2);
+        calldatas[0] = abi.encode(proposer, 1e18);
+        calldatas[1] = abi.encode(proposer, 1e18);
+        string memory description = 'proposal #1';
+
+        vm.prank(proposer);
+        governanceProxy.propose(targets, values, signatures, calldatas, description);
+
+        proposalId = governanceProxy.proposalCount();
+    }
+
+    function _voteAndRollToEndBlock(uint256 proposalId, address voter) internal {
+        uint256 startBlock = block.number + governanceProxy.votingDelay();
+        uint256 endBlock = startBlock + governanceProxy.votingPeriod();
+        vm.roll(startBlock + 1);
+
+        vm.prank(voter);
+        governanceProxy.castVote(proposalId, 1);
+
+        vm.roll(endBlock + 1);
     }
 }

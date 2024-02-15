@@ -26,8 +26,6 @@ contract GovernanceProposeTest is GovernanceTestBase {
         string[] memory signatures;
         bytes[] memory calldatas;
 
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
-
         // Act & Assert
         vm.prank(wallet);
         vm.expectRevert(IGovernance.GovernanceArityMismatch.selector);
@@ -40,7 +38,6 @@ contract GovernanceProposeTest is GovernanceTestBase {
         uint256[] memory values;
         string[] memory signatures;
         bytes[] memory calldatas;
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
 
         // Act & Assert
         vm.prank(wallet);
@@ -55,7 +52,6 @@ contract GovernanceProposeTest is GovernanceTestBase {
         uint256[] memory values = new uint256[](tooManyOperations);
         string[] memory signatures = new string[](tooManyOperations);
         bytes[] memory calldatas = new bytes[](tooManyOperations);
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
 
         // Act & Assert
         vm.prank(wallet);
@@ -70,7 +66,6 @@ contract GovernanceProposeTest is GovernanceTestBase {
         string[] memory signatures = new string[](1);
         bytes[] memory calldatas = new bytes[](1);
         string memory description = 'proposal #1';
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
 
         uint256 startBlock = block.number + governanceProxy.votingDelay();
         uint256 endBlock = startBlock + governanceProxy.votingPeriod();
@@ -130,7 +125,6 @@ contract GovernanceProposeTest is GovernanceTestBase {
         string memory description1 = 'proposal #1';
         string memory description2 = 'proposal #2';
         uint256 startBlock = block.number + governanceProxy.votingDelay();
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
 
         vm.prank(wallet);
         governanceProxy.propose(targets, values, signatures, calldatas, description1);
@@ -152,7 +146,6 @@ contract GovernanceProposeTest is GovernanceTestBase {
         bytes[] memory calldatas = new bytes[](1);
         string memory description1 = 'proposal #1';
         string memory description2 = 'proposal #2';
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
 
         vm.prank(wallet);
         governanceProxy.propose(targets, values, signatures, calldatas, description1);

@@ -123,7 +123,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
 
     /**
      * @inheritdoc IGovernance
-     * @notice After initializing the contract, the ownership will be passed to timelock contract. A proposal and voting process are needed after this point.
      */
     function initialize(
         address _timelock,

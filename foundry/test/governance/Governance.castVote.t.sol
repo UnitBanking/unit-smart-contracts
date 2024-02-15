@@ -8,7 +8,6 @@ import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 contract GovernanceCastVoteTest is GovernanceTestBase {
     function test_castVote_SuccessfullyCastsVote() public {
         // Arrange
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
         uint256 proposalId = _propose(wallet);
         uint256 startBlock = block.number + governanceProxy.votingDelay();
         address user = _createUserAndMintMineToken(10e18);
@@ -23,7 +22,6 @@ contract GovernanceCastVoteTest is GovernanceTestBase {
 
     function test_castVoteWithReason_SuccessfullyCastsVote() public {
         // Arrange
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
         uint256 proposalId = _propose(wallet);
         string memory reason = 'vote reason';
         uint256 startBlock = block.number + governanceProxy.votingDelay();
@@ -39,7 +37,6 @@ contract GovernanceCastVoteTest is GovernanceTestBase {
 
     function test_castVoteBySig_SuccessfullyCastsVote() public {
         // Arrange
-        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10);
         uint256 proposalId = _propose(wallet);
         uint8 support = 1;
         string memory name = governanceProxy.name();
