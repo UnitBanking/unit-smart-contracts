@@ -123,6 +123,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
 
     /**
      * @inheritdoc IGovernance
+     * @notice After initializing the contract, the ownership will be passed to timelock contract. A proposal and voting process are needed after this point.
      */
     function initialize(
         uint256 _votingPeriod,
@@ -144,7 +145,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         votingPeriod = _votingPeriod;
         votingDelay = _votingDelay;
         proposalThreshold = _proposalThreshold;
-        _setOwner(msg.sender);
+        _setOwner(_timelock);
 
         super.initialize();
     }

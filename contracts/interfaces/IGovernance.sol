@@ -69,7 +69,7 @@ interface IGovernance {
      */
 
     /**
-     * @notice Initializes the Governance contract
+     * @notice Initializes the Governance contract. After initializing the contract, the ownership will be passed to timelock contract. A proposal and voting process are needed after this point.
      * @dev Owner only. Deploy timelock contract which initializes the contract
      * @param _votingPeriod The initial voting period
      * @param _votingDelay The initial voting delay
