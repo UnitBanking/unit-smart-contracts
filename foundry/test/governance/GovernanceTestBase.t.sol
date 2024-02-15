@@ -55,6 +55,9 @@ abstract contract GovernanceTestBase is Test {
         );
 
         governanceProxy = GovernanceHarness(payable(governanceProxyType));
+
+        // set Timelock owner
+        timelock.setOwner(address(governanceProxy));
     }
 
     function _createUserAndMintMineToken(uint256 mineTokenAmount) internal returns (address user) {
