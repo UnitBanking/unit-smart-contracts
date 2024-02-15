@@ -126,10 +126,10 @@ contract Governance is IGovernance, Proxiable, Ownable {
      * @notice After initializing the contract, the ownership will be passed to timelock contract. A proposal and voting process are needed after this point.
      */
     function initialize(
+        address _timelock,
         uint256 _votingPeriod,
         uint256 _votingDelay,
-        uint256 _proposalThreshold,
-        uint256 _timelockDelay
+        uint256 _proposalThreshold
     ) external override {
         if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) {
             revert GovernanceInvalidVotingPeriod();
@@ -140,12 +140,11 @@ contract Governance is IGovernance, Proxiable, Ownable {
         if (_proposalThreshold < MIN_PROPOSAL_THRESHOLD || _proposalThreshold > MAX_PROPOSAL_THRESHOLD) {
             revert GovernanceInvalidProposalThreshold();
         }
-        address _timelock = address(new Timelock(_timelockDelay));
         timelock = ITimelock(_timelock);
         votingPeriod = _votingPeriod;
         votingDelay = _votingDelay;
         proposalThreshold = _proposalThreshold;
-        _setOwner(_timelock);
+        _setOwner(msg.sender);
 
         super.initialize();
     }

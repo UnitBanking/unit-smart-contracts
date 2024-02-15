@@ -7,6 +7,7 @@ import { GovernanceHarness } from '../../../contracts/test/GovernanceHarness.sol
 import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
+import { Timelock } from '../../../contracts/Timelock.sol';
 
 abstract contract GovernanceTestBase is Test {
     uint256 internal constant START_TIMESTAMP = 1699023595;
@@ -15,6 +16,7 @@ abstract contract GovernanceTestBase is Test {
     uint256 public constant INITIAL_PROPOSAL_THRESHOLD = 1000e18;
 
     MineToken public mineToken;
+    Timelock public timelock;
 
     Proxy public governanceProxyType;
     GovernanceHarness public governanceImplementation;
@@ -34,6 +36,9 @@ abstract contract GovernanceTestBase is Test {
         mineToken.initialize();
         mineToken.setMinter(wallet, true);
 
+        // set up Timelock contract
+        timelock = new Timelock(3 days);
+
         // set up Governance contract
         governanceImplementation = new GovernanceHarness(address(mineToken));
         governanceProxyType = new Proxy(address(this));
@@ -42,10 +47,10 @@ abstract contract GovernanceTestBase is Test {
             address(governanceImplementation),
             abi.encodeWithSelector(
                 IGovernance.initialize.selector,
+                address(timelock),
                 5760, // blocks
                 2, // blocks
-                1000e18,
-                3 days // seconds
+                1000e18
             )
         );
 
