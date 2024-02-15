@@ -6,7 +6,6 @@ import { GovernanceTestBase } from './GovernanceTestBase.t.sol';
 import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 import { IProxiable } from '../../../contracts/interfaces/IProxiable.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
-import 'forge-std/console.sol';
 
 contract GovernanceHarnessTest is GovernanceTestBase {
     /**
