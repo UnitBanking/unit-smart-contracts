@@ -349,26 +349,21 @@ contract Governance is IGovernance, Proxiable, Ownable {
         }
 
         Proposal storage proposal = proposals[proposalId];
-
+        address proposer = proposal.proposer;
         // Proposer can cancel
-        if (msg.sender != proposal.proposer) {
-            // Whitelisted proposers can't be canceled for falling below proposal threshold
-            if (isWhitelisted(proposal.proposer)) {
-                if (
-                    mineToken.getPriorVotes(proposal.proposer, block.number - 1) >= proposalThreshold ||
-                    msg.sender != whitelistGuardian
-                ) {
-                    revert();
-                }
-            } else {
-                if (mineToken.getPriorVotes(proposal.proposer, block.number - 1) >= proposalThreshold) {
-                    revert GovernanceVotesAboveProposalThreshold();
-                }
+        if (msg.sender != proposer) {
+            if (mineToken.getPriorVotes(proposer, block.number - 1) >= proposalThreshold) {
+                revert GovernanceVotesAboveProposalThreshold();
+            }
+
+            // Whitelisted proposers can't be canceled for falling below proposal threshold except whitelist guardian
+            if (isWhitelisted(proposer) && msg.sender != whitelistGuardian) {
+                revert GovernanceOnlyWhitelistGuardianCanCancelProposalWithVotesBelowThreshold();
             }
         }
 
         proposal.canceled = true;
-        for (uint256 i = 0; i < proposal.targets.length; i++) {
+        for (uint256 i; i < proposal.targets.length; ++i) {
             timelock.cancelTransaction(
                 proposal.targets[i],
                 proposal.values[i],
@@ -460,7 +455,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
      * @return Proposal state
      */
     function getState(uint256 proposalId) public view returns (ProposalState) {
-        if (proposalId == 0 && proposalId > proposalCount) {
+        if (proposalId == 0 || proposalId > proposalCount) {
             revert GovernanceInvalidProposalId();
         }
         Proposal storage proposal = proposals[proposalId];
