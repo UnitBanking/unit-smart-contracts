@@ -232,11 +232,13 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         address user = vm.addr(100);
 
         // Act
+        bool isWhitelistedBefore = governanceProxy.isWhitelisted(user);
+        assertEq(isWhitelistedBefore, false);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10);
 
         // Assert
-        bool isWhitelisted = governanceProxy.isWhitelisted(user);
-        assertEq(isWhitelisted, true);
+        bool isWhitelistedAfter = governanceProxy.isWhitelisted(user);
+        assertEq(isWhitelistedAfter, true);
     }
 
     function test_setWhitelistAccountExpiration_SuccessfullySetsByWhitelistGuardian() public {
@@ -245,11 +247,115 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         governanceProxy.setWhitelistGuardian(wallet);
 
         // Act
+        bool isWhitelistedBefore = governanceProxy.isWhitelisted(user);
+        assertEq(isWhitelistedBefore, false);
         vm.prank(wallet);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10);
 
         // Assert
-        bool isWhitelisted = governanceProxy.isWhitelisted(user);
-        assertEq(isWhitelisted, true);
+        bool isWhitelistedAfter = governanceProxy.isWhitelisted(user);
+        assertEq(isWhitelistedAfter, true);
+    }
+
+    /**
+     * ================ isWhitelisted() ================
+     */
+
+    function test_isWhitelisted_SuccessfullyReturnsValue() public {
+        // Arrange
+        address user = vm.addr(100);
+        uint256 expiration = block.timestamp + 10;
+        uint256 timestampBeforeExpiration = expiration - 1;
+
+        // Act & Assert
+        assertEq(governanceProxy.isWhitelisted(user), false);
+        governanceProxy.setWhitelistAccountExpiration(user, expiration);
+        assertEq(governanceProxy.isWhitelisted(user), true);
+
+        vm.warp(timestampBeforeExpiration);
+        assertEq(governanceProxy.isWhitelisted(user), true);
+        vm.warp(expiration);
+        assertEq(governanceProxy.isWhitelisted(user), false);
+    }
+
+    /**
+     * ================ getReceipt() ================
+     */
+
+    function test_getReceipt_SuccessfullyReturnsValue() public {
+        // Arrange
+        uint256 quorumVotes = governanceProxy.quorumVotes();
+        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        vm.prank(user);
+        mineToken.delegate(user);
+        governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
+        uint256 proposalId = _propose(user);
+        _voteAndRollToEndBlock(proposalId, user);
+
+        // Act
+        IGovernance.Receipt memory receipt = governanceProxy.getReceipt(proposalId, user);
+        IGovernance.Receipt memory nonVoterReceipt = governanceProxy.getReceipt(proposalId, wallet);
+
+        // Assert
+        assertEq(receipt.hasVoted, true);
+        assertEq(receipt.support, 1);
+        assertEq(receipt.votes, mineToken.balanceOf(user));
+
+        assertEq(nonVoterReceipt.hasVoted, false);
+        assertEq(nonVoterReceipt.support, 0);
+        assertEq(nonVoterReceipt.votes, 0);
+    }
+
+    /**
+     * ================ getActions() ================
+     */
+
+    function test_getActions_SuccessfullyReturnsValue() public {
+        // Arrange
+        uint256 quorumVotes = governanceProxy.quorumVotes();
+        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        vm.prank(user);
+        mineToken.delegate(user);
+        governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
+        uint256 proposalId = _propose(user);
+        _voteAndRollToEndBlock(proposalId, user);
+
+        address[] memory expectedTargets = new address[](1);
+        expectedTargets[0] = address(mineToken);
+        uint256[] memory expectedValues = new uint256[](1);
+        expectedValues[0] = 0;
+        string[] memory expectedSignatures = new string[](1);
+        expectedSignatures[0] = 'transfer(address,uint256)';
+        bytes[] memory expectedCalldatas = new bytes[](1);
+        expectedCalldatas[0] = abi.encode(user, 1e18);
+
+        // Act
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            string[] memory signatures,
+            bytes[] memory calldatas
+        ) = governanceProxy.getActions(proposalId);
+        (
+            address[] memory nonProposalTargets,
+            uint256[] memory nonProposalValues,
+            string[] memory nonProposalSignatures,
+            bytes[] memory nonProposalCalldatas
+        ) = governanceProxy.getActions(governanceProxy.proposalCount() + 1);
+
+        // Assert
+        assertEq(targets.length, 1);
+        assertEq(values.length, 1);
+        assertEq(signatures.length, 1);
+        assertEq(calldatas.length, 1);
+        assertEq(targets[0], expectedTargets[0]);
+        assertEq(values[0], expectedValues[0]);
+        assertEq(signatures[0], expectedSignatures[0]);
+        assertEq(calldatas[0], expectedCalldatas[0]);
+
+        assertEq(nonProposalTargets.length, 0);
+        assertEq(nonProposalValues.length, 0);
+        assertEq(nonProposalSignatures.length, 0);
+        assertEq(nonProposalCalldatas.length, 0);
     }
 }

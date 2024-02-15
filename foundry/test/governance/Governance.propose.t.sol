@@ -59,7 +59,7 @@ contract GovernanceProposeTest is GovernanceTestBase {
         governanceProxy.propose(targets, values, signatures, calldatas, 'proposal #1');
     }
 
-    function test_propose_SuccesfullyCreatesProposal() public {
+    function test_propose_SuccessfullyCreatesProposal() public {
         // Arrange
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
