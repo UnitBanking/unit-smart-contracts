@@ -251,6 +251,6 @@ interface IGovernance {
     /// @notice Thrown when an unauthorized sender tries to call an admin function.
     error GovernanceUnauthorizedSender(address sender);
 
-    /// @notice Thrown when an unauthorized sender tries to cancel a proposal proposed by whitelisted proposor.
-    error GovernanceOnlyWhitelistGuardianCanCancelProposalWithVotesBelowThreshold();
+    /// @notice Thrown when an unauthorized sender tries to cancel a proposal proposed by whitelisted proposer.
+    error GovernanceUnauthorizedCanceler();
 }

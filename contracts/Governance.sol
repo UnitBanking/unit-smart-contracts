@@ -357,7 +357,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
 
             // Whitelisted proposers can't be canceled for falling below proposal threshold except whitelist guardian
             if (isWhitelisted(proposer) && msg.sender != whitelistGuardian) {
-                revert GovernanceOnlyWhitelistGuardianCanCancelProposalWithVotesBelowThreshold();
+                revert GovernanceUnauthorizedCanceler();
             }
         }
 
