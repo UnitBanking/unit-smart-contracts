@@ -91,6 +91,7 @@ abstract contract GovernanceTestBase is Test {
     }
 
     function _proposeWithDuplicatedTxs(address proposer) internal returns (uint256 proposalId) {
+        // Proposal includes transfering 1 MINE token to the proposer's account
         address[] memory targets = new address[](2);
         targets[0] = address(mineToken);
         targets[1] = address(mineToken);
