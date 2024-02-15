@@ -35,6 +35,7 @@ abstract contract GovernanceTestBase is Test {
         mineToken = new MineToken(); // TODO: use Proxy
         mineToken.initialize();
         mineToken.setMinter(wallet, true);
+        mineToken.setBurner(address(0), true);
 
         // set up Timelock contract
         timelock = new Timelock(3 days);
