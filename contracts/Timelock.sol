@@ -106,7 +106,6 @@ contract Timelock is ITimelock, Ownable {
             callData = abi.encodePacked(bytes4(keccak256(bytes(signature))), data);
         }
 
-        // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{ value: value }(callData);
         if (!success) {
             revert TimelockTransactionExecutionFailed();

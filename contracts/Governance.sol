@@ -264,9 +264,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
         uint256 newProposalID = ++proposalCount;
         Proposal storage newProposal = proposals[newProposalID];
 
-        // This should never happen but add a check in case.
-        require(newProposal.id == 0, 'Governance::propose: ProposalID collsion'); // TODO: is this really necessary?
-
         newProposal.id = newProposalID;
         newProposal.proposer = msg.sender;
         newProposal.eta = 0;
