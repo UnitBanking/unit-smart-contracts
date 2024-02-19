@@ -118,34 +118,25 @@ contract TimelockHarnessTest is TimelockTestBase {
         assertEq(dummy.num(), newNum);
     }
 
-    function test_executeTransaction_SuccessfullyExecuteTransactionWithWrongSignature() public {
+    function test_executeTransaction_RevertsWhenExecuteTransactionWithWrongSignature() public {
         // Arrange
-        uint256 oldDelay = timelock.delay();
         uint256 newDelay = 10 days;
         address target = address(timelock);
         uint256 value = 0;
-        // string memory correctSignature = 'setDelay(uint256)';
         string memory wrongSignature = 'setDlay(uint256)';
         bytes memory data = abi.encode(newDelay);
         uint256 eta = block.timestamp + 5 days;
-        // bytes32 txHashWithCorrectSignature = keccak256(abi.encode(target, value, correctSignature, data, eta));
-        bytes32 txHashWithWrongSignature = keccak256(abi.encode(target, value, wrongSignature, data, eta));
 
-        // Act
+        // Act & Assert
         // queue transaction
         vm.prank(wallet);
         timelock.queueTransaction(target, value, wrongSignature, data, eta);
 
         // execute transaction
         vm.warp(eta + 1);
-        vm.expectEmit();
-        emit ITimelock.TransactionExecuted(txHashWithWrongSignature, target, value, wrongSignature, data, eta);
+        vm.expectRevert(ITimelock.TimelockTransactionExecutionFailed.selector);
         vm.prank(wallet);
         timelock.executeTransaction(target, value, wrongSignature, data, eta);
-
-        // Assert
-        assertEq(timelock.queuedTransactions(txHashWithWrongSignature), false);
-        assertEq(timelock.delay(), oldDelay);
     }
 
     function test_executeTransaction_onDummy_RevertsWhenCallingWithWrongSignatureAndTargetHasNoFallback() public {
