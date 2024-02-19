@@ -60,4 +60,30 @@ contract TimelockHarnessTest is TimelockTestBase {
         vm.expectRevert(abi.encodeWithSelector(ITimelock.TimelockInvalidSender.selector, address(this)));
         timelock.setDelay(newDelay);
     }
+
+    function test_setDelay_RevertsWhenSettingValuesOutOfBound() public {
+        // Arrange
+        uint256 delayTooShort = timelock.MINIMUM_DELAY() - 1;
+        uint256 delayTooLong = timelock.MAXIMUM_DELAY() + 1;
+
+        // Act & Assert
+        vm.expectRevert(abi.encodeWithSelector(ITimelock.TimelockInvalidDelay.selector));
+        timelock.setDelayThroughItself(delayTooShort);
+        vm.expectRevert(abi.encodeWithSelector(ITimelock.TimelockInvalidDelay.selector));
+        timelock.setDelayThroughItself(delayTooLong);
+    }
+
+    /**
+     * ================ receive() ================
+     */
+
+    function test_receive_SuccessfullySendsEth() public {
+        // Arrange & Act
+        vm.prank(wallet);
+        (bool success, ) = address(timelock).call{ value: 1 ether }('');
+
+        // Assert
+        assertEq(success, true);
+        assertEq(address(timelock).balance, 1 ether);
+    }
 }

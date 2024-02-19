@@ -116,7 +116,5 @@ contract Timelock is ITimelock, Ownable {
         return returnData;
     }
 
-    fallback() external payable {}
-
     receive() external payable {}
 }
