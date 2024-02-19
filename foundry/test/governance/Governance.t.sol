@@ -6,6 +6,8 @@ import { GovernanceTestBase } from './GovernanceTestBase.t.sol';
 import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 import { IProxiable } from '../../../contracts/interfaces/IProxiable.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
+import { GovernanceHarness } from '../../../contracts/test/GovernanceHarness.sol';
+import { Proxy } from '../../../contracts/Proxy.sol';
 
 contract GovernanceHarnessTest is GovernanceTestBase {
     /**
@@ -80,6 +82,102 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         assertEq(owner, address(this));
         assertEq(initialized, true);
         assertNotEq(timelock, address(0));
+    }
+
+    function test_initialize_RevertsWhenVotingPeriodOutOfBounds() public {
+        // Arrange
+        governanceImplementation = new GovernanceHarness(address(mineToken));
+        governanceProxyType = new Proxy(address(this));
+        uint256 votingPeriodTooShort = governanceImplementation.MIN_VOTING_PERIOD() - 1;
+        uint256 votingPeriodTooLong = governanceImplementation.MAX_VOTING_PERIOD() + 1;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidVotingPeriod.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                votingPeriodTooShort, // blocks
+                2, // blocks
+                1000e18
+            )
+        );
+        vm.expectRevert(IGovernance.GovernanceInvalidVotingPeriod.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                votingPeriodTooLong, // blocks
+                2, // blocks
+                1000e18
+            )
+        );
+    }
+
+    function test_initialize_RevertsWhenVotingDelayOutOfBounds() public {
+        // Arrange
+        governanceImplementation = new GovernanceHarness(address(mineToken));
+        governanceProxyType = new Proxy(address(this));
+        uint256 votingDelayTooShort = governanceImplementation.MIN_VOTING_DELAY() - 1;
+        uint256 votingDelayTooLong = governanceImplementation.MAX_VOTING_DELAY() + 1;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidVotingDelay.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                5760, // blocks
+                votingDelayTooShort, // blocks
+                1000e18
+            )
+        );
+        vm.expectRevert(IGovernance.GovernanceInvalidVotingDelay.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                5760, // blocks
+                votingDelayTooLong, // blocks
+                1000e18
+            )
+        );
+    }
+
+    function test_initialize_RevertsWhenProposalThresholdOutOfBounds() public {
+        // Arrange
+        governanceImplementation = new GovernanceHarness(address(mineToken));
+        governanceProxyType = new Proxy(address(this));
+        uint256 proposalThresholdTooLow = governanceImplementation.MIN_PROPOSAL_THRESHOLD() - 1;
+        uint256 proposalThresholdTooHigh = governanceImplementation.MAX_PROPOSAL_THRESHOLD() + 1;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalThreshold.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                5760, // blocks
+                2, // blocks
+                proposalThresholdTooLow
+            )
+        );
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalThreshold.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                5760, // blocks
+                2, // blocks
+                proposalThresholdTooHigh
+            )
+        );
     }
 
     /**
@@ -356,5 +454,27 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         assertEq(nonProposalValues.length, 0);
         assertEq(nonProposalSignatures.length, 0);
         assertEq(nonProposalCalldatas.length, 0);
+    }
+
+    /**
+     * ================ getState() ================
+     */
+
+    function test_getState_RevertsWhenProposalIdIsZero() public {
+        // Arrange
+        uint256 proposalId = 0;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalId.selector);
+        governanceProxy.getState(proposalId);
+    }
+
+    function test_getState_RevertsWhenProposalIdIsTooBig() public {
+        // Arrange
+        uint256 proposalId = governanceProxy.proposalCount() + 1;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalId.selector);
+        governanceProxy.getState(proposalId);
     }
 }

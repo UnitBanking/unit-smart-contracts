@@ -306,12 +306,8 @@ contract Governance is IGovernance, Proxiable, Ownable {
         }
         Proposal storage proposal = proposals[proposalId];
         uint256 eta = block.timestamp + timelock.delay();
-        for (uint256 i; i < proposal.targets.length; ) {
+        for (uint256 i; i < proposal.targets.length; ++i) {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
-
-            unchecked {
-                ++i;
-            }
         }
         proposal.eta = eta;
         emit ProposalQueued(proposalId, eta);
