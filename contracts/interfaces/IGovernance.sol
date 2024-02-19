@@ -194,6 +194,9 @@ interface IGovernance {
      * ================ ERRORS ================
      */
 
+    /// @notice Thrown when timelock is not set.
+    error GovernanceTimelockIsNotSet();
+
     /// @notice Thrown when proposer votes below proposal threshold.
     error GovernanceVotesBelowProposalThreshold();
 

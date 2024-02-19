@@ -4,8 +4,40 @@ pragma solidity 0.8.23;
 
 import { GovernanceTestBase } from './GovernanceTestBase.t.sol';
 import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
+import { GovernanceHarness } from '../../../contracts/test/GovernanceHarness.sol';
+import { Proxy } from '../../../contracts/Proxy.sol';
 
 contract GovernanceProposeTest is GovernanceTestBase {
+    function test_propose_RevertsWhenTimelockIsNotSet() public {
+        // Arrange
+        // set up new Governance contract without timelock
+        governanceImplementation = new GovernanceHarness(address(mineToken));
+        governanceProxyType = new Proxy(address(this));
+
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                address(0),
+                5760, // blocks
+                2, // blocks
+                1000e18
+            )
+        );
+
+        governanceProxy = GovernanceHarness(payable(governanceProxyType));
+        governanceProxy.setWhitelistAccountExpiration(wallet, block.timestamp + 10_000);
+
+        address[] memory targets;
+        uint256[] memory values;
+        string[] memory signatures;
+        bytes[] memory calldatas;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceTimelockIsNotSet.selector);
+        governanceProxy.propose(targets, values, signatures, calldatas, 'proposal #1');
+    }
+
     function test_propose_RevertsWhenVotesBelowProposalThreshold() public {
         // Arrange
         address[] memory targets;

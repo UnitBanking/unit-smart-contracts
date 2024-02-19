@@ -227,8 +227,10 @@ contract Governance is IGovernance, Proxiable, Ownable {
         bytes[] memory calldatas,
         string memory description
     ) public returns (uint256) {
-        // Reject proposals before initiating as Governor
-        require(address(timelock) != address(0), 'Governance::propose: Governance not active');
+        // Reject proposals if timelock is not set
+        if (address(timelock) == address(0)) {
+            revert GovernanceTimelockIsNotSet();
+        }
         // Allow addresses above proposal threshold and whitelisted addresses to propose
         if (
             mineToken.getPriorVotes(msg.sender, (block.number - 1)) <= proposalThreshold && !isWhitelisted(msg.sender)
