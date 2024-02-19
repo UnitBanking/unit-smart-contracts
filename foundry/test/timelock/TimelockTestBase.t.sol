@@ -3,10 +3,6 @@
 pragma solidity 0.8.23;
 
 import { Test } from 'forge-std/Test.sol';
-import { GovernanceHarness } from '../../../contracts/test/GovernanceHarness.sol';
-import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
-import { MineToken } from '../../../contracts/MineToken.sol';
-import { Proxy } from '../../../contracts/Proxy.sol';
 import { TimelockHarness } from '../../../contracts/test/TimelockHarness.sol';
 import { Dummy } from '../../../contracts/test/Dummy.sol';
 
