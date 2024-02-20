@@ -59,9 +59,9 @@ interface IUnitAuction {
      * amount that can be bought in a UNIT contraction auction at the moment. If the desired sell amount is greater
      * than the protocol can allow, returns the maximum possible at the moment.
      * If no contraction auction is active, the call reverts.
-     * @param desiredSellAmount The UNIT amount the caller wishes to sell in an auction.
-     * @return possibleSellAmount The maximum possible UNIT amount that can be currently sold.
-     * @return collateralAmount The collateral amount that would be bought for {possibleSellAmount}.
+     * @param desiredUnitAmount The UNIT amount the caller wishes to sell in an auction.
+     * @return possibleUnitAmount The maximum possible UNIT amount that can be currently sold.
+     * @return collateralAmount The collateral amount that would be bought for {possibleUnitAmount}.
      */
     function quoteSellUnit(
         uint256 desiredUnitAmount

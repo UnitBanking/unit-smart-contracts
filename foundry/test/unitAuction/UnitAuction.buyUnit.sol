@@ -77,7 +77,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IUnitAuction.UnitAuctionResultingReserveRatioOutOfRange.selector,
-                1047687308787247517
+                1051049999999999999
             )
         );
         unitAuctionProxy.buyUnit(collateralAmount);
@@ -106,7 +106,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         unitAuctionProxy.refreshState();
         vm.warp(block.timestamp + 33 minutes);
 
-        uint256 unitAmount = 100051798818530130;
+        uint256 unitAmount = 99948227998754844;
         uint256 collateralAmount = 1e17;
 
         // Act & Assert
@@ -129,7 +129,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
         uint256 unitTotalSupplyBefore = unitToken.totalSupply();
 
-        uint256 unitAmount = 100161971476592491;
+        uint256 unitAmount = 99838290446758684;
         uint256 collateralAmount = 1e17;
 
         // Act
@@ -166,7 +166,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
         uint256 unitTotalSupplyBefore = unitToken.totalSupply();
 
-        uint256 unitAmount = 100161971476592491;
+        uint256 unitAmount = 99838290446758684;
         uint256 collateralAmount = 1e17;
 
         // Act

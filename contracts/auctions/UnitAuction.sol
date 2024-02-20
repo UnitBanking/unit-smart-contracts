@@ -288,7 +288,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (currentPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
         }
-        uint256 unitAmount = (collateralAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
+        uint256 unitAmount = (collateralAmount * UNITUSD_PRICE_PRECISION) / currentPrice;
 
         unitToken.mint(msg.sender, unitAmount);
 
