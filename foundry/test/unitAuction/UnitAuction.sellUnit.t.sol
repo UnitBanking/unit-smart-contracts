@@ -180,7 +180,7 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         // Act
         vm.deal(user, 1 ether);
         vm.startPrank(user);
-        (uint256 maxUnitSellAmount, uint256 collateralAmount) = unitAuctionProxy.getMaxSellAmount();
+        (uint256 maxUnitSellAmount, uint256 collateralAmount) = unitAuctionProxy.getMaxSellUnitAmount();
         unitToken.approve(address(unitAuctionProxy), maxUnitSellAmount);
         unitAuctionProxy.sellUnit(maxUnitSellAmount);
         vm.stopPrank();
@@ -252,7 +252,7 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         // Act
         vm.deal(user, 1 ether);
         vm.startPrank(user);
-        (uint256 maxUnitSellAmount, uint256 collateralAmount) = unitAuctionProxy.getMaxSellAmount();
+        (uint256 maxUnitSellAmount, uint256 collateralAmount) = unitAuctionProxy.getMaxSellUnitAmount();
         uint256 tooHighUnitSellAmount = maxUnitSellAmount + 1;
         unitToken.approve(address(unitAuctionProxy), tooHighUnitSellAmount);
         vm.expectRevert(
@@ -265,12 +265,12 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         vm.stopPrank();
 
         // Assert
-        uint256 expectedCollateralAmount = (maxUnitSellAmount * unitAuctionProxy.getCurrentSellPrice()) /
+        uint256 expectedCollateralAmount = (maxUnitSellAmount * unitAuctionProxy.getCurrentSellUnitPrice()) /
             unitAuctionProxy.UNITUSD_PRICE_PRECISION();
         assertEq(
             collateralAmount,
             expectedCollateralAmount,
-            'unitAuctionProxy.getMaxSellAmount() returned invalid collateral amount'
+            'unitAuctionProxy.getMaxSellUnitAmount() returned invalid collateral amount'
         );
 
         uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
@@ -313,27 +313,27 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         unitAuctionProxy.sellUnit(1e18);
     }
 
-    function test_sellUnit_GetMaxSellAmountAtAuctionStart() public {
-        _test_sellUnit_GetMaxSellAmount(0 seconds);
+    function test_sellUnit_GetMaxSellUnitAmountAtAuctionStart() public {
+        _test_sellUnit_GetMaxSellUnitAmount(0 seconds);
     }
 
-    function test_sellUnit_GetMaxSellAmountMidAuction() public {
-        _test_sellUnit_GetMaxSellAmount(unitAuctionProxy.contractionAuctionMaxDuration() / 2);
+    function test_sellUnit_GetMaxSellUnitAmountMidAuction() public {
+        _test_sellUnit_GetMaxSellUnitAmount(unitAuctionProxy.contractionAuctionMaxDuration() / 2);
     }
 
-    function test_sellUnit_GetMaxSellAmountAtLastSecond() public {
-        _test_sellUnit_GetMaxSellAmount(unitAuctionProxy.contractionAuctionMaxDuration() - 1);
+    function test_sellUnit_GetMaxSellUnitAmountAtLastSecond() public {
+        _test_sellUnit_GetMaxSellUnitAmount(unitAuctionProxy.contractionAuctionMaxDuration() - 1);
     }
 
-    function test_sellUnit_GetMaxSellAmountAtAuctionTermination() public {
-        _test_sellUnit_GetMaxSellAmount(unitAuctionProxy.contractionAuctionMaxDuration());
+    function test_sellUnit_GetMaxSellUnitAmountAtAuctionTermination() public {
+        _test_sellUnit_GetMaxSellUnitAmount(unitAuctionProxy.contractionAuctionMaxDuration());
     }
 
-    function test_sellUnit_GetMaxSellAmountBeyondAuctionTermination() public {
-        _test_sellUnit_GetMaxSellAmount(unitAuctionProxy.contractionAuctionMaxDuration() + 1);
+    function test_sellUnit_GetMaxSellUnitAmountBeyondAuctionTermination() public {
+        _test_sellUnit_GetMaxSellUnitAmount(unitAuctionProxy.contractionAuctionMaxDuration() + 1);
     }
 
-    function _test_sellUnit_GetMaxSellAmount(uint256 timeAfterAuctionStart) internal {
+    function _test_sellUnit_GetMaxSellUnitAmount(uint256 timeAfterAuctionStart) internal {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
@@ -347,13 +347,13 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
 
         // Act
         vm.prank(user);
-        (uint256 maxUnitSellAmount, uint256 collateralAmount) = unitAuctionProxy.getMaxSellAmount();
+        (uint256 maxUnitSellAmount, uint256 collateralAmount) = unitAuctionProxy.getMaxSellUnitAmount();
 
         // Assert
         uint256 expectedMaxUnitSellAmount = bondingCurveProxy.quoteUnitBurnAmountForHighRR(
-            unitAuctionProxy.getCurrentSellPrice()
+            unitAuctionProxy.getCurrentSellUnitPrice()
         );
-        uint256 expectedCollateralAmount = (expectedMaxUnitSellAmount * unitAuctionProxy.getCurrentSellPrice()) /
+        uint256 expectedCollateralAmount = (expectedMaxUnitSellAmount * unitAuctionProxy.getCurrentSellUnitPrice()) /
             unitAuctionProxy.UNITUSD_PRICE_PRECISION();
         assertEq(maxUnitSellAmount, expectedMaxUnitSellAmount);
         assertEq(collateralAmount, expectedCollateralAmount);

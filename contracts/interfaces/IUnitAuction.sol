@@ -74,13 +74,13 @@ interface IUnitAuction {
      * @return maxUnitAmount The maximum UNIT amount that will result in a successfull bid in a contraction auction.
      * @return collateralAmount The collateral amount that will be bought in the bid.
      */
-    function getMaxSellAmount() external returns (uint256 maxUnitAmount, uint256 collateralAmount);
+    function getMaxSellUnitAmount() external returns (uint256 maxUnitAmount, uint256 collateralAmount);
 
     /**
      * @notice Returns the current UNIT price in collateral token in a contraction auction (if one is active).
      * If no contraction auction is active, the call reverts.
      */
-    function getCurrentSellPrice() external returns (uint256 currentSellPrice);
+    function getCurrentSellUnitPrice() external returns (uint256 currentSellPrice);
 
     /**
      * @notice Bids in the UNIT expansion auction.

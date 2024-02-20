@@ -207,7 +207,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        uint256 currentPrice = _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime);
+        uint256 currentPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
         uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
 
@@ -228,25 +228,25 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @inheritdoc IUnitAuction
      */
-    function getMaxSellAmount() external view returns (uint256 maxUnitAmount, uint256 collateralAmount) {
+    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmount, uint256 collateralAmount) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
         }
 
-        return _getMaxSellAmount(_getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime));
+        return _getMaxSellUnitAmount(_getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime));
     }
 
     /**
      * @inheritdoc IUnitAuction
      */
-    function getCurrentSellPrice() external view returns (uint256 currentSellPrice) {
+    function getCurrentSellUnitPrice() external view returns (uint256 currentSellPrice) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
         }
 
-        return _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime);
+        return _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
     }
 
     /**
@@ -262,7 +262,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         (possibleSellAmount, collateralAmount) = _getPossibleSellAmount(
             desiredSellAmount,
-            _getCurrentSellPrice(_auctionState.startPrice, _auctionState.startTime)
+            _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime)
         );
     }
 
@@ -325,7 +325,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
-    function _getCurrentSellPrice(
+    function _getCurrentSellUnitPrice(
         uint256 startPrice,
         uint256 startTime
     ) internal view returns (uint256 currentSellPrice) {
@@ -340,7 +340,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             uUNIT;
     }
 
-    function _getMaxSellAmount(
+    function _getMaxSellUnitAmount(
         uint256 unitCollateralPrice
     ) internal view returns (uint256 maxSellAmount, uint256 collateralAmount) {
         maxSellAmount = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
@@ -368,7 +368,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 desiredSellAmount,
         uint256 unitCollateralPrice
     ) internal view returns (uint256 possibleSellAmount, uint256 collateralAmount) {
-        (uint256 maxSellAmount, uint256 maxCollateralAmount) = _getMaxSellAmount(unitCollateralPrice);
+        (uint256 maxSellAmount, uint256 maxCollateralAmount) = _getMaxSellUnitAmount(unitCollateralPrice);
 
         if (desiredSellAmount < maxSellAmount) {
             possibleSellAmount = desiredSellAmount;
