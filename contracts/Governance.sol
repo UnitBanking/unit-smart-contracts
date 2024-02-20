@@ -511,11 +511,11 @@ contract Governance is IGovernance, Proxiable, Ownable {
         uint96 votes = mineToken.getPriorVotes(voter, proposal.startBlock);
 
         if (support == 0) {
-            proposal.againstVotes = proposal.againstVotes + votes;
+            proposal.againstVotes += votes;
         } else if (support == 1) {
-            proposal.forVotes = proposal.forVotes + votes;
+            proposal.forVotes += votes;
         } else if (support == 2) {
-            proposal.abstainVotes = proposal.abstainVotes + votes;
+            proposal.abstainVotes += votes;
         }
 
         receipt.hasVoted = true;
