@@ -148,7 +148,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
         // Act
         vm.expectEmit();
-        emit IUnitAuction.StartAuction(AUCTION_VARIANT_CONTRACTION, uint32(block.timestamp), price);
+        emit IUnitAuction.AuctionStarted(AUCTION_VARIANT_CONTRACTION, uint32(block.timestamp), price);
         unitAuctionProxy.exposed_startContractionAuction();
 
         // Assert
@@ -168,7 +168,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
 
         // Act
         vm.expectEmit();
-        emit IUnitAuction.StartAuction(AUCTION_VARIANT_EXPANSION, uint32(block.timestamp), uint216(price));
+        emit IUnitAuction.AuctionStarted(AUCTION_VARIANT_EXPANSION, uint32(block.timestamp), uint216(price));
         unitAuctionProxy.exposed_startExpansionAuction();
 
         // Assert
@@ -185,7 +185,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
     function test_terminateAuction_SuccessfullyTerminates() public {
         // Arrnage & Act
         vm.expectEmit();
-        emit IUnitAuction.TerminateAuction();
+        emit IUnitAuction.AuctionTerminated();
         unitAuctionProxy.exposed_terminateAuction();
 
         // Assert

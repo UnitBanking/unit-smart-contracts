@@ -134,7 +134,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
 
         // Act
         vm.expectEmit();
-        emit IUnitAuction.BuyUnit(user, unitAmount, collateralAmount);
+        emit IUnitAuction.UnitBought(user, unitAmount, collateralAmount);
         vm.prank(user);
         unitAuctionProxy.buyUnit(collateralAmount);
 
@@ -171,12 +171,12 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
 
         // Act
         vm.expectEmit();
-        emit IUnitAuction.BuyUnit(user, unitAmount, collateralAmount);
+        emit IUnitAuction.UnitBought(user, unitAmount, collateralAmount);
         vm.prank(user);
         unitAuctionProxy.buyUnit(collateralAmount);
 
         vm.expectEmit();
-        emit IUnitAuction.BuyUnit(user, unitAmount, collateralAmount);
+        emit IUnitAuction.UnitBought(user, unitAmount, collateralAmount);
         vm.prank(user);
         unitAuctionProxy.buyUnit(collateralAmount);
 

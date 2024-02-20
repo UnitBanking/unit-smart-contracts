@@ -19,7 +19,6 @@ TODO:
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
 - Add amount in max/amount out min in bid calls
-- Use past tense in the event naming convention, e.g. UnitSold, UnitBought, AuctionStarted, AuctionTerminated?
 - Move comments for the IUnitAuction fuctions to the interface
 */
 
@@ -228,7 +227,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
-        emit SellUnit(msg.sender, unitAmount, collateralAmount);
+        emit UnitSold(msg.sender, unitAmount, collateralAmount);
     }
 
     /**
@@ -321,7 +320,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
-        emit BuyUnit(msg.sender, unitAmount, collateralAmount);
+        emit UnitBought(msg.sender, unitAmount, collateralAmount);
     }
 
     function quoteBuyUnit(uint256 collateralAmount) external view returns (uint256 unitAmount) {
@@ -426,7 +425,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         _auctionState = _getNewContractionAuction();
         auctionState = _auctionState;
 
-        emit StartAuction(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
+        emit AuctionStarted(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
     }
 
     function _getNewExpansionAuction() internal view returns (AuctionState memory _auctionState) {
@@ -441,7 +440,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         _auctionState = _getNewExpansionAuction();
         auctionState = _auctionState;
 
-        emit StartAuction(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
+        emit AuctionStarted(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
     }
 
     function _getNullAuction() internal pure returns (AuctionState memory _auctionState) {
@@ -452,7 +451,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         _auctionState = _getNullAuction();
         auctionState = _auctionState;
 
-        emit TerminateAuction();
+        emit AuctionTerminated();
     }
 
     function inContractionRange(uint256 reserveRatio) internal pure returns (bool) {

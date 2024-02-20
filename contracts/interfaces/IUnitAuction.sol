@@ -7,10 +7,10 @@ interface IUnitAuction {
      * ================ EVENTS ================
      */
 
-    event SellUnit(address sender, uint256 unitAmount, uint256 collateralAmount);
-    event BuyUnit(address sender, uint256 unitAmount, uint256 collateralAmount);
-    event StartAuction(uint8 variant, uint32 startTime, uint216 startPrice);
-    event TerminateAuction();
+    event UnitSold(address sender, uint256 unitAmount, uint256 collateralAmount);
+    event UnitBought(address sender, uint256 unitAmount, uint256 collateralAmount);
+    event AuctionStarted(uint8 variant, uint32 startTime, uint216 startPrice);
+    event AuctionTerminated();
 
     /**
      * ================ ERRORS ================
