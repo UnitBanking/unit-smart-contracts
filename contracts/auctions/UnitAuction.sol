@@ -19,7 +19,6 @@ TODO:
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
 - Add amount in max/amount out min in bid calls
-- Move comments for the IUnitAuction fuctions to the interface
 */
 
 /**
@@ -200,11 +199,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Bids in the UNIT contraction auction.
-     * @dev Assumes a non-reentrant and non-rebasing collateral token.
-     * TODO: When changing the collateral token to an untrusted one (e.g. with unexpected side effects), consider
-     * taking measures to prevent potential reentrancy.
-     * @param unitAmount Unit token amount to be sold for collateral token.
+     * @inheritdoc IUnitAuction
      */
     function sellUnit(uint256 unitAmount) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
@@ -231,11 +226,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Returns the maximum UNIT amount a user can successfully sell in a contraction auction at the moment
-     * and the corresponding collateral amount they will receive.
-     * If no contraction auction is active, the call reverts.
-     * @return maxUnitAmount The maximum UNIT amount that will result in a successfull bid in a contraction auction.
-     * @return collateralAmount The collateral amount that will be bought in the bid.
+     * @inheritdoc IUnitAuction
      */
     function getMaxSellAmount() external view returns (uint256 maxUnitAmount, uint256 collateralAmount) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
@@ -247,8 +238,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Returns the current UNIT price in collateral token in a contraction auction (if one is active).
-     * If no contraction auction is active, the call reverts.
+     * @inheritdoc IUnitAuction
      */
     function getCurrentSellPrice() external view returns (uint256 currentSellPrice) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
@@ -260,13 +250,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Given the desired UNIT sell amount, calculates the possible sell amount and the corresponding collateral
-     * amount that can be bought in a UNIT contraction auction at the moment. If the desired sell amount is greater
-     * than the protocol can allow, returns the maximum possible at the moment.
-     * If no contraction auction is active, the call reverts.
-     * @param desiredSellAmount The UNIT amount the caller wishes to sell in an auction.
-     * @return possibleSellAmount The maximum possible UNIT amount that can be currently sold.
-     * @return collateralAmount The collateral amount that would be bought for {possibleSellAmount}.
+     * @inheritdoc IUnitAuction
      */
     function quoteSellUnit(
         uint256 desiredSellAmount
@@ -283,11 +267,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Bids in the UNIT expansion auction.
-     * @dev Assumes a non-reentrant and non-rebasing collateral token.
-     * TODO: When changing the collateral token to an untrusted one (e.g. with unexpected side effects), consider
-     * taking measures to prevent potential reentrancy.
-     * @param collateralAmount Collateral token amount to be sold for UNIT token.
+     * @inheritdoc IUnitAuction
      */
     function buyUnit(uint256 collateralAmount) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
@@ -323,6 +303,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         emit UnitBought(msg.sender, unitAmount, collateralAmount);
     }
 
+    /**
+     * @inheritdoc IUnitAuction
+     */
     function quoteBuyUnit(uint256 collateralAmount) external view returns (uint256 unitAmount) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
