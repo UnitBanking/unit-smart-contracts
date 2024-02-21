@@ -201,18 +201,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @inheritdoc IUnitAuction
      */
-    function sellUnit(uint256 unitAmount) external {
+    function sellUnit(uint256 unitAmountIn) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        uint256 currentPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
+        uint256 unitCollateralPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
-        uint256 collateralAmount = (unitAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
+        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
 
-        unitToken.burnFrom(msg.sender, unitAmount);
-        bondingCurve.transferCollateralToken(msg.sender, collateralAmount);
+        unitToken.burnFrom(msg.sender, unitAmountIn);
+        bondingCurve.transferCollateralToken(msg.sender, collateralAmountOut);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
         if (reserveRatioAfter <= reserveRatioBefore) {
@@ -222,13 +222,13 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
-        emit UnitSold(msg.sender, unitAmount, collateralAmount);
+        emit UnitSold(msg.sender, unitAmountIn, collateralAmountOut);
     }
 
     /**
      * @inheritdoc IUnitAuction
      */
-    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmount, uint256 collateralAmount) {
+    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
@@ -240,7 +240,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @inheritdoc IUnitAuction
      */
-    function getCurrentSellUnitPrice() external view returns (uint256 currentSellPrice) {
+    function getCurrentSellUnitPrice() external view returns (uint256 currentSellUnitPrice) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
@@ -253,44 +253,45 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @inheritdoc IUnitAuction
      */
     function quoteSellUnit(
-        uint256 desiredSellAmount
-    ) external view returns (uint256 possibleSellAmount, uint256 collateralAmount) {
+        uint256 desiredSellAmountIn
+    ) external view returns (uint256 possibleUnitAmountIn, uint256 collateralAmountOut) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
         }
 
-        (possibleSellAmount, collateralAmount) = _getPossibleSellAmount(
-            desiredSellAmount,
-            _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime)
-        );
+        return
+            _getPossibleSellAmount(
+                desiredSellAmountIn,
+                _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime)
+            );
     }
 
     /**
      * @inheritdoc IUnitAuction
      */
-    function buyUnit(uint256 collateralAmount) external {
+    function buyUnit(uint256 collateralAmountIn) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatioBefore);
         }
 
-        collateralAmount = TransferUtils.safeTransferFrom(
+        collateralAmountIn = TransferUtils.safeTransferFrom(
             collateralToken,
             msg.sender,
             address(bondingCurve),
-            collateralAmount
+            collateralAmountIn
         );
 
-        uint256 currentPrice = _getCurrentBuyPrice(_auctionState.startPrice, _auctionState.startTime);
+        uint256 unitCollateralPrice = _getCurrentBuyUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
         uint256 burnPrice = bondingCurve.getBurnPrice();
-        if (currentPrice < burnPrice) {
-            revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
+        if (unitCollateralPrice < burnPrice) {
+            revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnPrice);
         }
-        uint256 unitAmount = (collateralAmount * UNITUSD_PRICE_PRECISION) / currentPrice;
+        uint256 unitAmountOut = (collateralAmountIn * UNITUSD_PRICE_PRECISION) / unitCollateralPrice;
 
-        unitToken.mint(msg.sender, unitAmount);
+        unitToken.mint(msg.sender, unitAmountOut);
 
         uint256 reserveRatioAfter = bondingCurve.getReserveRatio();
         if (reserveRatioAfter >= reserveRatioBefore) {
@@ -300,25 +301,25 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
-        emit UnitBought(msg.sender, unitAmount, collateralAmount);
+        emit UnitBought(msg.sender, unitAmountOut, collateralAmountIn);
     }
 
     /**
      * @inheritdoc IUnitAuction
      */
-    function quoteBuyUnit(uint256 collateralAmount) external view returns (uint256 unitAmount) {
+    function quoteBuyUnit(uint256 collateralAmountIn) external view returns (uint256 unitAmountOut) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
             revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
         }
 
-        uint256 currentPrice = _getCurrentBuyPrice(_auctionState.startPrice, _auctionState.startTime);
+        uint256 unitCollateralPrice = _getCurrentBuyUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
-        uint256 burnPrice = bondingCurve.getBurnPrice();
-        if (currentPrice < burnPrice) {
-            revert UnitAuctionPriceLowerThanBurnPrice(currentPrice, burnPrice);
+        uint256 burnUnitPrice = bondingCurve.getBurnPrice();
+        if (unitCollateralPrice < burnUnitPrice) {
+            revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnUnitPrice);
         }
-        unitAmount = (collateralAmount * currentPrice) / UNITUSD_PRICE_PRECISION;
+        unitAmountOut = (collateralAmountIn * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
     }
 
     /**
@@ -328,8 +329,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     function _getCurrentSellUnitPrice(
         uint256 startPrice,
         uint256 startTime
-    ) internal view returns (uint256 currentSellPrice) {
-        currentSellPrice =
+    ) internal view returns (uint256 currentSellUnitPrice) {
+        currentSellUnitPrice =
             (startPrice *
                 unwrap(
                     pow(
@@ -342,48 +343,48 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     function _getMaxSellUnitAmount(
         uint256 unitCollateralPrice
-    ) internal view returns (uint256 maxSellAmount, uint256 collateralAmount) {
-        maxSellAmount = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
-        collateralAmount = _quoteSellUnit(maxSellAmount, unitCollateralPrice);
+    ) internal view returns (uint256 maxSellAmountIn, uint256 collateralAmountOut) {
+        maxSellAmountIn = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
+        collateralAmountOut = _quoteSellUnit(maxSellAmountIn, unitCollateralPrice);
     }
 
     function _quoteSellUnit(
-        uint256 unitAmount,
+        uint256 unitAmountIn,
         uint256 unitCollateralPrice
-    ) internal view returns (uint256 collateralAmount) {
-        collateralAmount = (unitAmount * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
+    ) internal view returns (uint256 collateralAmountOut) {
+        collateralAmountOut = (unitAmountIn * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
     }
 
     /**
-     * @notice Returns the {desiredSellAmount} or the maximum possible UNIT amount that can be sold for collateral
+     * @notice Returns the {desiredSellAmountIn} or the maximum possible UNIT amount that can be sold for collateral
      * token, whichever is smaller. Used in a UNIT contraction auction scenario.
      * @dev All relevant checks, e.g. whether we are in a contraction auction, must be performed before calling this.
-     * @param desiredSellAmount UNIT amount the caller wishes to sell in the auction.
+     * @param desiredSellAmountIn UNIT amount the caller wishes to sell in the auction.
      * @param unitCollateralPrice UNIT price in collateral token to be used in the quote (normally current auction
      * price).
-     * @return possibleSellAmount The UNIT amount that can be currently sold.
-     * @return collateralAmount The collateral that will be bought for {possibleSellAmount}.
+     * @return possibleSellAmountIn The UNIT amount that can be currently sold.
+     * @return collateralAmountOut The collateral that will be bought for {possibleSellAmountIn}.
      */
     function _getPossibleSellAmount(
-        uint256 desiredSellAmount,
+        uint256 desiredSellAmountIn,
         uint256 unitCollateralPrice
-    ) internal view returns (uint256 possibleSellAmount, uint256 collateralAmount) {
+    ) internal view returns (uint256 possibleSellAmountIn, uint256 collateralAmountOut) {
         (uint256 maxSellAmount, uint256 maxCollateralAmount) = _getMaxSellUnitAmount(unitCollateralPrice);
 
-        if (desiredSellAmount < maxSellAmount) {
-            possibleSellAmount = desiredSellAmount;
-            collateralAmount = _quoteSellUnit(desiredSellAmount, unitCollateralPrice);
+        if (desiredSellAmountIn < maxSellAmount) {
+            possibleSellAmountIn = desiredSellAmountIn;
+            collateralAmountOut = _quoteSellUnit(desiredSellAmountIn, unitCollateralPrice);
         } else {
-            possibleSellAmount = maxSellAmount;
-            collateralAmount = maxCollateralAmount;
+            possibleSellAmountIn = maxSellAmount;
+            collateralAmountOut = maxCollateralAmount;
         }
     }
 
-    function _getCurrentBuyPrice(
+    function _getCurrentBuyUnitPrice(
         uint256 startPrice,
         uint256 startTime
-    ) internal view returns (uint256 currentBuyPrice) {
-        currentBuyPrice =
+    ) internal view returns (uint256 currentBuyUnitPrice) {
+        currentBuyUnitPrice =
             (startPrice *
                 unwrap(
                     pow(
