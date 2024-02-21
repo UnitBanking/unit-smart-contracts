@@ -87,5 +87,5 @@ interface IMineAuction {
 
     function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 
-    function claim(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external;
+    function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount, address to) external;
 }

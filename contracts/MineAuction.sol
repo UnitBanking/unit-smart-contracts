@@ -288,7 +288,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     /**
      * @notice Claim the amount of token by the auction group id, auction id and amount
      */
-    function claim(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external override {
+    function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount, address to) external override {
         _claim(auctionGroupId, auctionId, msg.sender, to, amount);
     }
 

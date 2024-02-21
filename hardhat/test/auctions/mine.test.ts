@@ -315,7 +315,7 @@ describe('Mine Auctions', () => {
 
       const balanceBeforeOwner = await mine.balanceOf(owner.address)
       const balanceBeforeOther = await mine.balanceOf(other.address)
-      await expect(auction['claim(uint256,uint256,address,uint256)'](groupId, auctionId, other.address, 100))
+      await expect(auction['claim(uint256,uint256,uint256,address)'](groupId, auctionId, 100, other.address))
         .to.emit(auction, 'AuctionClaimed')
         .withArgs(groupId, auctionId, owner.address, 100n)
 
