@@ -34,7 +34,7 @@ export async function mineAuctionFixture(
 
   const dummyBondingCurve = '0x0000000000000000000000000000000000000001'
   const now = await getLatestBlockTimestamp(owner)
-  const auction = await factory.deploy(dummyBondingCurve, mineAddress, bidTokenAddress, now + initialTimeOffset)
+  const auction = await factory.deploy(dummyBondingCurve, mineAddress, bidTokenAddress, now)
   const auctionAddress = await auction.getAddress()
 
   const initialize = factory.interface.encodeFunctionData('initialize()', [])

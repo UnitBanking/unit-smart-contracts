@@ -81,11 +81,11 @@ interface IMineAuction {
         address bidder
     ) external view returns (uint256 claimedAmount);
 
-    function setAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) external;
+    function addAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) external;
 
     function bid(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 
     function claim(uint256 auctionGroupId, uint256 auctionId, uint256 amount) external;
 
-    function claimTo(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external;
+    function claim(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external;
 }

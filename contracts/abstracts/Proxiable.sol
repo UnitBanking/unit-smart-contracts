@@ -10,7 +10,7 @@ import '../interfaces/IProxiable.sol';
  * @dev The initialize function should be called only once
  */
 abstract contract Proxiable is IProxiable {
-    bool public initialized = false;
+    bool public initialized;
 
     /**
      * @notice Emitted when the contract is initialized

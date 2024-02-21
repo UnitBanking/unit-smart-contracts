@@ -16,8 +16,7 @@ import './libraries/TransferUtils.sol';
  * @dev The contract is proxiable and pauseable
  */
 contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
-    uint256 constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
-    uint256 constant SECONDS_IN_FOUR_YEARS = 4 * SECONDS_IN_YEAR + 1 days;
+    uint256 constant SECONDS_IN_FOUR_YEARS = 4 * 365 * 24 * 60 * 60 + 1 days;
     uint256 constant AUCTIONABLE_NUMERATOR = 8000;
     uint256 constant AUCTIONABLE_DENOMINATOR = 10000;
 
@@ -54,8 +53,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
      */
     function initialize() public override {
         _setOwner(msg.sender);
-        _setAuctionGroup(initialAuctionStartTime, 1 hours, 23 hours);
+        _addAuctionGroup(initialAuctionStartTime, 1 hours, 23 hours);
         super.initialize();
+    }
+
+    function setPaused(bool _paused) public override onlyOwner {
+        super.setPaused(_paused);
     }
 
     /**
@@ -67,7 +70,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
      * @param settleDuration The settle time of the new auction group, e.g. 1 hour
      * @param bidDuration The bid time of the new auction group, e.g. 23 hours
      */
-    function setAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) external override onlyOwner {
+    function addAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) external override onlyOwner {
         AuctionGroup memory lastAuctionGroup = auctionGroups[auctionGroups.length - 1];
         uint256 auctionStartTime = lastAuctionGroup.startTime;
         // has no future group
@@ -83,7 +86,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         if (auctionStartTime + lastAuctionGroup.bidDuration > startTime) {
             revert MineAuctionStartTimeTooEarly();
         }
-        _setAuctionGroup(startTime, settleDuration, bidDuration);
+        _addAuctionGroup(startTime, settleDuration, bidDuration);
     }
 
     /**
@@ -122,16 +125,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         for (; auctionGroupId > 0; ) {
             unchecked {
                 // Underflow not possible: auctionGroupId > 0
-                auctionGroupId--;
+                --auctionGroupId;
             }
             if (auctionGroups[auctionGroupId].startTime <= block.timestamp) {
-                break;
+                AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
+                return (auctionGroupId, auctionGroup.startTime, auctionGroup.settleDuration, auctionGroup.bidDuration);
             }
         }
-        AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
-        startTime = auctionGroup.startTime;
-        settleDuration = auctionGroup.settleDuration;
-        bidDuration = auctionGroup.bidDuration;
+        revert MineAuctionCurrentAuctionDisabled();
     }
 
     /**
@@ -217,11 +218,12 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         Auction storage auction = auctions[auctionGroupId][auctionId];
         totalBidAmount = auction.totalBidAmount;
         rewardAmount = auction.rewardAmount;
-        startTime = auctionGroups[auctionGroupId].startTime;
-        settleDuration = auctionGroups[auctionGroupId].settleDuration;
-        bidDuration = auctionGroups[auctionGroupId].bidDuration;
         bidAmount = auction.bid[bidder];
         claimedAmount = auction.claimed[bidder];
+        AuctionGroup memory auctionGroup = auctionGroups[auctionGroupId];
+        startTime = auctionGroup.startTime;
+        settleDuration = auctionGroup.settleDuration;
+        bidDuration = auctionGroup.bidDuration;
         claimableAmount = _getClaimableAmount(auction, bidder);
     }
 
@@ -245,14 +247,14 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         if (block.timestamp < auctionGroup.startTime) {
             revert MineAuctionNotCurrentAuctionGroupId(auctionGroupId);
         } else if (auctionGroups.length > auctionGroupId + 1) {
-            AuctionGroup memory nextAuctionGroup = auctionGroups[auctionGroupId + 1];
-            if (block.timestamp >= nextAuctionGroup.startTime) {
+            uint256 nextStartTime = auctionGroups[auctionGroupId + 1].startTime;
+            if (block.timestamp >= nextStartTime) {
                 revert MineAuctionNotCurrentAuctionGroupId(auctionGroupId);
             }
             uint256 elapsed = (block.timestamp - auctionGroup.startTime) %
                 (auctionGroup.bidDuration + auctionGroup.settleDuration);
             uint256 currentAuctionStartTime = block.timestamp - elapsed;
-            if (nextAuctionGroup.startTime - currentAuctionStartTime < auctionGroup.bidDuration) {
+            if (nextStartTime - currentAuctionStartTime < auctionGroup.bidDuration) {
                 revert MineAuctionCurrentAuctionDisabled();
             }
         }
@@ -286,7 +288,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
     /**
      * @notice Claim the amount of token by the auction group id, auction id and amount
      */
-    function claimTo(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external override {
+    function claim(uint256 auctionGroupId, uint256 auctionId, address to, uint256 amount) external override {
         _claim(auctionGroupId, auctionId, msg.sender, to, amount);
     }
 
@@ -372,7 +374,7 @@ contract MineAuction is Ownable, IMineAuction, Proxiable, Pausable {
         return totalClaimable - auction.claimed[bidder];
     }
 
-    function _setAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) internal {
+    function _addAuctionGroup(uint64 startTime, uint32 settleDuration, uint32 bidDuration) internal {
         AuctionGroup memory auctionGroup;
         auctionGroup.startTime = startTime;
         auctionGroup.settleDuration = settleDuration;

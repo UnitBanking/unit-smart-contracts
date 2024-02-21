@@ -8,7 +8,7 @@ pragma solidity ^0.8.21;
  * @dev The modifier onlyNotPaused should be used
  */
 abstract contract Pausable {
-    bool public paused;
+    uint256 public paused = 1;
 
     event PausedSet(bool paused);
 
@@ -16,25 +16,25 @@ abstract contract Pausable {
     error PausableSameValueAlreadySet();
 
     modifier onlyNotPaused() {
-        if (paused) {
+        if (paused == 2) {
             revert PausableContractIsPaused();
         }
         _;
     }
 
-    function _setPaused(bool _paused) internal {
+    function _setPaused(uint256 _paused) internal {
         if (paused == _paused) {
             revert PausableSameValueAlreadySet();
         }
         paused = _paused;
-        emit PausedSet(_paused);
     }
 
     /**
-     * @notice Set the paused state
+     * @notice Set as paused
      * @dev This function can only be called by the owner
      */
     function setPaused(bool _paused) public virtual {
-        _setPaused(_paused);
+        _setPaused(_paused ? 2 : 1);
+        emit PausedSet(_paused);
     }
 }

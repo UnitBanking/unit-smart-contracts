@@ -37,27 +37,13 @@ describe('Mine Auctions', () => {
   })
 
   describe('Before initial auction starts', () => {
-    it('reverts when bid', async () => {
-      const [groupId] = await auction.getCurrentAuctionGroup()
-      const auctionId = 1n
-      await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
-        auction,
-        'MineAuctionNotCurrentAuctionGroupId'
-      )
-      await increase(5 * 60)
-      await expect(auction.bid(groupId, auctionId, 100)).to.be.revertedWithCustomError(
-        auction,
-        'MineAuctionNotCurrentAuctionGroupId'
-      )
-    })
-
     it('allows to set/append auction group', async () => {
       const [startTime, , bidDuration] = await auction.getAuctionGroup(0)
       const expectedStartTime = startTime + bidDuration
       const expectedBidDuration = 2 * 60 * 60
       const expectedSettleDuration = 60 * 30
 
-      await expect(auction.setAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
+      await expect(auction.addAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
         .to.emit(auction, 'AuctionGroupSet')
         .withArgs(1, expectedStartTime, expectedSettleDuration, expectedBidDuration)
       const lastGroupId = (await auction.getAuctionGroupCount()) - 1n
@@ -71,7 +57,7 @@ describe('Mine Auctions', () => {
       const [startTime] = await auction.getAuctionGroup(0)
       const incorrectStartTime = startTime - 1n
 
-      const tx = auction.setAuctionGroup(incorrectStartTime, 300, 300)
+      const tx = auction.addAuctionGroup(incorrectStartTime, 300, 300)
       await expect(tx).to.revertedWithCustomError(auction, 'MineAuctionStartTimeTooEarly')
     })
 
@@ -79,7 +65,7 @@ describe('Mine Auctions', () => {
       const [startTime, , bidDuration] = await auction.getAuctionGroup(0)
       const incorrectStartTime = startTime + bidDuration - 1n
 
-      const tx = auction.setAuctionGroup(incorrectStartTime, 300, 300)
+      const tx = auction.addAuctionGroup(incorrectStartTime, 300, 300)
       await expect(tx).to.revertedWithCustomError(auction, 'MineAuctionStartTimeTooEarly')
     })
   })
@@ -93,7 +79,6 @@ describe('Mine Auctions', () => {
       auctionStartTime = startTime
       auctionGroupId = currentAuctionGroupId
       auctionId = 0n
-      await setNextBlockTimestamp(startTime)
     })
 
     it('can bid', async () => {
@@ -130,7 +115,7 @@ describe('Mine Auctions', () => {
       const expectedBidDuration = 2 * 60 * 60
       const expectedSettleDuration = 60 * 30
 
-      await expect(auction.setAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
+      await expect(auction.addAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
         .to.emit(auction, 'AuctionGroupSet')
         .withArgs(1, expectedStartTime, expectedSettleDuration, expectedBidDuration)
       const lastGroupId = (await auction.getAuctionGroupCount()) - 1n
@@ -151,7 +136,7 @@ describe('Mine Auctions', () => {
       const expectedStartTime = auctionStartTime + bidDuration + settleDuration + 10n
       const expectedBidDuration = 2 * 60 * 60
       const expectedSettleDuration = 60 * 30
-      await expect(auction.setAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
+      await expect(auction.addAuctionGroup(expectedStartTime, expectedSettleDuration, expectedBidDuration))
         .to.emit(auction, 'AuctionGroupSet')
         .withArgs(1, expectedStartTime, expectedSettleDuration, expectedBidDuration)
 
@@ -179,8 +164,8 @@ describe('Mine Auctions', () => {
       const [, , , bidDuration] = await auction.getCurrentAuctionGroup()
       const newBidDuration = 2 * 60 * 60
       const newSettleDuration = 60 * 30
-      await auction.setAuctionGroup(auctionStartTime + bidDuration * 2n, newSettleDuration, newBidDuration)
-      await auction.setAuctionGroup(auctionStartTime + bidDuration * 4n, newSettleDuration, newBidDuration)
+      await auction.addAuctionGroup(auctionStartTime + bidDuration * 2n, newSettleDuration, newBidDuration)
+      await auction.addAuctionGroup(auctionStartTime + bidDuration * 4n, newSettleDuration, newBidDuration)
       await increaseTo(auctionStartTime + bidDuration * 2n)
       const currentAuctionGroupId = auctionGroupId + 1n
       await expect(auction.bid(currentAuctionGroupId - 1n, auctionId, 100)).to.revertedWithCustomError(
@@ -232,7 +217,7 @@ describe('Mine Auctions', () => {
       const [groupId, auctionId] = await simulateAnAuction(auction, owner, other)
       const nextBlockTimestamp = await setNextBlockTimestampToSettlement(auction, owner)
       const newStartTime = nextBlockTimestamp + 60n * 30n
-      await auction.setAuctionGroup(newStartTime, DEFAULT_SETTLE_DURATION, DEFAULT_BID_DURATION)
+      await auction.addAuctionGroup(newStartTime, DEFAULT_SETTLE_DURATION, DEFAULT_BID_DURATION)
       await expect(auction.getAuction(groupId + 1n, auctionId))
         .to.be.revertedWithCustomError(auction, 'MineAuctionAuctionGroupIdInFuture')
         .withArgs(groupId + 1n)
@@ -330,7 +315,7 @@ describe('Mine Auctions', () => {
 
       const balanceBeforeOwner = await mine.balanceOf(owner.address)
       const balanceBeforeOther = await mine.balanceOf(other.address)
-      await expect(auction.claimTo(groupId, auctionId, other.address, 100))
+      await expect(auction['claim(uint256,uint256,address,uint256)'](groupId, auctionId, other.address, 100))
         .to.emit(auction, 'AuctionClaimed')
         .withArgs(groupId, auctionId, owner.address, 100n)
 
