@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 import './interfaces/IGovernance.sol';
 import './interfaces/ITimelock.sol';
 import './interfaces/IVote.sol';
+import './MineToken.sol';
 import './abstracts/Proxiable.sol';
 import './abstracts/Ownable.sol';
 import './Timelock.sol';
@@ -21,11 +22,23 @@ contract Governance is IGovernance, Proxiable, Ownable {
     /// @notice The name of this contract
     string public constant name = 'Mine Governance';
 
-    /// @notice The minimum setable proposal threshold
-    uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Mine
+    /// @notice The minimum setable quorum vote percentage numerator
+    uint256 public constant MIN_QUORUM_VOTES_PERCENTAGE_NUMERATOR = 1; // 0.01%
 
-    /// @notice The maximum setable proposal threshold
-    uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; //100,000 Mine
+    /// @notice The maximum setable quorum vote percentage numerator
+    uint256 public constant MAX_QUORUM_VOTES_PERCENTAGE_NUMERATOR = 10000; // 100%
+
+    /// @notice The quorum vote percentage denominator
+    uint256 public constant QUORUM_VOTES_PERCENTAGE_DENOMINATOR = 10000;
+
+    /// @notice The minimum setable proposal threshold percentage
+    uint256 public constant MIN_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR = 1; // 0.01%
+
+    /// @notice The maximum setable proposal threshold percentage
+    uint256 public constant MAX_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR = 10000; // 100%
+
+    /// @notice The proposal threshold percentage denominator
+    uint256 public constant PROPOSAL_THRESHOLD_PERCENTAGE_DENOMINATOR = 10000;
 
     /// @notice The minimum setable voting period
     uint256 public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
@@ -38,9 +51,6 @@ contract Governance is IGovernance, Proxiable, Ownable {
 
     /// @notice The max setable voting delay
     uint256 public constant MAX_VOTING_DELAY = 40320; // About 1 week
-
-    /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
-    uint256 public constant quorumVotes = 400000e18; // 400,000 = 4% of Mine
 
     /// @notice The maximum number of actions that can be included in a proposal
     uint256 public constant proposalMaxOperations = 10; // 10 actions
@@ -72,8 +82,11 @@ contract Governance is IGovernance, Proxiable, Ownable {
     /// @notice The duration of voting on a proposal, in blocks
     uint256 public votingPeriod;
 
-    /// @notice The number of votes required in order for a voter to become a proposer
-    uint256 public proposalThreshold;
+    /// @notice The percentage numerator of number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
+    uint256 public quorumVotesPercentageNumerator;
+
+    /// @notice The percentage numerator of number of votes required in order for a voter to become a proposer
+    uint256 public proposalThresholdPercentageNumerator;
 
     /// @notice The total number of proposals
     uint256 public proposalCount;
@@ -128,7 +141,8 @@ contract Governance is IGovernance, Proxiable, Ownable {
         address _timelock,
         uint256 _votingPeriod,
         uint256 _votingDelay,
-        uint256 _proposalThreshold
+        uint256 _proposalThresholdPercentageNumerator,
+        uint256 _quorumVotesPercentageNumerator
     ) external override {
         if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) {
             revert GovernanceInvalidVotingPeriod();
@@ -136,13 +150,23 @@ contract Governance is IGovernance, Proxiable, Ownable {
         if (_votingDelay < MIN_VOTING_DELAY || _votingDelay > MAX_VOTING_DELAY) {
             revert GovernanceInvalidVotingDelay();
         }
-        if (_proposalThreshold < MIN_PROPOSAL_THRESHOLD || _proposalThreshold > MAX_PROPOSAL_THRESHOLD) {
-            revert GovernanceInvalidProposalThreshold();
+        if (
+            _quorumVotesPercentageNumerator < MIN_QUORUM_VOTES_PERCENTAGE_NUMERATOR ||
+            _quorumVotesPercentageNumerator > MAX_QUORUM_VOTES_PERCENTAGE_NUMERATOR
+        ) {
+            revert GovernanceInvalidQuorumVotesPercentageNumerator();
+        }
+        if (
+            _proposalThresholdPercentageNumerator < MIN_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR ||
+            _proposalThresholdPercentageNumerator > MAX_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR
+        ) {
+            revert GovernanceInvalidProposalThresholdPercentageNumerator();
         }
         timelock = ITimelock(_timelock);
         votingPeriod = _votingPeriod;
         votingDelay = _votingDelay;
-        proposalThreshold = _proposalThreshold;
+        proposalThresholdPercentageNumerator = _proposalThresholdPercentageNumerator;
+        quorumVotesPercentageNumerator = _quorumVotesPercentageNumerator;
         _setOwner(msg.sender);
 
         super.initialize();
@@ -177,18 +201,44 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Admin function for setting the proposal threshold
-     * @dev newProposalThreshold must be greater than the hardcoded min
-     * @param newProposalThreshold new proposal threshold
+     * @notice Admin function for setting the percentage numerator of proposal threshold
+     * @dev newProposalThresholdPercentageNumerator must be greater than the hardcoded min
+     * @param newProposalThresholdPercentageNumerator new percentage numerator of proposal threshold
      */
-    function setProposalThreshold(uint256 newProposalThreshold) external onlyOwner {
-        if (newProposalThreshold < MIN_PROPOSAL_THRESHOLD || newProposalThreshold > MAX_PROPOSAL_THRESHOLD) {
-            revert GovernanceInvalidProposalThreshold();
+    function setProposalThresholdPercentageNumerator(
+        uint256 newProposalThresholdPercentageNumerator
+    ) external onlyOwner {
+        if (
+            newProposalThresholdPercentageNumerator < MIN_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR ||
+            newProposalThresholdPercentageNumerator > MAX_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR
+        ) {
+            revert GovernanceInvalidProposalThresholdPercentageNumerator();
         }
-        uint256 oldProposalThreshold = proposalThreshold;
-        proposalThreshold = newProposalThreshold;
+        uint256 oldProposalThresholdPercentageNumerator = proposalThresholdPercentageNumerator;
+        proposalThresholdPercentageNumerator = newProposalThresholdPercentageNumerator;
 
-        emit ProposalThresholdSet(oldProposalThreshold, proposalThreshold);
+        emit ProposalThresholdPercentageNumeratorSet(
+            oldProposalThresholdPercentageNumerator,
+            newProposalThresholdPercentageNumerator
+        );
+    }
+
+    /**
+     * @notice Admin function for setting the quorum votes percentage numerator
+     * @dev newQuorumVotesPercentageNumerator must be greater than the hardcoded min
+     * @param newQuorumVotesPercentageNumerator new quorum votes percentage numerator
+     */
+    function setQuorumVotesPercentageNumerator(uint256 newQuorumVotesPercentageNumerator) external onlyOwner {
+        if (
+            newQuorumVotesPercentageNumerator < MIN_QUORUM_VOTES_PERCENTAGE_NUMERATOR ||
+            newQuorumVotesPercentageNumerator > MAX_QUORUM_VOTES_PERCENTAGE_NUMERATOR
+        ) {
+            revert GovernanceInvalidQuorumVotesPercentageNumerator();
+        }
+        uint256 oldQuorumVotesPercentageNumerator = quorumVotesPercentageNumerator;
+        quorumVotesPercentageNumerator = newQuorumVotesPercentageNumerator;
+
+        emit QuorumVotesPercentageNumeratorSet(oldQuorumVotesPercentageNumerator, newQuorumVotesPercentageNumerator);
     }
 
     /**
@@ -233,7 +283,8 @@ contract Governance is IGovernance, Proxiable, Ownable {
         }
         // Allow addresses above proposal threshold and whitelisted addresses to propose
         if (
-            mineToken.getPriorVotes(msg.sender, (block.number - 1)) <= proposalThreshold && !isWhitelisted(msg.sender)
+            mineToken.getPriorVotes(msg.sender, (block.number - 1)) <= getProposalThreshold() &&
+            !isWhitelisted(msg.sender)
         ) {
             revert GovernanceVotesBelowProposalThreshold();
         }
@@ -346,7 +397,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
         address proposer = proposal.proposer;
         // Proposer can cancel
         if (msg.sender != proposer) {
-            if (mineToken.getPriorVotes(proposer, block.number - 1) >= proposalThreshold) {
+            if (mineToken.getPriorVotes(proposer, block.number - 1) >= getProposalThreshold()) {
                 revert GovernanceVotesAboveProposalThreshold();
             }
 
@@ -401,21 +452,14 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice View function which returns if an account is whitelisted
-     * @param account Account to check white list status of
-     * @return If the account is whitelisted
+     * @inheritdoc IGovernance
      */
     function isWhitelisted(address account) public view returns (bool) {
         return (whitelistAccountExpirations[account] > block.timestamp);
     }
 
     /**
-     * @notice Gets actions of a proposal
-     * @param proposalId the id of the proposal
-     * @return targets of the proposal actions
-     * @return values of the proposal actions
-     * @return signatures of the proposal actions
-     * @return calldatas of the proposal actions
+     * @inheritdoc IGovernance
      */
     function getActions(
         uint256 proposalId
@@ -434,19 +478,14 @@ contract Governance is IGovernance, Proxiable, Ownable {
     }
 
     /**
-     * @notice Gets the receipt for a voter on a given proposal
-     * @param proposalId the id of proposal
-     * @param voter The address of the voter
-     * @return The voting receipt
+     * @inheritdoc IGovernance
      */
     function getReceipt(uint256 proposalId, address voter) external view returns (Receipt memory) {
         return proposals[proposalId].receipts[voter];
     }
 
     /**
-     * @notice Gets the state of a proposal
-     * @param proposalId The id of the proposal
-     * @return Proposal state
+     * @inheritdoc IGovernance
      */
     function getState(uint256 proposalId) public view returns (ProposalState) {
         if (proposalId == 0 || proposalId > proposalCount) {
@@ -459,7 +498,7 @@ contract Governance is IGovernance, Proxiable, Ownable {
             return ProposalState.Pending;
         } else if (block.number <= proposal.endBlock) {
             return ProposalState.Active;
-        } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < quorumVotes) {
+        } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < getQuorumVotes()) {
             return ProposalState.Defeated;
         } else if (proposal.eta == 0) {
             return ProposalState.Succeeded;
@@ -470,6 +509,24 @@ contract Governance is IGovernance, Proxiable, Ownable {
         } else {
             return ProposalState.Queued;
         }
+    }
+
+    /**
+     * @inheritdoc IGovernance
+     */
+    function getQuorumVotes() public view returns (uint256) {
+        return
+            (MineToken(address(mineToken)).totalSupply() * quorumVotesPercentageNumerator) /
+            QUORUM_VOTES_PERCENTAGE_DENOMINATOR;
+    }
+
+    /**
+     * @inheritdoc IGovernance
+     */
+    function getProposalThreshold() public view returns (uint256) {
+        return
+            (MineToken(address(mineToken)).totalSupply() * proposalThresholdPercentageNumerator) /
+            PROPOSAL_THRESHOLD_PERCENTAGE_DENOMINATOR;
     }
 
     /**

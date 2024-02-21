@@ -21,7 +21,8 @@ contract GovernanceProposeTest is GovernanceTestBase {
                 address(0),
                 5760, // blocks
                 2, // blocks
-                1000e18
+                2000,
+                5100
             )
         );
 

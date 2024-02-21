@@ -8,8 +8,7 @@ import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 contract GovernanceCancelTest is GovernanceTestBase {
     function test_cancel_RevertsWhenProposalAlreadyExecuted() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
@@ -27,8 +26,7 @@ contract GovernanceCancelTest is GovernanceTestBase {
 
     function test_cancel_RevertsWhenVotesAboveProposalThreshold() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         vm.roll(block.number + 1);
@@ -42,8 +40,7 @@ contract GovernanceCancelTest is GovernanceTestBase {
 
     function test_cancel_SuccessfullyCancelsByProposer() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
@@ -58,7 +55,7 @@ contract GovernanceCancelTest is GovernanceTestBase {
 
     function test_cancel_RevertsWhenUnauthorizedCanceler() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
+        uint256 quorumVotes = governanceProxy.getQuorumVotes();
         address user = _createUserAndMintMineToken(quorumVotes + 1);
         vm.prank(user);
         mineToken.delegate(user);
@@ -72,8 +69,7 @@ contract GovernanceCancelTest is GovernanceTestBase {
 
     function test_cancel_SuccessfullyCancelsByWhitelistGuardianWhenProposerIsWhitelisted() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
@@ -98,8 +94,7 @@ contract GovernanceCancelTest is GovernanceTestBase {
 
     function test_cancel_SuccessfullyCancelsByWhitelistGuardianWhenProposerIsNotWhitelisted() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 1);
@@ -127,8 +122,7 @@ contract GovernanceCancelTest is GovernanceTestBase {
 
     function test_cancel_SuccessfullyCancelsByAnySenderWhenProposerIsNotWhitelisted() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 1);

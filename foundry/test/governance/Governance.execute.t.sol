@@ -8,8 +8,7 @@ import { IGovernance } from '../../../contracts/interfaces/IGovernance.sol';
 contract GovernanceExecuteTest is GovernanceTestBase {
     function test_execute_RevertsWhenInvalidProposalState() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
@@ -28,8 +27,7 @@ contract GovernanceExecuteTest is GovernanceTestBase {
 
     function test_execute_SuccessfullyExecutesProposal() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);

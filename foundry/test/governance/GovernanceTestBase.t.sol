@@ -13,7 +13,8 @@ abstract contract GovernanceTestBase is Test {
     uint256 internal constant START_TIMESTAMP = 1699023595;
     uint256 public constant INITIAL_VOTING_PERIOD = 5760;
     uint256 public constant INITIAL_VOTING_DELAY = 2;
-    uint256 public constant INITIAL_PROPOSAL_THRESHOLD = 1000e18;
+    uint256 public constant INITIAL_PROPOSAL_THRESHOLD_PERCENTAGE_NUMBERATOR = 2000; // 20% proposal threshold percentage numerator
+    uint256 public constant INITIAL_QUORUM_VOTES_PERCENTAGE_NUMBERATOR = 5100; // 51% quorum votes percentage numerator
 
     MineToken public mineToken;
     Timelock public timelock;
@@ -52,9 +53,10 @@ abstract contract GovernanceTestBase is Test {
             abi.encodeWithSelector(
                 IGovernance.initialize.selector,
                 address(timelock),
-                5760, // blocks
-                2, // blocks
-                1000e18
+                INITIAL_VOTING_PERIOD, // blocks
+                INITIAL_VOTING_DELAY, // blocks
+                INITIAL_PROPOSAL_THRESHOLD_PERCENTAGE_NUMBERATOR, // 20% proposal threshold percentage numerator
+                INITIAL_QUORUM_VOTES_PERCENTAGE_NUMBERATOR // 51% quorum votes percentage numerator
             )
         );
 

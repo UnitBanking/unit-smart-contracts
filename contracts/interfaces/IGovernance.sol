@@ -74,13 +74,15 @@ interface IGovernance {
      * @param _timelock The address of the Timelock contract
      * @param _votingPeriod The initial voting period
      * @param _votingDelay The initial voting delay
-     * @param _proposalThreshold The initial proposal threshold
+     * @param _proposalThresholdPercentageNumerator The initial proposal threshold percentage numberator
+     * @param _quorumVotesPercentageNumerator The initial percentage numberator of required votes to queue a proposal
      */
     function initialize(
         address _timelock,
         uint256 _votingPeriod,
         uint256 _votingDelay,
-        uint256 _proposalThreshold
+        uint256 _proposalThresholdPercentageNumerator,
+        uint256 _quorumVotesPercentageNumerator
     ) external;
 
     /**
@@ -140,6 +142,60 @@ interface IGovernance {
     function castVoteBySig(uint256 proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external;
 
     /**
+     * @notice View function which returns if an account is whitelisted
+     * @param account Account to check white list status of
+     * @return If the account is whitelisted
+     */
+    function isWhitelisted(address account) external view returns (bool);
+
+    /**
+     * @notice Gets actions of a proposal
+     * @param proposalId the id of the proposal
+     * @return targets of the proposal actions
+     * @return values of the proposal actions
+     * @return signatures of the proposal actions
+     * @return calldatas of the proposal actions
+     */
+    function getActions(
+        uint256 proposalId
+    )
+        external
+        view
+        returns (
+            address[] memory targets,
+            uint256[] memory values,
+            string[] memory signatures,
+            bytes[] memory calldatas
+        );
+
+    /**
+     * @notice Gets the receipt for a voter on a given proposal
+     * @param proposalId the id of proposal
+     * @param voter The address of the voter
+     * @return The voting receipt
+     */
+    function getReceipt(uint256 proposalId, address voter) external view returns (Receipt memory);
+
+    /**
+     * @notice Gets the state of a proposal
+     * @param proposalId The id of the proposal
+     * @return Proposal state
+     */
+    function getState(uint256 proposalId) external view returns (ProposalState);
+
+    /**
+     * @notice Get current quorum votes. Quorum votes depends on current total supply of Mine token.
+     * @return quorum votes needed to pass a proposal
+     */
+    function getQuorumVotes() external view returns (uint256);
+
+    /**
+     * @notice Get current proposal threshold. Proposal threshold depends on current total supply of Mine token.
+     * @return proposal threshold needed to propose
+     */
+    function getProposalThreshold() external view returns (uint256);
+
+    /**
      * ================ EVENTS ================
      */
 
@@ -181,8 +237,17 @@ interface IGovernance {
     /// @notice An event emitted when the voting period is set
     event VotingPeriodSet(uint256 oldVotingPeriod, uint256 newVotingPeriod);
 
-    /// @notice Emitted when proposal threshold is set
-    event ProposalThresholdSet(uint256 oldProposalThreshold, uint256 newProposalThreshold);
+    /// @notice Emitted when quorum votes percentage numberator is set
+    event QuorumVotesPercentageNumeratorSet(
+        uint256 oldQuorumVotesPercentageNumerator,
+        uint256 newQuorumVotesPercentageNumerator
+    );
+
+    /// @notice Emitted when percentage numerator of proposal threshold is set
+    event ProposalThresholdPercentageNumeratorSet(
+        uint256 oldProposalThresholdPercentageNumerator,
+        uint256 newProposalThresholdPercentageNumerator
+    );
 
     /// @notice Emitted when whitelist account expiration is set
     event WhitelistAccountExpirationSet(address account, uint256 expiration);
@@ -245,8 +310,11 @@ interface IGovernance {
     /// @notice Thrown when the voting period is outside the minimum or maximum voting period.
     error GovernanceInvalidVotingPeriod();
 
+    /// @notice Thrown when the quorum votes percentage numerator is outside the minimum or maximum value.
+    error GovernanceInvalidQuorumVotesPercentageNumerator();
+
     /// @notice Thrown when the proposal threshold is outside the minimum or maximum threshold.
-    error GovernanceInvalidProposalThreshold();
+    error GovernanceInvalidProposalThresholdPercentageNumerator();
 
     /// @notice Thrown when the voting delay is outside the minimum or maximum voting delay.
     error GovernanceInvalidVotingDelay();

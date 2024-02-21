@@ -16,24 +16,30 @@ contract GovernanceHarnessTest is GovernanceTestBase {
     function test_constants_HaveCorrectValues() public {
         // Arrange & Act
         string memory name = governanceProxy.name();
-        uint256 minProposalThreshold = governanceProxy.MIN_PROPOSAL_THRESHOLD();
-        uint256 maxProposalThreshold = governanceProxy.MAX_PROPOSAL_THRESHOLD();
+        uint256 minQuorumVotesPercentageNumerator = governanceProxy.MIN_QUORUM_VOTES_PERCENTAGE_NUMERATOR();
+        uint256 maxQuorumVotesPercentageNumerator = governanceProxy.MAX_QUORUM_VOTES_PERCENTAGE_NUMERATOR();
+        uint256 quorumVotesPercentageDenominator = governanceProxy.QUORUM_VOTES_PERCENTAGE_DENOMINATOR();
+        uint256 minProposalThresholdPercentageNumerator = governanceProxy.MIN_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR();
+        uint256 maxProposalThresholdPercentageNumerator = governanceProxy.MAX_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR();
+        uint256 proposalThresholdPercentageDenominator = governanceProxy.PROPOSAL_THRESHOLD_PERCENTAGE_DENOMINATOR();
         uint256 minVotingPeriod = governanceProxy.MIN_VOTING_PERIOD();
         uint256 maxVotingPeriod = governanceProxy.MAX_VOTING_PERIOD();
         uint256 minVotingDelay = governanceProxy.MIN_VOTING_DELAY();
         uint256 maxVotingDelay = governanceProxy.MAX_VOTING_DELAY();
-        uint256 quorumVotes = governanceProxy.quorumVotes();
         uint256 proposalMaxOperations = governanceProxy.proposalMaxOperations();
 
         // Assert
         assertEq(name, 'Mine Governance');
-        assertEq(minProposalThreshold, 1000e18);
-        assertEq(maxProposalThreshold, 100000e18);
+        assertEq(minQuorumVotesPercentageNumerator, 1);
+        assertEq(maxQuorumVotesPercentageNumerator, 10000);
+        assertEq(quorumVotesPercentageDenominator, 10000);
+        assertEq(minProposalThresholdPercentageNumerator, 1);
+        assertEq(maxProposalThresholdPercentageNumerator, 10000);
+        assertEq(proposalThresholdPercentageDenominator, 10000);
         assertEq(minVotingPeriod, 5760);
         assertEq(maxVotingPeriod, 80640);
         assertEq(minVotingDelay, 1);
         assertEq(maxVotingDelay, 40320);
-        assertEq(quorumVotes, 400000e18);
         assertEq(proposalMaxOperations, 10);
     }
 
@@ -70,18 +76,20 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         // Arrange & Act
         uint256 votingDelay = governanceProxy.votingDelay();
         uint256 votingPeriod = governanceProxy.votingPeriod();
-        uint256 proposalThreshold = governanceProxy.proposalThreshold();
+        uint256 proposalThresholdPercentageNumerator = governanceProxy.proposalThresholdPercentageNumerator();
+        uint256 quorumVotesPercentageNumerator = governanceProxy.quorumVotesPercentageNumerator();
         address owner = governanceProxy.owner();
         bool initialized = governanceProxy.initialized();
-        address timelock = address(governanceProxy.timelock());
+        address timelockAddress = address(governanceProxy.timelock());
 
         // Assert
         assertEq(votingDelay, INITIAL_VOTING_DELAY);
         assertEq(votingPeriod, INITIAL_VOTING_PERIOD);
-        assertEq(proposalThreshold, INITIAL_PROPOSAL_THRESHOLD);
+        assertEq(quorumVotesPercentageNumerator, INITIAL_QUORUM_VOTES_PERCENTAGE_NUMBERATOR);
+        assertEq(proposalThresholdPercentageNumerator, INITIAL_PROPOSAL_THRESHOLD_PERCENTAGE_NUMBERATOR);
         assertEq(owner, address(this));
         assertEq(initialized, true);
-        assertNotEq(timelock, address(0));
+        assertNotEq(timelockAddress, address(0));
     }
 
     function test_initialize_RevertsWhenVotingPeriodOutOfBounds() public {
@@ -100,7 +108,8 @@ contract GovernanceHarnessTest is GovernanceTestBase {
                 timelock,
                 votingPeriodTooShort, // blocks
                 2, // blocks
-                1000e18
+                2000,
+                5100
             )
         );
         vm.expectRevert(IGovernance.GovernanceInvalidVotingPeriod.selector);
@@ -111,7 +120,8 @@ contract GovernanceHarnessTest is GovernanceTestBase {
                 timelock,
                 votingPeriodTooLong, // blocks
                 2, // blocks
-                1000e18
+                2000,
+                5100
             )
         );
     }
@@ -132,7 +142,8 @@ contract GovernanceHarnessTest is GovernanceTestBase {
                 timelock,
                 5760, // blocks
                 votingDelayTooShort, // blocks
-                1000e18
+                2000,
+                5100
             )
         );
         vm.expectRevert(IGovernance.GovernanceInvalidVotingDelay.selector);
@@ -143,20 +154,23 @@ contract GovernanceHarnessTest is GovernanceTestBase {
                 timelock,
                 5760, // blocks
                 votingDelayTooLong, // blocks
-                1000e18
+                2000,
+                5100
             )
         );
     }
 
-    function test_initialize_RevertsWhenProposalThresholdOutOfBounds() public {
+    function test_initialize_RevertsWhenProposalThresholdPercentageNumeratorOutOfBounds() public {
         // Arrange
         governanceImplementation = new GovernanceHarness(address(mineToken));
         governanceProxyType = new Proxy(address(this));
-        uint256 proposalThresholdTooLow = governanceImplementation.MIN_PROPOSAL_THRESHOLD() - 1;
-        uint256 proposalThresholdTooHigh = governanceImplementation.MAX_PROPOSAL_THRESHOLD() + 1;
+        uint256 proposalThresholdPercentageNumeratorTooLow = governanceImplementation
+            .MIN_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR() - 1;
+        uint256 proposalThresholdPercentageNumeratorTooHigh = governanceImplementation
+            .MAX_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR() + 1;
 
         // Act & Assert
-        vm.expectRevert(IGovernance.GovernanceInvalidProposalThreshold.selector);
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalThresholdPercentageNumerator.selector);
         governanceProxyType.upgradeToAndCall(
             address(governanceImplementation),
             abi.encodeWithSelector(
@@ -164,10 +178,11 @@ contract GovernanceHarnessTest is GovernanceTestBase {
                 timelock,
                 5760, // blocks
                 2, // blocks
-                proposalThresholdTooLow
+                proposalThresholdPercentageNumeratorTooLow,
+                5100
             )
         );
-        vm.expectRevert(IGovernance.GovernanceInvalidProposalThreshold.selector);
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalThresholdPercentageNumerator.selector);
         governanceProxyType.upgradeToAndCall(
             address(governanceImplementation),
             abi.encodeWithSelector(
@@ -175,7 +190,8 @@ contract GovernanceHarnessTest is GovernanceTestBase {
                 timelock,
                 5760, // blocks
                 2, // blocks
-                proposalThresholdTooHigh
+                proposalThresholdPercentageNumeratorTooHigh,
+                5100
             )
         );
     }
@@ -245,35 +261,66 @@ contract GovernanceHarnessTest is GovernanceTestBase {
     }
 
     /**
-     * ================ setProposalThreshold() ================
+     * ================ setQuorumVotesPercentageNumerator() ================
      */
 
-    function test_setProposalThreshold_SuccessfullySetsNewVotingPeriod() public {
+    function test_setQuorumVotesPercentageNumerator_SuccessfullySetsValue() public {
+        uint256 totalSupply1 = mineToken.totalSupply();
+        uint256 quorumVotes1 = governanceProxy.getQuorumVotes();
+        assertEq(
+            quorumVotes1,
+            (totalSupply1 * governanceProxy.quorumVotesPercentageNumerator()) /
+                governanceProxy.QUORUM_VOTES_PERCENTAGE_DENOMINATOR()
+        );
+
+        governanceProxy.setQuorumVotesPercentageNumerator(6000); // 60%
+
+        uint256 totalSupply2 = mineToken.totalSupply();
+        uint256 quorumVotes2 = governanceProxy.getQuorumVotes();
+        assertTrue(totalSupply1 == totalSupply2);
+        assertTrue(quorumVotes1 != quorumVotes2);
+        assertEq(
+            quorumVotes2,
+            (totalSupply2 * governanceProxy.quorumVotesPercentageNumerator()) /
+                governanceProxy.QUORUM_VOTES_PERCENTAGE_DENOMINATOR()
+        );
+    }
+
+    /**
+     * ================ setProposalThresholdPercentageNumerator() ================
+     */
+
+    function test_setProposalThresholdPercentageNumerator_SuccessfullySetsNewProposalThresholdPercentageNumerator()
+        public
+    {
         // Arrange
-        uint256 newProposalThreshold = 3000e18;
-        uint256 oldProposalThreshold = governanceProxy.proposalThreshold();
+        uint256 newProposalThresholdPercentageNumerator = 3000; // 30%
+        uint256 oldProposalThresholdPercentageNumerator = governanceProxy.proposalThresholdPercentageNumerator();
 
         // Act
         vm.expectEmit();
-        emit IGovernance.ProposalThresholdSet(oldProposalThreshold, newProposalThreshold);
-        governanceProxy.setProposalThreshold(newProposalThreshold);
+        emit IGovernance.ProposalThresholdPercentageNumeratorSet(
+            oldProposalThresholdPercentageNumerator,
+            newProposalThresholdPercentageNumerator
+        );
+        governanceProxy.setProposalThresholdPercentageNumerator(newProposalThresholdPercentageNumerator);
 
         // Assert
-        uint256 proposalThreshold = governanceProxy.proposalThreshold();
-        assertEq(proposalThreshold, newProposalThreshold);
-        assertNotEq(proposalThreshold, oldProposalThreshold);
+        uint256 proposalThresholdPercentageNumerator = governanceProxy.proposalThresholdPercentageNumerator();
+        assertEq(proposalThresholdPercentageNumerator, newProposalThresholdPercentageNumerator);
+        assertNotEq(proposalThresholdPercentageNumerator, oldProposalThresholdPercentageNumerator);
     }
 
-    function test_setProposalThreshold_RevertsWhenSettingValueOutOfBounds() public {
+    function test_setProposalThresholdPercentageNumerator_RevertsWhenSettingValueOutOfBounds() public {
         // Arrange
-        uint256 minProposalThreshold = governanceProxy.MIN_PROPOSAL_THRESHOLD();
-        uint256 maxProposalThreshold = governanceProxy.MAX_PROPOSAL_THRESHOLD();
+        uint256 minProposalThresholdPercentageNumerator = governanceProxy.MIN_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR();
+        uint256 maxProposalThresholdPercentageNumerator = governanceProxy.MAX_PROPOSAL_THRESHOLD_PERCENTAGE_NUMERATOR();
 
         // Act & Assert
-        vm.expectRevert(IGovernance.GovernanceInvalidProposalThreshold.selector);
-        governanceProxy.setProposalThreshold(minProposalThreshold - 1);
-        vm.expectRevert(IGovernance.GovernanceInvalidProposalThreshold.selector);
-        governanceProxy.setProposalThreshold(maxProposalThreshold + 1);
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalThresholdPercentageNumerator.selector);
+        governanceProxy.setProposalThresholdPercentageNumerator(minProposalThresholdPercentageNumerator - 1);
+        vm.expectRevert(IGovernance.GovernanceInvalidProposalThresholdPercentageNumerator.selector);
+        governanceProxy.setProposalThresholdPercentageNumerator(maxProposalThresholdPercentageNumerator + 1);
     }
 
     /**
@@ -381,8 +428,7 @@ contract GovernanceHarnessTest is GovernanceTestBase {
 
     function test_getReceipt_SuccessfullyReturnsValue() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
@@ -409,8 +455,7 @@ contract GovernanceHarnessTest is GovernanceTestBase {
 
     function test_getActions_SuccessfullyReturnsValue() public {
         // Arrange
-        uint256 quorumVotes = governanceProxy.quorumVotes();
-        address user = _createUserAndMintMineToken(quorumVotes + 1);
+        address user = _createUserAndMintMineToken((mineToken.totalSupply() * 53) / 50); // 51% of total supply
         vm.prank(user);
         mineToken.delegate(user);
         governanceProxy.setWhitelistAccountExpiration(user, block.timestamp + 10_000);
@@ -476,5 +521,59 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         // Act & Assert
         vm.expectRevert(IGovernance.GovernanceInvalidProposalId.selector);
         governanceProxy.getState(proposalId);
+    }
+
+    /**
+     * ================ getQuorumVotes() ================
+     */
+
+    function test_getQuorumVotes_SuccessfullyReturnsValue() public {
+        uint256 totalSupply1 = mineToken.totalSupply();
+        uint256 quorumVotes1 = governanceProxy.getQuorumVotes();
+        assertEq(
+            quorumVotes1,
+            (totalSupply1 * governanceProxy.quorumVotesPercentageNumerator()) /
+                governanceProxy.QUORUM_VOTES_PERCENTAGE_DENOMINATOR()
+        );
+
+        vm.prank(wallet);
+        mineToken.mint(wallet, 1e18);
+
+        uint256 totalSupply2 = mineToken.totalSupply();
+        uint256 quorumVotes2 = governanceProxy.getQuorumVotes();
+        assertTrue(totalSupply1 != totalSupply2);
+        assertTrue(quorumVotes1 != quorumVotes2);
+        assertEq(
+            quorumVotes2,
+            (totalSupply2 * governanceProxy.quorumVotesPercentageNumerator()) /
+                governanceProxy.QUORUM_VOTES_PERCENTAGE_DENOMINATOR()
+        );
+    }
+
+    /**
+     * ================ getQuorumVotes() ================
+     */
+
+    function test_getProposalThreshold_SuccessfullyReturnsValue() public {
+        uint256 totalSupply1 = mineToken.totalSupply();
+        uint256 proposalThreshold1 = governanceProxy.getProposalThreshold();
+        assertEq(
+            proposalThreshold1,
+            (totalSupply1 * governanceProxy.proposalThresholdPercentageNumerator()) /
+                governanceProxy.PROPOSAL_THRESHOLD_PERCENTAGE_DENOMINATOR()
+        );
+
+        vm.prank(wallet);
+        mineToken.mint(wallet, 1e18);
+
+        uint256 totalSupply2 = mineToken.totalSupply();
+        uint256 proposalThreshold2 = governanceProxy.getProposalThreshold();
+        assertTrue(totalSupply1 != totalSupply2);
+        assertTrue(proposalThreshold1 != proposalThreshold2);
+        assertEq(
+            proposalThreshold2,
+            (totalSupply2 * governanceProxy.proposalThresholdPercentageNumerator()) /
+                governanceProxy.PROPOSAL_THRESHOLD_PERCENTAGE_DENOMINATOR()
+        );
     }
 }
