@@ -160,6 +160,42 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         );
     }
 
+    function test_initialize_RevertsWhenQuorumVotesPercentageNumeratorOutOfBounds() public {
+        // Arrange
+        governanceImplementation = new GovernanceHarness(address(mineToken));
+        governanceProxyType = new Proxy(address(this));
+        uint256 quorumVotesPercentageNumeratorTooLow = governanceImplementation
+            .MIN_QUORUM_VOTES_PERCENTAGE_NUMERATOR() - 1;
+        uint256 quorumVotesPercentageNumeratorTooHigh = governanceImplementation
+            .MAX_QUORUM_VOTES_PERCENTAGE_NUMERATOR() + 1;
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidQuorumVotesPercentageNumerator.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                5760, // blocks
+                2, // blocks
+                2000,
+                quorumVotesPercentageNumeratorTooLow
+            )
+        );
+        vm.expectRevert(IGovernance.GovernanceInvalidQuorumVotesPercentageNumerator.selector);
+        governanceProxyType.upgradeToAndCall(
+            address(governanceImplementation),
+            abi.encodeWithSelector(
+                IGovernance.initialize.selector,
+                timelock,
+                5760, // blocks
+                2, // blocks
+                2000,
+                quorumVotesPercentageNumeratorTooHigh
+            )
+        );
+    }
+
     function test_initialize_RevertsWhenProposalThresholdPercentageNumeratorOutOfBounds() public {
         // Arrange
         governanceImplementation = new GovernanceHarness(address(mineToken));
@@ -284,6 +320,18 @@ contract GovernanceHarnessTest is GovernanceTestBase {
             (totalSupply2 * governanceProxy.quorumVotesPercentageNumerator()) /
                 governanceProxy.QUORUM_VOTES_PERCENTAGE_DENOMINATOR()
         );
+    }
+
+    function test_setQuorumVotesPercentageNumerator_RevertsWhenSettingValueOutOfBounds() public {
+        // Arrange
+        uint256 minQuorumVotesPercentageNumerator = governanceProxy.MIN_QUORUM_VOTES_PERCENTAGE_NUMERATOR();
+        uint256 maxQuorumVotesPercentageNumerator = governanceProxy.MAX_QUORUM_VOTES_PERCENTAGE_NUMERATOR();
+
+        // Act & Assert
+        vm.expectRevert(IGovernance.GovernanceInvalidQuorumVotesPercentageNumerator.selector);
+        governanceProxy.setQuorumVotesPercentageNumerator(minQuorumVotesPercentageNumerator - 1);
+        vm.expectRevert(IGovernance.GovernanceInvalidQuorumVotesPercentageNumerator.selector);
+        governanceProxy.setQuorumVotesPercentageNumerator(maxQuorumVotesPercentageNumerator + 1);
     }
 
     /**

@@ -191,4 +191,64 @@ contract GovernanceProposeTest is GovernanceTestBase {
         vm.expectRevert(IGovernance.GovernanceOnlyOnePendingProposalAllowed.selector);
         governanceProxy.propose(targets, values, signatures, calldatas, description2);
     }
+
+    function test_propose_SuccessfullyCreatesTwoProposals() public {
+        test_propose_SuccessfullyCreatesProposal();
+        vm.roll(100000);
+
+        // Arrange
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        string[] memory signatures = new string[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        string memory description = 'proposal #1';
+
+        uint256 startBlock = block.number + governanceProxy.votingDelay();
+        uint256 endBlock = startBlock + governanceProxy.votingPeriod();
+
+        // Act
+        vm.prank(wallet);
+        vm.expectEmit();
+        emit IGovernance.ProposalCreated(
+            2,
+            wallet,
+            targets,
+            values,
+            signatures,
+            calldatas,
+            startBlock,
+            endBlock,
+            description
+        );
+        governanceProxy.propose(targets, values, signatures, calldatas, description);
+
+        // Assert
+        uint256 proposalCount = governanceProxy.proposalCount();
+        uint256 latestProposalIds = governanceProxy.latestProposalIds(wallet);
+        (
+            uint256 _id,
+            address _proposer,
+            uint256 _eta,
+            uint256 _startBlock,
+            uint256 _endBlock,
+            uint256 _forVotes,
+            uint256 _againstVotes,
+            uint256 _abstainVotes,
+            bool _canceled,
+            bool _executed
+        ) = governanceProxy.proposals(proposalCount);
+
+        assertEq(proposalCount, 2);
+        assertEq(latestProposalIds, 2);
+        assertEq(_id, 2);
+        assertEq(_proposer, wallet);
+        assertEq(_eta, 0);
+        assertEq(_startBlock, startBlock);
+        assertEq(_endBlock, endBlock);
+        assertEq(_forVotes, 0);
+        assertEq(_againstVotes, 0);
+        assertEq(_abstainVotes, 0);
+        assertEq(_canceled, false);
+        assertEq(_executed, false);
+    }
 }
