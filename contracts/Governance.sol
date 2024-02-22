@@ -408,14 +408,14 @@ contract Governance is IGovernance, Proxiable, Ownable {
         }
 
         proposal.canceled = true;
-        for (uint256 i; i < proposal.targets.length; ++i) {
-            timelock.cancelTransaction(
-                proposal.targets[i],
-                proposal.values[i],
-                proposal.signatures[i],
-                proposal.calldatas[i],
-                proposal.eta
-            );
+        address[] memory targets = proposal.targets;
+        uint256[] memory values = proposal.values;
+        string[] memory signatures = proposal.signatures;
+        bytes[] memory calldatas = proposal.calldatas;
+        uint256 len = targets.length;
+        uint256 eta = proposal.eta;
+        for (uint256 i; i < len; ++i) {
+            timelock.cancelTransaction(targets[i], values[i], signatures[i], calldatas[i], eta);
         }
 
         emit ProposalCanceled(proposalId);
