@@ -15,6 +15,7 @@ abstract contract GovernanceTestBase is Test {
     uint256 public constant INITIAL_VOTING_DELAY = 2;
     uint256 public constant INITIAL_PROPOSAL_THRESHOLD_PERCENTAGE_NUMBERATOR = 2000; // 20% proposal threshold percentage numerator
     uint256 public constant INITIAL_QUORUM_VOTES_PERCENTAGE_NUMBERATOR = 5100; // 51% quorum votes percentage numerator
+    uint256 public constant INITIAL_TIMELOCK_DELAY = 5 days;
 
     MineToken public mineToken;
     Timelock public timelock;
@@ -39,7 +40,7 @@ abstract contract GovernanceTestBase is Test {
         mineToken.setBurner(address(0), true);
 
         // set up Timelock contract
-        timelock = new Timelock(3 days);
+        timelock = new Timelock(INITIAL_TIMELOCK_DELAY);
         mineToken.setMinter(address(timelock), true);
         vm.prank(wallet);
         mineToken.mint(address(timelock), 10e18);

@@ -26,6 +26,7 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         uint256 maxVotingPeriod = governanceProxy.MAX_VOTING_PERIOD();
         uint256 minVotingDelay = governanceProxy.MIN_VOTING_DELAY();
         uint256 maxVotingDelay = governanceProxy.MAX_VOTING_DELAY();
+        uint256 timelockDelay = governanceProxy.timelock().delay();
         uint256 proposalMaxOperations = governanceProxy.proposalMaxOperations();
 
         // Assert
@@ -41,6 +42,7 @@ contract GovernanceHarnessTest is GovernanceTestBase {
         assertEq(minVotingDelay, 1);
         assertEq(maxVotingDelay, 40320);
         assertEq(proposalMaxOperations, 10);
+        assertEq(timelockDelay, INITIAL_TIMELOCK_DELAY);
     }
 
     /**

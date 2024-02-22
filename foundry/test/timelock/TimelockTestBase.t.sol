@@ -8,7 +8,7 @@ import { Dummy } from '../../../contracts/test/Dummy.sol';
 
 abstract contract TimelockTestBase is Test {
     uint256 internal constant START_TIMESTAMP = 1699023595;
-    uint256 public constant INITIAL_TIMELOCK_DELAY = 3 days;
+    uint256 public constant INITIAL_TIMELOCK_DELAY = 5 days;
     TimelockHarness public timelock;
     Dummy public dummy;
 
