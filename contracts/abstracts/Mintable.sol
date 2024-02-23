@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 abstract contract Mintable {
     event MinterSet(address indexed minter, bool canMint);
