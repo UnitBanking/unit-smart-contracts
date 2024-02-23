@@ -7,7 +7,7 @@ import './Mintable.sol';
 import './Burnable.sol';
 import './Ownable.sol';
 import './Proxiable.sol';
-import '../interfaces/IERC20Permit.sol';
+import '../interfaces/IBaseToken.sol';
 
 /**
  * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
@@ -17,7 +17,7 @@ import '../interfaces/IERC20Permit.sol';
  * Adding, removing, changing or rearranging state variables in this contract can result in a storage collision
  * in child contracts in case of a contract upgrade.
  */
-abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IERC20Permit {
+abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IBaseToken {
     bytes32 public constant DOMAIN_TYPEHASH =
         keccak256('EIP712Domain(string name,uint256 chainId,address verifyingContract)');
     bytes32 public constant PERMIT_TYPEHASH =
@@ -40,17 +40,17 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         _setBurner(burner, canBurn);
     }
 
-    function mint(address receiver, uint256 amount) public virtual override {
+    function mint(address receiver, uint256 amount) public virtual override(Mintable, IMintable) {
         super.mint(receiver, amount);
         _update(address(0), receiver, amount);
     }
 
-    function burn(uint256 amount) public virtual override {
+    function burn(uint256 amount) public virtual override(Burnable, IBurnable) {
         super.burn(amount);
         _update(msg.sender, address(0), amount);
     }
 
-    function burnFrom(address from, uint256 amount) public virtual override {
+    function burnFrom(address from, uint256 amount) public virtual override(Burnable, IBurnable) {
         super.burnFrom(from, amount);
         _spendAllowance(from, msg.sender, amount);
         _update(from, address(0), amount);

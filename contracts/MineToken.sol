@@ -47,11 +47,11 @@ contract MineToken is BaseToken, IVotes {
         super.initialize();
     }
 
-    function name() public pure override returns (string memory) {
+    function name() public pure override(ERC20, IERC20) returns (string memory) {
         return 'Mine';
     }
 
-    function symbol() public pure override returns (string memory) {
+    function symbol() public pure override(ERC20, IERC20) returns (string memory) {
         return 'MINE';
     }
 
