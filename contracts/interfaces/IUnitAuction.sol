@@ -42,6 +42,12 @@ interface IUnitAuction {
     error UnitAuctionPriceLowerThanBurnPrice(uint256 currentPrice, uint256 burnPrice);
 
     /**
+     * ================ CONSTANTS ================
+     */
+
+    function STANDARD_PRECISION() external view returns (uint256);
+
+    /**
      * ================ CORE FUNCTIONALITY ================
      */
 

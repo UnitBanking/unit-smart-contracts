@@ -11,7 +11,7 @@ import './interfaces/ICollateralUsdOracle.sol';
 import { UD60x18, convert, uUNIT, UNIT, unwrap, wrap, exp, ln } from '@prb/math/src/UD60x18.sol';
 import './libraries/Math.sol';
 import './libraries/TransferUtils.sol';
-import './libraries/ReserveRatio.sol';
+import './libraries/ProtocolConstants.sol';
 import './MineToken.sol';
 import './UnitToken.sol';
 
@@ -45,15 +45,13 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     uint256 public constant BASE_SPREAD = 10; // 0.001 or 0.1%
     uint256 public constant SPREAD_PRECISION = 10_000;
 
-    uint256 public constant UNITUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision
-    uint256 public constant COLLATERALUSD_PRICE_PRECISION = 1e18; // Must match Unit token precision or UNITUSD_PRICE_PRECISION (which both must be the same)
-
     uint256 public constant REDEMPTION_DISCOUNT = 5_000; // 0.5 or 50%
     uint256 public constant REDEMPTION_DISCOUNT_PRECISION = 10_000;
 
     uint256 public constant BASE_REDEMPTION_SPREAD = 100; // 0.01 or 1%
     uint256 public constant BASE_REDEMPTION_SPREAD_PRECISION = 10_000;
 
+    uint256 public immutable STANDARD_PRECISION;
     address public immutable COLLATERAL_BURN_ADDRESS;
 
     /**
@@ -94,6 +92,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * uninitializable, which makes it unusable when called directly.
      */
     constructor(address collateralBurnAddress) {
+        STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
         COLLATERAL_BURN_ADDRESS = collateralBurnAddress;
 
         super.initialize();
@@ -114,9 +113,10 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         ICollateralUsdOracle _collateralUsdOracle
     ) external {
         _setOwner(msg.sender);
+
         uint256 unitTokenPrecision = 10 ** _unitToken.decimals();
-        if (unitTokenPrecision != UNITUSD_PRICE_PRECISION) {
-            revert BondingCurveInvalidUnitTokenPrecision(unitTokenPrecision, UNITUSD_PRICE_PRECISION);
+        if (unitTokenPrecision != STANDARD_PRECISION) {
+            revert BondingCurveInvalidUnitTokenPrecision(unitTokenPrecision, STANDARD_PRECISION);
         }
 
         lastUnitUsdPrice = UNIT; // 1
@@ -126,6 +126,10 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         mineToken = _mineToken;
         inflationOracle = _inflationOracle;
         collateralUsdOracle = _collateralUsdOracle;
+        uint256 collateralUsdPricePrecision = _collateralUsdOracle.getCollateralUsdPricePrecision();
+        if (collateralUsdPricePrecision != STANDARD_PRECISION) {
+            revert BondingCurveInvalidCollateralPricePrecision(collateralUsdPricePrecision, STANDARD_PRECISION);
+        }
 
         updateInternals();
 
@@ -151,7 +155,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @inheritdoc IBondingCurve
      */
     function mint(address receiver, uint256 collateralAmountIn) external nonReentrant {
-        if (getReserveRatio() < ReserveRatio.HIGH_RR) {
+        if (getReserveRatio() < ProtocolConstants.HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
@@ -230,7 +234,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
                 ((collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) *
-                    ReserveRatio.RR_PRECISION) /
+                    STANDARD_PRECISION) /
                 (unitUsdPrice * unitTokenTotalSupply);
         }
     }
@@ -256,7 +260,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
 
     /**
      * @inheritdoc IBondingCurve
-     * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
+     * @dev Price precision is `STANDARD_PRECISION`.
      */
     function getMintPrice() external view returns (uint256) {
         return (_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION;
@@ -264,7 +268,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
 
     /**
      * @inheritdoc IBondingCurve
-     * @dev Price precision is `UNITUSD_PRICE_PRECISION`.
+     * @dev Price precision is `STANDARD_PRECISION`.
      */
     function getBurnPrice() external view returns (uint256) {
         return (_getUnitCollateralPrice(0) * (SPREAD_PRECISION - getSpread())) / SPREAD_PRECISION;
@@ -282,7 +286,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      */
 
     function quoteMint(uint256 collateralAmount) external view returns (uint256) {
-        if (getReserveRatio() < ReserveRatio.HIGH_RR) {
+        if (getReserveRatio() < ProtocolConstants.HIGH_RR) {
             revert BondingCurveReserveRatioTooLow();
         }
 
@@ -302,16 +306,14 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @dev The result is in UNIT token precision.
      */
     function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount) {
-        uint256 desiredRR = ReserveRatio.HIGH_RR - 1;
+        uint256 desiredRR = ProtocolConstants.HIGH_RR - 1;
         uint256 unitUsdPrice = getUnitUsdPrice();
         uint256 collateralUsdPrice = collateralUsdOracle.getCollateralUsdPrice();
 
         unitAmount =
-            (((unitToken.totalSupply() * unitUsdPrice * desiredRR) -
-                (collateralUsdPrice * collateralToken.balanceOf(address(this)) * ReserveRatio.RR_PRECISION)) *
-                UNITUSD_PRICE_PRECISION) /
-            ((desiredRR * unitUsdPrice * UNITUSD_PRICE_PRECISION) -
-                (collateralUsdPrice * unitCollateralPrice * ReserveRatio.RR_PRECISION));
+            ((unitToken.totalSupply() * unitUsdPrice * desiredRR) -
+                (collateralUsdPrice * collateralToken.balanceOf(address(this)) * STANDARD_PRECISION)) /
+            ((desiredRR * unitUsdPrice) - (collateralUsdPrice * unitCollateralPrice));
     }
 
     /**
@@ -326,7 +328,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      */
     function _getMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
         return
-            (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
+            (collateralAmountIn * STANDARD_PRECISION) /
             ((_getUnitCollateralPrice(collateralAmountIn) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
     }
 
@@ -339,7 +341,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      */
     function _getQuoteMintAmount(uint256 collateralAmountIn) internal view returns (uint256) {
         return
-            (collateralAmountIn * UNITUSD_PRICE_PRECISION) /
+            (collateralAmountIn * STANDARD_PRECISION) /
             ((_getUnitCollateralPrice(0) * (SPREAD_PRECISION + getSpread())) / SPREAD_PRECISION);
     }
 
@@ -350,7 +352,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         return
             (unitTokenAmount * (_getUnitCollateralPrice(0) * (SPREAD_PRECISION - getSpread()))) /
             SPREAD_PRECISION /
-            UNITUSD_PRICE_PRECISION;
+            STANDARD_PRECISION;
     }
 
     /**
@@ -373,7 +375,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     }
 
     /**
-     * @return UNIT price in USD in `UNITUSD_PRICE_PRECISION` precision.
+     * @return UNIT price in USD in `STANDARD_PRECISION`.
      */
     function _getUnitUsdPriceForTimestamp(uint256 timestamp) internal view returns (UD60x18) {
         uint256 timestampDelta;
@@ -393,21 +395,21 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     /**
      * @param transferredCollateralAmount Collateral token amount that was transferred in the current call context
      * and should not be included in price calculation.
-     * @return UNIT price in collateral token in precision that matches `UNITUSD_PRICE_PRECISION`.
+     * @return UNIT price in collateral token in `STANDARD_PRECISION`.
      */
     function _getUnitCollateralPrice(uint256 transferredCollateralAmount) internal view returns (uint256) {
         uint256 unitTotalSupply = unitToken.totalSupply();
         if (unitTotalSupply > 0) {
             return
                 Math.min(
-                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * COLLATERALUSD_PRICE_PRECISION) /
+                    (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * STANDARD_PRECISION) /
                         collateralUsdOracle.getCollateralUsdPrice(),
-                    ((collateralToken.balanceOf(address(this)) - transferredCollateralAmount) *
-                        UNITUSD_PRICE_PRECISION) / unitTotalSupply
+                    ((collateralToken.balanceOf(address(this)) - transferredCollateralAmount) * STANDARD_PRECISION) /
+                        unitTotalSupply
                 );
         } else {
             return
-                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * COLLATERALUSD_PRICE_PRECISION) /
+                (unwrap(_getUnitUsdPriceForTimestamp(block.timestamp)) * STANDARD_PRECISION) /
                 collateralUsdOracle.getCollateralUsdPrice();
         }
     }

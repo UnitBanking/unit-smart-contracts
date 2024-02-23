@@ -23,6 +23,11 @@ interface IBondingCurve {
     error BondingCurveInvalidUnitTokenPrecision(uint256 invalidPrecision, uint256 expectedPrecision);
 
     /**
+     * @dev Returned when the collateral/USD price oracle uses invalid precision.
+     */
+    error BondingCurveInvalidCollateralPricePrecision(uint256 invalidPrecision, uint256 expectedPrecision);
+
+    /**
      * @dev Call unauthorized.
      */
     error BondingCurveForbidden();
@@ -31,7 +36,7 @@ interface IBondingCurve {
      * ================ CONSTANTS ================
      */
 
-    function UNITUSD_PRICE_PRECISION() external pure returns (uint256);
+    function STANDARD_PRECISION() external view returns (uint256);
 
     /**
      * ================ CORE FUNCTIONALITY ================
