@@ -131,7 +131,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Sets `startPriceBuffer`.
+     * @notice Sets `contractionStartPriceBuffer`.
      * @param _startPriceBuffer Must be in `START_PRICE_BUFFER_PRECISION` precision.
      */
     function setStartPriceBuffer(uint256 _startPriceBuffer) external onlyOwner {
@@ -209,7 +209,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         uint256 unitCollateralPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
-        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice) / STANDARD_PRECISION;
+        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice) / STANDARD_PRECISION; // TODO: convert collateral precision
 
         unitToken.burnFrom(msg.sender, unitAmountIn);
         bondingCurve.transferCollateralToken(msg.sender, collateralAmountOut);
@@ -223,18 +223,6 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         }
 
         emit UnitSold(msg.sender, unitAmountIn, collateralAmountOut);
-    }
-
-    /**
-     * @inheritdoc IUnitAuction
-     */
-    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut) {
-        (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
-        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
-            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
-        }
-
-        return _getMaxSellUnitAmount(_getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime));
     }
 
     /**
@@ -270,6 +258,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @inheritdoc IUnitAuction
      */
+    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
+        }
+
+        return _getMaxSellUnitAmount(_getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime));
+    }
+
+    /**
+     * @inheritdoc IUnitAuction
+     */
     function buyUnit(uint256 collateralAmountIn) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
@@ -289,7 +289,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (unitCollateralPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnPrice);
         }
-        uint256 unitAmountOut = (collateralAmountIn * STANDARD_PRECISION) / unitCollateralPrice;
+        uint256 unitAmountOut = (collateralAmountIn * STANDARD_PRECISION) / unitCollateralPrice; // TODO: convert collateral precision
 
         unitToken.mint(msg.sender, unitAmountOut);
 
@@ -319,13 +319,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (unitCollateralPrice < burnUnitPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnUnitPrice);
         }
-        unitAmountOut = (collateralAmountIn * unitCollateralPrice) / STANDARD_PRECISION;
+        unitAmountOut = (collateralAmountIn * unitCollateralPrice) / STANDARD_PRECISION; // TODO: convert collateral precision
     }
 
     /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
+    /**
+     * @notice Given the auction {startPrice} and {startTime}, returns the current UNIT sell price in a contraction
+     * auction.
+     * @dev The returned value is in STANDARD_PRECISION.
+     */
     function _getCurrentSellUnitPrice(
         uint256 startPrice,
         uint256 startTime
@@ -348,11 +353,15 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         collateralAmountOut = _quoteSellUnit(maxSellAmountIn, unitCollateralPrice);
     }
 
+    /**
+     * @notice Given the {unitCollateralPrice}, calculates how much collateral token can be bought for {unitAmountIn}.
+     * @dev The returned value is in collateral token precision.
+     */
     function _quoteSellUnit(
         uint256 unitAmountIn,
         uint256 unitCollateralPrice
     ) internal view returns (uint256 collateralAmountOut) {
-        collateralAmountOut = (unitAmountIn * unitCollateralPrice) / STANDARD_PRECISION;
+        collateralAmountOut = (unitAmountIn * unitCollateralPrice) / STANDARD_PRECISION; // TODO: convert to collateral token precision
     }
 
     /**
@@ -362,8 +371,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @param desiredSellAmountIn UNIT amount the caller wishes to sell in the auction.
      * @param unitCollateralPrice UNIT price in collateral token to be used in the quote (normally current auction
      * price).
-     * @return possibleSellAmountIn The UNIT amount that can be currently sold.
-     * @return collateralAmountOut The collateral that will be bought for {possibleSellAmountIn}.
+     * @return possibleSellAmountIn The UNIT amount that can be currently sold (UNIT precision).
+     * @return collateralAmountOut The collateral that will be bought for {possibleSellAmountIn} (collateral token precision).
      */
     function _getPossibleSellAmount(
         uint256 desiredSellAmountIn,
