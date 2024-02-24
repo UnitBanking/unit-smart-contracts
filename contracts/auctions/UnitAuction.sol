@@ -26,6 +26,17 @@ TODO:
  */
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
+     * ================ TYPES ================
+     */
+
+    enum PersistentStateAction {
+        Noop,
+        StartContractionAuction,
+        StartExpansionAuction,
+        TerminateAuction
+    }
+
+    /**
      * ================ CONSTANTS ================
      */
 
@@ -144,27 +155,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @return _auctionState Current auction state.
      */
     function refreshState() public returns (uint256 reserveRatio, AuctionState memory _auctionState) {
-        reserveRatio = bondingCurve.getReserveRatio();
-        _auctionState = auctionState;
+        PersistentStateAction psa;
+        (reserveRatio, _auctionState, psa) = _computeState();
 
-        if (inContractionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
-                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
-                    _auctionState = _startContractionAuction();
-                }
-            } else {
-                _auctionState = _startContractionAuction();
-            }
-        } else if (inExpansionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
-                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
-                    _auctionState = _startExpansionAuction();
-                }
-            } else {
-                _auctionState = _startExpansionAuction();
-            }
-        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
-            _auctionState = _terminateAuction();
+        if (psa == PersistentStateAction.StartContractionAuction) {
+            auctionState = _auctionState;
+            emit AuctionStarted(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
+        } else if (psa == PersistentStateAction.StartExpansionAuction) {
+            auctionState = _auctionState;
+            emit AuctionStarted(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
+        } else if (psa == PersistentStateAction.TerminateAuction) {
+            auctionState = _auctionState;
+            emit AuctionTerminated();
         }
     }
 
@@ -174,28 +176,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @return _auctionState Current auction state.
      */
     function refreshStateInMemory() public view returns (uint256 reserveRatio, AuctionState memory _auctionState) {
-        reserveRatio = bondingCurve.getReserveRatio();
-        _auctionState = auctionState;
-
-        if (inContractionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
-                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
-                    _auctionState = _getNewContractionAuction();
-                }
-            } else {
-                _auctionState = _getNewContractionAuction();
-            }
-        } else if (inExpansionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
-                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
-                    _auctionState = _getNewExpansionAuction();
-                }
-            } else {
-                _auctionState = _getNewExpansionAuction();
-            }
-        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
-            _auctionState = _getNullAuction();
-        }
+        (reserveRatio, _auctionState, ) = _computeState();
     }
 
     /**
@@ -325,6 +306,40 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
+
+    function _computeState()
+        internal
+        view
+        returns (uint256 reserveRatio, AuctionState memory _auctionState, PersistentStateAction psa)
+    {
+        reserveRatio = bondingCurve.getReserveRatio();
+        _auctionState = auctionState;
+
+        if (inContractionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
+                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
+                    _auctionState = _getNewContractionAuction();
+                    psa = PersistentStateAction.StartContractionAuction;
+                }
+            } else {
+                _auctionState = _getNewContractionAuction();
+                psa = PersistentStateAction.StartContractionAuction;
+            }
+        } else if (inExpansionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
+                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
+                    _auctionState = _getNewExpansionAuction();
+                    psa = PersistentStateAction.StartExpansionAuction;
+                }
+            } else {
+                _auctionState = _getNewExpansionAuction();
+                psa = PersistentStateAction.StartExpansionAuction;
+            }
+        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
+            _auctionState = _getNullAuction();
+            psa = PersistentStateAction.TerminateAuction;
+        }
+    }
 
     /**
      * @notice Given the auction {startPrice} and {startTime}, returns the current UNIT sell price in a contraction
