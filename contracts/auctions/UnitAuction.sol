@@ -9,6 +9,7 @@ import '../interfaces/IUnitAuction.sol';
 import '../interfaces/IBondingCurve.sol';
 import '../libraries/TransferUtils.sol';
 import '../libraries/ProtocolConstants.sol';
+import '../libraries/PrecisionUtils.sol';
 import '../UnitToken.sol';
 import { pow, uUNIT, unwrap, wrap } from '@prb/math/src/UD60x18.sol';
 
@@ -25,6 +26,8 @@ TODO:
  * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
  */
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
+    using PrecisionUtils for uint256;
+
     /**
      * ================ TYPES ================
      */
@@ -52,6 +55,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     IBondingCurve public immutable bondingCurve;
     IERC20 public immutable collateralToken;
+    uint256 private immutable collateralTokenDecimals;
     UnitToken public immutable unitToken;
 
     uint8 public constant AUCTION_VARIANT_NONE = 1;
@@ -103,7 +107,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
 
         bondingCurve = _bondingCurve;
-        collateralToken = _bondingCurve.collateralToken();
+        IERC20 _collateralToken = _bondingCurve.collateralToken();
+        collateralToken = _collateralToken;
+        collateralTokenDecimals = _collateralToken.decimals();
         unitToken = _unitToken;
 
         super.initialize();
@@ -190,7 +196,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         uint256 unitCollateralPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
-        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice) / STANDARD_PRECISION; // TODO: convert collateral precision
+        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice).toCollateralPrecision(
+            collateralTokenDecimals
+        ) / STANDARD_PRECISION;
 
         unitToken.burnFrom(msg.sender, unitAmountIn);
         bondingCurve.transferCollateralToken(msg.sender, collateralAmountOut);
@@ -270,7 +278,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (unitCollateralPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnPrice);
         }
-        uint256 unitAmountOut = (collateralAmountIn * STANDARD_PRECISION) / unitCollateralPrice; // TODO: convert collateral precision
+        uint256 unitAmountOut = (collateralAmountIn * STANDARD_PRECISION).toStandardPrecision(collateralTokenDecimals) /
+            unitCollateralPrice;
 
         unitToken.mint(msg.sender, unitAmountOut);
 
@@ -300,7 +309,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (unitCollateralPrice < burnUnitPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnUnitPrice);
         }
-        unitAmountOut = (collateralAmountIn * unitCollateralPrice) / STANDARD_PRECISION; // TODO: convert collateral precision
+        unitAmountOut =
+            (collateralAmountIn * unitCollateralPrice).toStandardPrecision(collateralTokenDecimals) /
+            STANDARD_PRECISION;
     }
 
     /**
@@ -376,7 +387,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 unitAmountIn,
         uint256 unitCollateralPrice
     ) internal view returns (uint256 collateralAmountOut) {
-        collateralAmountOut = (unitAmountIn * unitCollateralPrice) / STANDARD_PRECISION; // TODO: convert to collateral token precision
+        collateralAmountOut =
+            (unitAmountIn * unitCollateralPrice).toCollateralPrecision(collateralTokenDecimals) /
+            STANDARD_PRECISION;
     }
 
     /**

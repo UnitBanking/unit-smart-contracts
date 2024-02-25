@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity 0.8.23;
 
 library ProtocolConstants {
-    uint256 public constant STANDARD_PRECISION = 1e18; // Must equal UNIT token precision
+    uint256 public constant STANDARD_DECIMALS = 18; // Must equal UNIT token decimals
+    uint256 public constant STANDARD_PRECISION = 10 ** STANDARD_DECIMALS;
 
     // Reserve ratio (RR) constants
     uint256 public constant CRITICAL_RR = 1 * STANDARD_PRECISION;
