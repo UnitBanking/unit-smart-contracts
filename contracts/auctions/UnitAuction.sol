@@ -230,7 +230,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @inheritdoc IUnitAuction
      */
     function quoteSellUnit(
-        uint256 desiredSellAmountIn
+        uint256 desiredUnitAmountIn
     ) external view returns (uint256 possibleUnitAmountIn, uint256 collateralAmountOut) {
         (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
         if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
@@ -239,7 +239,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         return
             _getPossibleSellAmount(
-                desiredSellAmountIn,
+                desiredUnitAmountIn,
                 _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime)
             );
     }
@@ -374,9 +374,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     function _getMaxSellUnitAmount(
         uint256 unitCollateralPrice
-    ) internal view returns (uint256 maxSellAmountIn, uint256 collateralAmountOut) {
-        maxSellAmountIn = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
-        collateralAmountOut = _quoteSellUnit(maxSellAmountIn, unitCollateralPrice);
+    ) internal view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut) {
+        maxUnitAmountIn = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
+        collateralAmountOut = _quoteSellUnit(maxUnitAmountIn, unitCollateralPrice);
     }
 
     /**
@@ -393,26 +393,26 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Returns the {desiredSellAmountIn} or the maximum possible UNIT amount that can be sold for collateral
+     * @notice Returns the {desiredUnitAmountIn} or the maximum possible UNIT amount that can be sold for collateral
      * token, whichever is smaller. Used in a UNIT contraction auction scenario.
      * @dev All relevant checks, e.g. whether we are in a contraction auction, must be performed before calling this.
-     * @param desiredSellAmountIn UNIT amount the caller wishes to sell in the auction.
+     * @param desiredUnitAmountIn UNIT amount the caller wishes to sell in the auction.
      * @param unitCollateralPrice UNIT price in collateral token to be used in the quote (normally current auction
      * price).
-     * @return possibleSellAmountIn The UNIT amount that can be currently sold (UNIT precision).
-     * @return collateralAmountOut The collateral that will be bought for {possibleSellAmountIn} (collateral token precision).
+     * @return possibleUnitAmountIn The UNIT amount that can be currently sold (UNIT precision).
+     * @return collateralAmountOut The collateral that will be bought for {possibleUnitAmountIn} (collateral token precision).
      */
     function _getPossibleSellAmount(
-        uint256 desiredSellAmountIn,
+        uint256 desiredUnitAmountIn,
         uint256 unitCollateralPrice
-    ) internal view returns (uint256 possibleSellAmountIn, uint256 collateralAmountOut) {
+    ) internal view returns (uint256 possibleUnitAmountIn, uint256 collateralAmountOut) {
         (uint256 maxSellAmount, uint256 maxCollateralAmount) = _getMaxSellUnitAmount(unitCollateralPrice);
 
-        if (desiredSellAmountIn < maxSellAmount) {
-            possibleSellAmountIn = desiredSellAmountIn;
-            collateralAmountOut = _quoteSellUnit(desiredSellAmountIn, unitCollateralPrice);
+        if (desiredUnitAmountIn < maxSellAmount) {
+            possibleUnitAmountIn = desiredUnitAmountIn;
+            collateralAmountOut = _quoteSellUnit(desiredUnitAmountIn, unitCollateralPrice);
         } else {
-            possibleSellAmountIn = maxSellAmount;
+            possibleUnitAmountIn = maxSellAmount;
             collateralAmountOut = maxCollateralAmount;
         }
     }
