@@ -29,17 +29,6 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     using PrecisionUtils for uint256;
 
     /**
-     * ================ TYPES ================
-     */
-
-    enum PersistentStateAction {
-        Noop,
-        StartContractionAuction,
-        StartExpansionAuction,
-        TerminateAuction
-    }
-
-    /**
      * ================ CONSTANTS ================
      */
 
@@ -155,22 +144,29 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         contractionStartPriceBuffer = _startPriceBuffer;
     }
 
+    enum StateChange {
+        NoChange,
+        ContractionAuctionStarted,
+        ExpansionAuctionStarted,
+        AuctionTerminated
+    }
+
     /**
      * @notice Updates the auction state in storage and returns a copy of it in memory.
      * @return reserveRatio Current UNIT reserve ratio.
      * @return _auctionState Current auction state.
      */
     function refreshState() public returns (uint256 reserveRatio, AuctionState memory _auctionState) {
-        PersistentStateAction psa;
-        (reserveRatio, _auctionState, psa) = _computeState();
+        StateChange stateChange;
+        (reserveRatio, _auctionState, stateChange) = _computeState();
 
-        if (psa == PersistentStateAction.StartContractionAuction) {
+        if (stateChange == StateChange.ContractionAuctionStarted) {
             auctionState = _auctionState;
             emit AuctionStarted(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
-        } else if (psa == PersistentStateAction.StartExpansionAuction) {
+        } else if (stateChange == StateChange.ExpansionAuctionStarted) {
             auctionState = _auctionState;
             emit AuctionStarted(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
-        } else if (psa == PersistentStateAction.TerminateAuction) {
+        } else if (stateChange == StateChange.AuctionTerminated) {
             auctionState = _auctionState;
             emit AuctionTerminated();
         }
@@ -321,7 +317,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     function _computeState()
         internal
         view
-        returns (uint256 reserveRatio, AuctionState memory _auctionState, PersistentStateAction psa)
+        returns (uint256 reserveRatio, AuctionState memory _auctionState, StateChange stateChange)
     {
         reserveRatio = bondingCurve.getReserveRatio();
         _auctionState = auctionState;
@@ -330,25 +326,25 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
                 if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
                     _auctionState = _getNewContractionAuction();
-                    psa = PersistentStateAction.StartContractionAuction;
+                    stateChange = StateChange.ContractionAuctionStarted;
                 }
             } else {
                 _auctionState = _getNewContractionAuction();
-                psa = PersistentStateAction.StartContractionAuction;
+                stateChange = StateChange.ContractionAuctionStarted;
             }
         } else if (inExpansionRange(reserveRatio)) {
             if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
                 if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
                     _auctionState = _getNewExpansionAuction();
-                    psa = PersistentStateAction.StartExpansionAuction;
+                    stateChange = StateChange.ExpansionAuctionStarted;
                 }
             } else {
                 _auctionState = _getNewExpansionAuction();
-                psa = PersistentStateAction.StartExpansionAuction;
+                stateChange = StateChange.ExpansionAuctionStarted;
             }
         } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
             _auctionState = _getNullAuction();
-            psa = PersistentStateAction.TerminateAuction;
+            stateChange = StateChange.AuctionTerminated;
         }
     }
 
