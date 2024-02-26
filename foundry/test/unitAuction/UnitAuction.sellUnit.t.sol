@@ -266,7 +266,7 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
 
         // Assert
         uint256 expectedCollateralAmount = (maxUnitSellAmount * unitAuctionProxy.getCurrentSellUnitPrice()) /
-            unitAuctionProxy.UNITUSD_PRICE_PRECISION();
+            unitAuctionProxy.STANDARD_PRECISION();
         assertEq(
             collateralAmount,
             expectedCollateralAmount,
@@ -354,7 +354,7 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
             unitAuctionProxy.getCurrentSellUnitPrice()
         );
         uint256 expectedCollateralAmount = (expectedMaxUnitSellAmount * unitAuctionProxy.getCurrentSellUnitPrice()) /
-            unitAuctionProxy.UNITUSD_PRICE_PRECISION();
+            unitAuctionProxy.STANDARD_PRECISION();
         assertEq(maxUnitSellAmount, expectedMaxUnitSellAmount);
         assertEq(collateralAmount, expectedCollateralAmount);
     }

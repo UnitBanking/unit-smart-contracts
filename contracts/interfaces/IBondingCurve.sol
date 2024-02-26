@@ -23,6 +23,11 @@ interface IBondingCurve {
     error BondingCurveInvalidUnitTokenPrecision(uint256 invalidPrecision, uint256 expectedPrecision);
 
     /**
+     * @dev Returned when the collateral/USD price oracle uses invalid precision.
+     */
+    error BondingCurveInvalidCollateralPricePrecision(uint256 invalidPrecision, uint256 expectedPrecision);
+
+    /**
      * @dev Call unauthorized.
      */
     error BondingCurveForbidden();
@@ -31,7 +36,7 @@ interface IBondingCurve {
      * ================ CONSTANTS ================
      */
 
-    function UNITUSD_PRICE_PRECISION() external pure returns (uint256);
+    function STANDARD_PRECISION() external view returns (uint256);
 
     /**
      * ================ CORE FUNCTIONALITY ================
@@ -93,7 +98,7 @@ interface IBondingCurve {
     function redeem(uint256 mineTokenAmount) external;
 
     /**
-     * @dev Updates the values for {lastUnitUsdPrice}, {lastOracleInflationRate}, and {lastOracleUpdateTimestamp}.
+     * @dev Updates internal variables based on data from the inflation oracle. The function is expected to be called once a month.
      */
     function updateInternals() external;
 
@@ -104,30 +109,48 @@ interface IBondingCurve {
     function collateralToken() external view returns (IERC20);
 
     /**
-     * @notice Returns the current UNIT price, in collateral token, used when minting UNIT.
+     * @notice Returns the current UNIT price used when minting UNIT. The price is expressed in collateral token.
+     * @dev The returned value is in STANDARD_PRECISION.
      */
     function getMintPrice() external view returns (uint256);
 
     /**
-     * @notice Returns the current UNIT price, in collateral token, used when burning UNIT.
+     * @notice Returns the current UNIT price used when burning UNIT. The price is expressed in collateral token.
+     * @dev The returned value is in STANDARD_PRECISION.
      */
     function getBurnPrice() external view returns (uint256);
 
+    /**
+     * @notice Returns the current UNIT price expressed in USD.
+     * @dev The returned value is in STANDARD_PRECISION.
+     */
     function getUnitUsdPrice() external view returns (uint256);
 
+    /**
+     * @notice Returns the current UNIT price expressed in collateral token.
+     * @dev The returned value is in STANDARD_PRECISION.
+     */
     function getUnitCollateralPrice() external view returns (uint256);
 
+    /**
+     * @notice Returns the current protocol reserve ratio.
+     * @dev The returned value is in STANDARD_PRECISION.
+     */
     function getReserveRatio() external view returns (uint256);
 
+    /**
+     * @notice Returns the current excess collateral amount in the reserve.
+     * @dev The returned value is in collateral token precision.
+     */
     function getExcessCollateralReserve() external view returns (uint256);
 
     /**
      * @notice Calculates the maximum amount of UNIT that can be burned to move the reserve ratio to just below
-     * {ReserveRatio.HIGH_RR}. As UNIT is burned, an equivalent amount of collateral is removed from the reserve based
+     * {ProtocolConstants.HIGH_RR}. As UNIT is burned, an equivalent amount of collateral is removed from the reserve based
      * on the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
      * @param unitCollateralPrice UNIT price, expressed in collateral token, that is used in the calculation.
      * @return unitAmount The maximum amount of UNIT that can be successfully burned without causing the reserve ratio to reach
-     * or exceed {ReserveRatio.HIGH_RR}.
+     * or exceed {ProtocolConstants.HIGH_RR}. The value is UNIT token precision.
      */
     function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount);
 }

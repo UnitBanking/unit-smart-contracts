@@ -8,13 +8,13 @@ import '../abstracts/ReentrancyGuard.sol';
 import '../interfaces/IUnitAuction.sol';
 import '../interfaces/IBondingCurve.sol';
 import '../libraries/TransferUtils.sol';
-import '../libraries/ReserveRatio.sol';
+import '../libraries/ProtocolConstants.sol';
+import '../libraries/PrecisionUtils.sol';
 import '../UnitToken.sol';
 import { pow, uUNIT, unwrap, wrap } from '@prb/math/src/UD60x18.sol';
 
 /*
 TODO:
-- Consider putting remaining constants we pull from the bonding curve (like UNITUSD_PRICE_PRECISION) in a common library
 - AuctionState struct packing: casting timestamp to uint32 gives us until y2106, the next possible size is uint40, which will last until y36812
 - Consider adding a receiver address as an input param to the bid functions, to enable bid exeution on behalf of someone else (as opposed to only for msg.sender)
 - Comparative gas tests with a simpler auction price formula (avoiding `refreshState()` calls)
@@ -26,6 +26,19 @@ TODO:
  * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
  */
 contract UnitAuction is IUnitAuction, Proxiable, Ownable {
+    using PrecisionUtils for uint256;
+
+    /**
+     * ================ TYPES ================
+     */
+
+    enum PersistentStateAction {
+        Noop,
+        StartContractionAuction,
+        StartExpansionAuction,
+        TerminateAuction
+    }
+
     /**
      * ================ CONSTANTS ================
      */
@@ -38,10 +51,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     uint256 public constant EXPANSION_PRICE_DECAY_BASE = 999000000000000000; // 0.999 in prb-math.UNIT precision
     uint256 public constant EXPANSION_PRICE_DECAY_TIME_INTERVAL = 1800 seconds;
 
-    uint256 public immutable UNITUSD_PRICE_PRECISION; // All UNIT prices provided by the bonding curve are in this precision
+    uint256 public immutable STANDARD_PRECISION;
 
     IBondingCurve public immutable bondingCurve;
     IERC20 public immutable collateralToken;
+    uint256 private immutable collateralTokenDecimals;
     IUnitToken public immutable unitToken;
 
     uint8 public constant AUCTION_VARIANT_NONE = 1;
@@ -90,11 +104,13 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @dev This contract must be deployed after the bonding curve has been deployed and initialized via its proxy.
      */
     constructor(IBondingCurve _bondingCurve, IUnitToken _unitToken) {
-        bondingCurve = _bondingCurve;
-        collateralToken = _bondingCurve.collateralToken();
-        unitToken = _unitToken;
+        STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
 
-        UNITUSD_PRICE_PRECISION = _bondingCurve.UNITUSD_PRICE_PRECISION();
+        bondingCurve = _bondingCurve;
+        IERC20 _collateralToken = _bondingCurve.collateralToken();
+        collateralToken = _collateralToken;
+        collateralTokenDecimals = _collateralToken.decimals();
+        unitToken = _unitToken;
 
         super.initialize();
     }
@@ -105,6 +121,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     function initialize() public override {
         _setOwner(msg.sender);
+
         contractionAuctionMaxDuration = 2 hours;
         expansionAuctionMaxDuration = 23 hours;
         contractionStartPriceBuffer = CONTRACTION_START_PRICE_BUFFER;
@@ -131,7 +148,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     /**
-     * @notice Sets `startPriceBuffer`.
+     * @notice Sets `contractionStartPriceBuffer`.
      * @param _startPriceBuffer Must be in `START_PRICE_BUFFER_PRECISION` precision.
      */
     function setStartPriceBuffer(uint256 _startPriceBuffer) external onlyOwner {
@@ -144,27 +161,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @return _auctionState Current auction state.
      */
     function refreshState() public returns (uint256 reserveRatio, AuctionState memory _auctionState) {
-        reserveRatio = bondingCurve.getReserveRatio();
-        _auctionState = auctionState;
+        PersistentStateAction psa;
+        (reserveRatio, _auctionState, psa) = _computeState();
 
-        if (inContractionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
-                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
-                    _auctionState = _startContractionAuction();
-                }
-            } else {
-                _auctionState = _startContractionAuction();
-            }
-        } else if (inExpansionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
-                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
-                    _auctionState = _startExpansionAuction();
-                }
-            } else {
-                _auctionState = _startExpansionAuction();
-            }
-        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
-            _auctionState = _terminateAuction();
+        if (psa == PersistentStateAction.StartContractionAuction) {
+            auctionState = _auctionState;
+            emit AuctionStarted(AUCTION_VARIANT_CONTRACTION, _auctionState.startTime, _auctionState.startPrice);
+        } else if (psa == PersistentStateAction.StartExpansionAuction) {
+            auctionState = _auctionState;
+            emit AuctionStarted(AUCTION_VARIANT_EXPANSION, _auctionState.startTime, _auctionState.startPrice);
+        } else if (psa == PersistentStateAction.TerminateAuction) {
+            auctionState = _auctionState;
+            emit AuctionTerminated();
         }
     }
 
@@ -174,28 +182,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @return _auctionState Current auction state.
      */
     function refreshStateInMemory() public view returns (uint256 reserveRatio, AuctionState memory _auctionState) {
-        reserveRatio = bondingCurve.getReserveRatio();
-        _auctionState = auctionState;
-
-        if (inContractionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
-                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
-                    _auctionState = _getNewContractionAuction();
-                }
-            } else {
-                _auctionState = _getNewContractionAuction();
-            }
-        } else if (inExpansionRange(reserveRatio)) {
-            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
-                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
-                    _auctionState = _getNewExpansionAuction();
-                }
-            } else {
-                _auctionState = _getNewExpansionAuction();
-            }
-        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
-            _auctionState = _getNullAuction();
-        }
+        (reserveRatio, _auctionState, ) = _computeState();
     }
 
     /**
@@ -209,7 +196,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         uint256 unitCollateralPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
-        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
+        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice).toCollateralPrecision(
+            collateralTokenDecimals
+        ) / STANDARD_PRECISION;
 
         unitToken.burnFrom(msg.sender, unitAmountIn);
         bondingCurve.transferCollateralToken(msg.sender, collateralAmountOut);
@@ -218,23 +207,11 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (reserveRatioAfter <= reserveRatioBefore) {
             revert UnitAuctionReserveRatioNotIncreased();
         }
-        if (reserveRatioAfter >= ReserveRatio.HIGH_RR) {
+        if (reserveRatioAfter >= ProtocolConstants.HIGH_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
         emit UnitSold(msg.sender, unitAmountIn, collateralAmountOut);
-    }
-
-    /**
-     * @inheritdoc IUnitAuction
-     */
-    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut) {
-        (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
-        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
-            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
-        }
-
-        return _getMaxSellUnitAmount(_getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime));
     }
 
     /**
@@ -270,6 +247,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @inheritdoc IUnitAuction
      */
+    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_CONTRACTION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
+        }
+
+        return _getMaxSellUnitAmount(_getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime));
+    }
+
+    /**
+     * @inheritdoc IUnitAuction
+     */
     function buyUnit(uint256 collateralAmountIn) external {
         (uint256 reserveRatioBefore, AuctionState memory _auctionState) = refreshState();
         if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
@@ -289,7 +278,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (unitCollateralPrice < burnPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnPrice);
         }
-        uint256 unitAmountOut = (collateralAmountIn * UNITUSD_PRICE_PRECISION) / unitCollateralPrice;
+        uint256 unitAmountOut = (collateralAmountIn * STANDARD_PRECISION).toStandardPrecision(collateralTokenDecimals) /
+            unitCollateralPrice;
 
         unitToken.mint(msg.sender, unitAmountOut);
 
@@ -297,7 +287,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (reserveRatioAfter >= reserveRatioBefore) {
             revert UnitAuctionReserveRatioNotDecreased();
         }
-        if (reserveRatioAfter < ReserveRatio.TARGET_RR) {
+        if (reserveRatioAfter < ProtocolConstants.TARGET_RR) {
             revert UnitAuctionResultingReserveRatioOutOfRange(reserveRatioAfter);
         }
 
@@ -319,13 +309,54 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         if (unitCollateralPrice < burnUnitPrice) {
             revert UnitAuctionPriceLowerThanBurnPrice(unitCollateralPrice, burnUnitPrice);
         }
-        unitAmountOut = (collateralAmountIn * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
+        unitAmountOut =
+            (collateralAmountIn * unitCollateralPrice).toStandardPrecision(collateralTokenDecimals) /
+            STANDARD_PRECISION;
     }
 
     /**
      * ================ INTERNAL & PRIVATE FUNCTIONS ================
      */
 
+    function _computeState()
+        internal
+        view
+        returns (uint256 reserveRatio, AuctionState memory _auctionState, PersistentStateAction psa)
+    {
+        reserveRatio = bondingCurve.getReserveRatio();
+        _auctionState = auctionState;
+
+        if (inContractionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_CONTRACTION) {
+                if (block.timestamp - _auctionState.startTime > contractionAuctionMaxDuration) {
+                    _auctionState = _getNewContractionAuction();
+                    psa = PersistentStateAction.StartContractionAuction;
+                }
+            } else {
+                _auctionState = _getNewContractionAuction();
+                psa = PersistentStateAction.StartContractionAuction;
+            }
+        } else if (inExpansionRange(reserveRatio)) {
+            if (_auctionState.variant == AUCTION_VARIANT_EXPANSION) {
+                if (block.timestamp - _auctionState.startTime > expansionAuctionMaxDuration) {
+                    _auctionState = _getNewExpansionAuction();
+                    psa = PersistentStateAction.StartExpansionAuction;
+                }
+            } else {
+                _auctionState = _getNewExpansionAuction();
+                psa = PersistentStateAction.StartExpansionAuction;
+            }
+        } else if (_auctionState.variant != AUCTION_VARIANT_NONE) {
+            _auctionState = _getNullAuction();
+            psa = PersistentStateAction.TerminateAuction;
+        }
+    }
+
+    /**
+     * @notice Given the auction {startPrice} and {startTime}, returns the current UNIT sell price in a contraction
+     * auction.
+     * @dev The returned value is in STANDARD_PRECISION.
+     */
     function _getCurrentSellUnitPrice(
         uint256 startPrice,
         uint256 startTime
@@ -348,11 +379,17 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         collateralAmountOut = _quoteSellUnit(maxSellAmountIn, unitCollateralPrice);
     }
 
+    /**
+     * @notice Given the {unitCollateralPrice}, calculates how much collateral token can be bought for {unitAmountIn}.
+     * @dev The returned value is in collateral token precision.
+     */
     function _quoteSellUnit(
         uint256 unitAmountIn,
         uint256 unitCollateralPrice
     ) internal view returns (uint256 collateralAmountOut) {
-        collateralAmountOut = (unitAmountIn * unitCollateralPrice) / UNITUSD_PRICE_PRECISION;
+        collateralAmountOut =
+            (unitAmountIn * unitCollateralPrice).toCollateralPrecision(collateralTokenDecimals) /
+            STANDARD_PRECISION;
     }
 
     /**
@@ -362,8 +399,8 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * @param desiredSellAmountIn UNIT amount the caller wishes to sell in the auction.
      * @param unitCollateralPrice UNIT price in collateral token to be used in the quote (normally current auction
      * price).
-     * @return possibleSellAmountIn The UNIT amount that can be currently sold.
-     * @return collateralAmountOut The collateral that will be bought for {possibleSellAmountIn}.
+     * @return possibleSellAmountIn The UNIT amount that can be currently sold (UNIT precision).
+     * @return collateralAmountOut The collateral that will be bought for {possibleSellAmountIn} (collateral token precision).
      */
     function _getPossibleSellAmount(
         uint256 desiredSellAmountIn,
@@ -439,10 +476,10 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     }
 
     function inContractionRange(uint256 reserveRatio) internal pure returns (bool) {
-        return reserveRatio > ReserveRatio.CRITICAL_RR && reserveRatio <= ReserveRatio.LOW_RR;
+        return reserveRatio > ProtocolConstants.CRITICAL_RR && reserveRatio <= ProtocolConstants.LOW_RR;
     }
 
     function inExpansionRange(uint256 reserveRatio) internal pure returns (bool) {
-        return reserveRatio > ReserveRatio.TARGET_RR;
+        return reserveRatio > ProtocolConstants.TARGET_RR;
     }
 }
