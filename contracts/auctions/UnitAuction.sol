@@ -42,7 +42,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
     IBondingCurve public immutable bondingCurve;
     IERC20 public immutable collateralToken;
-    UnitToken public immutable unitToken;
+    IUnitToken public immutable unitToken;
 
     uint8 public constant AUCTION_VARIANT_NONE = 1;
     uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
@@ -89,7 +89,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
      * values for the remaining variables.
      * @dev This contract must be deployed after the bonding curve has been deployed and initialized via its proxy.
      */
-    constructor(IBondingCurve _bondingCurve, UnitToken _unitToken) {
+    constructor(IBondingCurve _bondingCurve, IUnitToken _unitToken) {
         bondingCurve = _bondingCurve;
         collateralToken = _bondingCurve.collateralToken();
         unitToken = _unitToken;
