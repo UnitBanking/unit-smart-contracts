@@ -10,7 +10,6 @@ import '../interfaces/IBurnable.sol';
  * in child contracts in case of a contract upgrade.
  */
 abstract contract Burnable is IBurnable {
-
     mapping(address burner => bool canBurn) public isBurner;
 
     function _setBurner(address burner, bool canBurn) internal {

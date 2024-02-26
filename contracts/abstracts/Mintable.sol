@@ -9,8 +9,7 @@ import '../interfaces/IMintable.sol';
  * Adding, removing, changing or rearranging state variables in this contract can result in a storage collision
  * in child contracts in case of a contract upgrade.
  */
-abstract contract Mintable is IMintable{
-
+abstract contract Mintable is IMintable {
     mapping(address minter => bool canMint) public isMinter;
 
     function _setMinter(address minter, bool canMint) internal {
