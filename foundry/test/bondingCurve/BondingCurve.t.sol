@@ -133,7 +133,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         // Assert
         assertEq(
             reserveRatio,
-            (TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE * TestUtils.RR_PRECISION) / TestUtils.INITIAL_UNIT_VALUE
+            (TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE * TestUtils.STANDARD_PRECISION) / TestUtils.INITIAL_UNIT_VALUE
         );
     }
 

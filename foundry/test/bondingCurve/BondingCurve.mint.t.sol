@@ -148,8 +148,8 @@ contract BondingCurveMintTest is BondingCurveTestBase {
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
         uint256 bondingCurveBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
         assertEq(
-            bondingCurveProxy.getReserveRatio() / TestUtils.RR_PRECISION,
-            TestUtils.HIGH_RR / TestUtils.RR_PRECISION
+            bondingCurveProxy.getReserveRatio() / TestUtils.STANDARD_PRECISION,
+            TestUtils.HIGH_RR / TestUtils.STANDARD_PRECISION
         );
 
         // Act

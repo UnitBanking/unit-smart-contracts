@@ -253,7 +253,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @inheritdoc IBondingCurve
      */
     function getExcessCollateralReserve() public view returns (uint256) {
-        uint256 unitCollateralValue = (unitToken.totalSupply() * getUnitUsdPrice()).toCollateralPrecision(
+        uint256 unitCollateralValue = (unitToken.totalSupply() * getUnitUsdPrice()).fromStandardPrecision(
             collateralTokenDecimals
         ) / collateralUsdOracle.getCollateralUsdPrice();
         uint256 collateralAmount = collateralToken.balanceOf(address(this));

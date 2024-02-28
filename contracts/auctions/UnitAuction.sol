@@ -192,7 +192,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
 
         uint256 unitCollateralPrice = _getCurrentSellUnitPrice(_auctionState.startPrice, _auctionState.startTime);
 
-        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice).toCollateralPrecision(
+        uint256 collateralAmountOut = (unitAmountIn * unitCollateralPrice).fromStandardPrecision(
             collateralTokenDecimals
         ) / STANDARD_PRECISION;
 
@@ -384,7 +384,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         uint256 unitCollateralPrice
     ) internal view returns (uint256 collateralAmountOut) {
         collateralAmountOut =
-            (unitAmountIn * unitCollateralPrice).toCollateralPrecision(collateralTokenDecimals) /
+            (unitAmountIn * unitCollateralPrice).fromStandardPrecision(collateralTokenDecimals) /
             STANDARD_PRECISION;
     }
 

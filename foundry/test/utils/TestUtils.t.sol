@@ -7,10 +7,12 @@ library TestUtils {
     uint256 internal constant INITIAL_COLLATERAL_TOKEN_VALUE = 5 wei;
     uint256 internal constant INITIAL_UNIT_VALUE = 1 wei;
 
-    uint256 internal constant RR_PRECISION = 1e18;
-    uint256 internal constant CRITICAL_RR = 1 * RR_PRECISION;
-    uint256 internal constant LOW_RR = 3 * RR_PRECISION;
-    uint256 internal constant HIGH_RR = 4 * RR_PRECISION;
+    uint256 internal constant STANDARD_DECIMALS = 18;
+    uint256 internal constant STANDARD_PRECISION = 10 ** STANDARD_DECIMALS;
+
+    uint256 internal constant CRITICAL_RR = 1 * STANDARD_PRECISION;
+    uint256 internal constant LOW_RR = 3 * STANDARD_PRECISION;
+    uint256 internal constant HIGH_RR = 4 * STANDARD_PRECISION;
 
     address internal constant COLLATERAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 

@@ -5,37 +5,39 @@ pragma solidity 0.8.23;
 import './ProtocolConstants.sol';
 
 library PrecisionUtils {
-    function toCollateralPrecision(
-        uint256 standardPrecision,
-        uint256 collateralTokenDecimals
-    ) internal pure returns (uint256 collateralPrecision) {
-        if (collateralTokenDecimals == ProtocolConstants.STANDARD_DECIMALS) {
-            collateralPrecision = standardPrecision;
-        } else if (collateralTokenDecimals < ProtocolConstants.STANDARD_DECIMALS) {
-            collateralPrecision =
-                standardPrecision /
-                10 ** (ProtocolConstants.STANDARD_DECIMALS - collateralTokenDecimals);
+    function convertPrecision(
+        uint256 originalPrecisionValue,
+        uint256 originalDecimals,
+        uint256 targetDecimals
+    ) internal pure returns (uint256 targetPrecisionValue) {
+        if (targetDecimals == originalDecimals) {
+            targetPrecisionValue = originalPrecisionValue;
+        } else if (targetDecimals < originalDecimals) {
+            targetPrecisionValue = originalPrecisionValue / 10 ** (originalDecimals - targetDecimals);
         } else {
-            collateralPrecision =
-                standardPrecision *
-                10 ** (collateralTokenDecimals - ProtocolConstants.STANDARD_DECIMALS);
+            targetPrecisionValue = originalPrecisionValue * 10 ** (targetDecimals - originalDecimals);
         }
     }
 
     function toStandardPrecision(
-        uint256 collateralPrecision,
-        uint256 collateralTokenDecimals
-    ) internal pure returns (uint256 standardPrecision) {
-        if (collateralTokenDecimals == ProtocolConstants.STANDARD_DECIMALS) {
-            standardPrecision = collateralPrecision;
-        } else if (collateralTokenDecimals < ProtocolConstants.STANDARD_DECIMALS) {
-            standardPrecision =
-                collateralPrecision *
-                10 ** (ProtocolConstants.STANDARD_DECIMALS - collateralTokenDecimals);
-        } else {
-            standardPrecision =
-                collateralPrecision /
-                10 ** (collateralTokenDecimals - ProtocolConstants.STANDARD_DECIMALS);
-        }
+        uint256 originalPrecisionValue,
+        uint256 originalDecimals
+    ) internal pure returns (uint256 standardPrecisionValue) {
+        standardPrecisionValue = convertPrecision(
+            originalPrecisionValue,
+            originalDecimals,
+            ProtocolConstants.STANDARD_DECIMALS
+        );
+    }
+
+    function fromStandardPrecision(
+        uint256 standardPrecisionValue,
+        uint256 targetDecimals
+    ) internal pure returns (uint256 targetPrecisionValue) {
+        targetPrecisionValue = convertPrecision(
+            standardPrecisionValue,
+            ProtocolConstants.STANDARD_DECIMALS,
+            targetDecimals
+        );
     }
 }

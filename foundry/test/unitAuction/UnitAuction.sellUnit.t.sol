@@ -303,7 +303,7 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         vm.prank(address(bondingCurveProxy));
         collateralERC20Token.mint(2e18);
         uint256 initialRR = bondingCurveProxy.getReserveRatio();
-        assertGt(initialRR, 3 * TestUtils.RR_PRECISION);
+        assertGt(initialRR, 3 * TestUtils.STANDARD_PRECISION);
 
         // Act & Assert
         vm.prank(user);
