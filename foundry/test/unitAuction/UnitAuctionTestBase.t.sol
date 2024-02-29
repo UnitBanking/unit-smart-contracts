@@ -133,6 +133,8 @@ abstract contract UnitAuctionTestBase is Test {
         collateralERC20Token.mint(userCollateralBalance);
         collateralERC20Token.approve(address(bondingCurveProxy), userCollateralBalance);
         collateralERC20Token.approve(address(unitAuctionProxy), userCollateralBalance);
+        unitToken.approve(address(bondingCurveProxy), collateralAmountIn);
+        unitToken.approve(address(unitAuctionProxy), collateralAmountIn);
         vm.stopPrank();
 
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);

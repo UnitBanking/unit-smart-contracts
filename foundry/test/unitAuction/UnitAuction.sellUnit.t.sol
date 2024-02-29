@@ -358,4 +358,84 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         assertEq(maxUnitSellAmount, expectedMaxUnitSellAmount);
         assertEq(collateralAmount, expectedCollateralAmount);
     }
+
+    function test_sellUnit_ChecksUnitPricingAtTheBeginningOfAuction() public {
+        // Arrange
+        address user = _setUpBondingCurveAndUnitAuction();
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+
+        uint256 collateralAmount = 314794767497862116;
+        uint256 unitAmount = 1e18;
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IUnitAuction.UnitSold(user, unitAmount, collateralAmount);
+        vm.prank(user);
+        unitAuctionProxy.sellUnit(unitAmount);
+
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralAmount);
+    }
+
+    function test_sellUnit_ChecksUnitPricingInTheMiddleOfAuction() public {
+        // Arrange
+        address user = _setUpBondingCurveAndUnitAuction();
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 contractionAuctionMaxDuration = unitAuctionProxy.contractionAuctionMaxDuration();
+
+        // set the middle of the contraction auction
+        vm.warp(block.timestamp + (contractionAuctionMaxDuration / 2));
+
+        uint256 collateralAmount = 210588809201578605;
+        uint256 unitAmount = 1e18;
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IUnitAuction.UnitSold(user, unitAmount, collateralAmount);
+        vm.prank(user);
+        unitAuctionProxy.sellUnit(unitAmount);
+
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralAmount);
+    }
+
+    function test_sellUnit_ChecksUnitPricingAtTheEndOfAuction() public {
+        // Arrange
+        address user = _setUpBondingCurveAndUnitAuction();
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 contractionAuctionMaxDuration = unitAuctionProxy.contractionAuctionMaxDuration();
+
+        // set the end of the contraction auction
+        vm.warp(block.timestamp + contractionAuctionMaxDuration);
+
+        uint256 collateralAmount = 140877966026675010;
+        uint256 unitAmount = 1e18;
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IUnitAuction.UnitSold(user, unitAmount, collateralAmount);
+        vm.prank(user);
+        unitAuctionProxy.sellUnit(unitAmount);
+
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralAmount);
+    }
+
+    function _setUpBondingCurveAndUnitAuction() private returns (address) {
+        // set collateral-usd price
+        collateralUsdOracle.setCollateralUsdPrice(35e17);
+        vm.warp(block.timestamp + 356 days);
+
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(10e18);
+
+        // mint collateral and unit tokens
+        address user = _createUserWithPrivateKeyAndMintUnitAndCollateralTokens(100, 1e18);
+        _createUserWithPrivateKeyAndMintUnitAndCollateralTokens(200, 10 * 1e18);
+
+        // start contraction auction
+        unitAuctionProxy.refreshState();
+
+        return user;
+    }
 }
