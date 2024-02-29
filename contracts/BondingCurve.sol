@@ -325,6 +325,19 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     }
 
     /**
+     * @inheritdoc IBondingCurve
+     */
+    function quoteCollateralAmountForTargetRR(
+        uint256 unitCollateralPrice
+    ) external view returns (uint256 collateralAmount) {
+        uint256 desiredRR = ProtocolConstants.TARGET_RR;
+        uint256 unitUsdPrice = getUnitUsdPrice();
+        uint256 collateralUsdPrice = collateralUsdOracle.getCollateralUsdPrice();
+
+        // TODO: collateralAmount =
+    }
+
+    /**
      * ================ INTERNAL FUNCTIONS ================
      */
 

@@ -145,12 +145,24 @@ interface IBondingCurve {
     function getExcessCollateralReserve() external view returns (uint256);
 
     /**
-     * @notice Calculates the maximum amount of UNIT that can be burned to move the reserve ratio to just below
-     * {ProtocolConstants.HIGH_RR}. As UNIT is burned, an equivalent amount of collateral is removed from the reserve based
-     * on the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
+     * @notice Calculates the maximum amount of UNIT that can be burned to increase the reserve ratio to just below
+     * {ProtocolConstants.HIGH_RR}. As UNIT is burned, an equivalent amount of collateral is removed from the reserve
+     * based on the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
      * @param unitCollateralPrice UNIT price, expressed in collateral token, that is used in the calculation.
-     * @return unitAmount The maximum amount of UNIT that can be successfully burned without causing the reserve ratio to reach
-     * or exceed {ProtocolConstants.HIGH_RR}. The value is UNIT token precision.
+     * @return unitAmount The maximum amount of UNIT that can be successfully burned without causing the reserve ratio
+     * to reach or exceed {ProtocolConstants.HIGH_RR}. The value is UNIT token precision.
      */
     function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount);
+
+    /**
+     * @notice Calculates the maximum amount of collateral the protocol can accept to decrease the reserve ratio to
+     * {ProtocolConstants.TARGET_RR}. As collateral reserve increases, an equivalent amount of UNIT is minted based on
+     * the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
+     * @param unitCollateralPrice UNIT price, expressed in collateral token, that is used in the calculation.
+     * @return collateralAmount The maximum amount of collateral that can be successfully sent without causing the
+     * reserve ratio to reach {ProtocolConstants.TARGET_RR}. The value is collateral token precision.
+     */
+    function quoteCollateralAmountForTargetRR(
+        uint256 unitCollateralPrice
+    ) external view returns (uint256 collateralAmount);
 }

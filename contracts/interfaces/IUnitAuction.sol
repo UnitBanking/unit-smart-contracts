@@ -73,8 +73,8 @@ interface IUnitAuction {
      * than the protocol can allow, returns the maximum possible at the moment.
      * If no contraction auction is active, the call reverts.
      * @param desiredUnitAmountIn The UNIT amount the caller wishes to sell in an auction.
-     * @return possibleUnitAmountIn The maximum possible UNIT amount that can be currently sold (UNIT precision).
-     * @return collateralAmountOut The collateral amount that would be bought for {possibleUnitAmount} (collateral
+     * @return possibleUnitAmountIn The maximum possible UNIT amount that can be currently sold (in UNIT precision).
+     * @return collateralAmountOut The collateral amount that would be bought for {possibleUnitAmount} (in collateral
      * token precision).
      */
     function quoteSellUnit(
@@ -86,8 +86,8 @@ interface IUnitAuction {
      * and the corresponding collateral amount they will receive.
      * If no contraction auction is active, the call reverts.
      * @return maxUnitAmountIn The maximum UNIT amount that will result in a successfull bid in a contraction auction
-     * (UNIT precision).
-     * @return collateralAmountOut The collateral amount that will be bought in the bid (collateral token precision).
+     * (in UNIT precision).
+     * @return collateralAmountOut The collateral amount that will be bought in the bid (in collateral token precision).
      */
     function getMaxSellUnitAmount() external returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut);
 
@@ -101,7 +101,17 @@ interface IUnitAuction {
     function buyUnit(uint256 collateralAmountIn) external;
 
     /**
-     * TODO: This function needs to be refactored to calculate the maximum UNIT token amount that can be bought.
+     * @notice Given the desired collateral input amount, calculates the possible input amount and the corresponding
+     * UNIT amount that can be bought for it in a UNIT expansion auction at the moment. If the desired input amount is
+     * greater than what the protocol can allow, returns the maximum possible at the moment.
+     * If no expansion auction is active, the call reverts.
+     * @param desiredCollateralAmountIn The collateral amount the caller wishes to spend to buy UNIT.
+     * @return possibleCollateralAmountIn The maximum possible collateral amount that can be currently spent
+     * (in collateral token precision).
+     * @return unitAmountOut The UNIT amount that would be bought for {possibleCollateralAmountIn} (in UNIT token
+     * precision).
      */
-    function quoteBuyUnit(uint256 collateralAmountIn) external returns (uint256 unitAmountOut);
+    function quoteBuyUnit(
+        uint256 desiredCollateralAmountIn
+    ) external returns (uint256 possibleCollateralAmountIn, uint256 unitAmountOut);
 }
