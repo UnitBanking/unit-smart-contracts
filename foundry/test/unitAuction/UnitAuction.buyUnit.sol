@@ -194,4 +194,90 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         assertEq(unitTotalSupplyAfter - unitTotalSupplyBefore, unitAmount * 2);
         assertEq(bondingCurveCollateralBalanceAfter - bondingCurveCollateralBalanceBefore, collateralAmount * 2);
     }
+
+    function test_buyUnit_ChecksUnitPricingAtTheBeginningOfAuction() public {
+        // Arrange
+        address user = _setUpBondingCurveAndUnitAuction();
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+
+        uint256 collateralAmount = 1e18;
+        uint256 unitAmount = 3494340165636553958;
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IUnitAuction.UnitBought(user, unitAmount, collateralAmount);
+        vm.prank(user);
+        unitAuctionProxy.buyUnit(collateralAmount);
+
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount);
+    }
+
+    function test_buyUnit_ChecksUnitPricingInTheMiddleOfAuction() public {
+        // Arrange
+        address user = _setUpBondingCurveAndUnitAuction();
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+        uint256 expansionAuctionMaxDuration = unitAuctionProxy.expansionAuctionMaxDuration();
+
+        // set the middle of the expansion auction
+        vm.warp(block.timestamp + (expansionAuctionMaxDuration / 2));
+
+        uint256 collateralAmount = 1e18;
+        uint256 unitAmount = 3575682516838096148;
+
+        // decrease burn price
+        collateralUsdOracle.setCollateralUsdPrice(40e17);
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IUnitAuction.UnitBought(user, unitAmount, collateralAmount);
+        vm.prank(user);
+        unitAuctionProxy.buyUnit(collateralAmount);
+
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount);
+    }
+
+    function test_buyUnit_ChecksUnitPricingAtTheEndOfAuction() public {
+        // Arrange
+        address user = _setUpBondingCurveAndUnitAuction();
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+        uint256 expansionAuctionMaxDuration = unitAuctionProxy.expansionAuctionMaxDuration();
+
+        // set the end of the expansion auction
+        vm.warp(block.timestamp + expansionAuctionMaxDuration);
+
+        uint256 collateralAmount = 1e18;
+        uint256 unitAmount = 3658918380916278854;
+
+        // decrease burn price
+        collateralUsdOracle.setCollateralUsdPrice(40e17);
+
+        // Act & Assert
+        vm.expectEmit();
+        emit IUnitAuction.UnitBought(user, unitAmount, collateralAmount);
+        vm.prank(user);
+        unitAuctionProxy.buyUnit(collateralAmount);
+
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount);
+    }
+
+    function _setUpBondingCurveAndUnitAuction() private returns (address) {
+        // set collateral-usd price
+        collateralUsdOracle.setCollateralUsdPrice(35e17);
+        vm.warp(block.timestamp + 356 days);
+
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(10000e18);
+
+        // mint collateral and unit tokens
+        address user = _createUserWithPrivateKeyAndMintUnitAndCollateralTokens(100, 1e18);
+        _createUserWithPrivateKeyAndMintUnitAndCollateralTokens(200, 500 * 1e18);
+
+        // start expansion auction
+        unitAuctionProxy.refreshState();
+
+        return user;
+    }
 }

@@ -102,8 +102,10 @@ abstract contract UnitAuctionTestBase is Test {
     }
 
     function _createUserAndMintUnitAndCollateralToken(uint256 collateralAmount) internal returns (address user) {
-        // Arrange
+        // create user
         user = vm.addr(2);
+
+        // mint collateral token and approve contracts
         uint256 userCollateralBalance = 100 * 1e18;
         vm.startPrank(user);
         collateralERC20Token.mint(userCollateralBalance);
@@ -113,8 +115,30 @@ abstract contract UnitAuctionTestBase is Test {
 
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
-        // Act
+        // mint unit token
         vm.prank(user);
         bondingCurveProxy.mint(user, collateralAmount);
+    }
+
+    function _createUserWithPrivateKeyAndMintUnitAndCollateralTokens(
+        uint256 privateKey,
+        uint256 collateralAmountIn
+    ) internal returns (address user) {
+        // create user
+        user = vm.addr(privateKey);
+
+        // mint collateral token and approve contracts
+        uint256 userCollateralBalance = 500 * 1e18;
+        vm.startPrank(user);
+        collateralERC20Token.mint(userCollateralBalance);
+        collateralERC20Token.approve(address(bondingCurveProxy), userCollateralBalance);
+        collateralERC20Token.approve(address(unitAuctionProxy), userCollateralBalance);
+        vm.stopPrank();
+
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
+
+        // mint unit token
+        vm.prank(user);
+        bondingCurveProxy.mint(user, collateralAmountIn);
     }
 }
