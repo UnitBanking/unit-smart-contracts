@@ -65,7 +65,7 @@ interface IUnitAuction {
      * If no contraction auction is active, the call reverts.
      * @dev The returned value is in STANDARD_PRECISION.
      */
-    function getCurrentSellUnitPrice() external returns (uint256 currentSellUnitPrice);
+    function getCurrentSellUnitPrice() external view returns (uint256 currentSellUnitPrice);
 
     /**
      * @notice Given the desired UNIT sell amount, calculates the possible sell amount and the corresponding collateral
@@ -79,17 +79,18 @@ interface IUnitAuction {
      */
     function quoteSellUnit(
         uint256 desiredUnitAmountIn
-    ) external returns (uint256 possibleUnitAmountIn, uint256 collateralAmountOut);
+    ) external view returns (uint256 possibleUnitAmountIn, uint256 collateralAmountOut);
 
     /**
      * @notice Returns the maximum UNIT amount a user can successfully sell in a contraction auction at the moment
-     * and the corresponding collateral amount they will receive.
+     * and the corresponding collateral amount they would receive.
      * If no contraction auction is active, the call reverts.
-     * @return maxUnitAmountIn The maximum UNIT amount that will result in a successfull bid in a contraction auction
-     * (in UNIT precision).
-     * @return collateralAmountOut The collateral amount that will be bought in the bid (in collateral token precision).
+     * @return maxUnitAmountIn The maximum UNIT amount that would currently result in a successfull bid in a
+     * contraction auction (in UNIT precision).
+     * @return collateralAmountOut The collateral amount that would be bought in the bid (in collateral token
+     * precision).
      */
-    function getMaxSellUnitAmount() external returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut);
+    function getMaxSellUnitAmount() external view returns (uint256 maxUnitAmountIn, uint256 collateralAmountOut);
 
     /**
      * @notice Bids in the UNIT expansion auction.
@@ -101,6 +102,13 @@ interface IUnitAuction {
     function buyUnit(uint256 collateralAmountIn) external;
 
     /**
+     * @notice Returns the current UNIT price in collateral token in an expansion auction (if one is active).
+     * If no expansion auction is active, the call reverts.
+     * @dev The returned value is in STANDARD_PRECISION.
+     */
+    function getCurrentBuyUnitPrice() external view returns (uint256 currentBuyUnitPrice);
+
+    /**
      * @notice Given the desired collateral input amount, calculates the possible input amount and the corresponding
      * UNIT amount that can be bought for it in a UNIT expansion auction at the moment. If the desired input amount is
      * greater than what the protocol can allow, returns the maximum possible at the moment.
@@ -108,10 +116,19 @@ interface IUnitAuction {
      * @param desiredCollateralAmountIn The collateral amount the caller wishes to spend to buy UNIT.
      * @return possibleCollateralAmountIn The maximum possible collateral amount that can be currently spent
      * (in collateral token precision).
-     * @return unitAmountOut The UNIT amount that would be bought for {possibleCollateralAmountIn} (in UNIT token
-     * precision).
+     * @return unitAmountOut The UNIT amount that would be bought for {possibleCollateralAmountIn} (in UNIT precision).
      */
     function quoteBuyUnit(
         uint256 desiredCollateralAmountIn
-    ) external returns (uint256 possibleCollateralAmountIn, uint256 unitAmountOut);
+    ) external view returns (uint256 possibleCollateralAmountIn, uint256 unitAmountOut);
+
+    /**
+     * @notice Returns the maximum collateral amount a user can successfully sell in an expansion auction at the moment
+     * and the corresponding UNIT amount they would receive.
+     * If no expansion auction is active, the call reverts.
+     * @return maxCollateralAmountIn The maximum collateral amount that would currently result in a successfull bid in
+     * an expansion auction (in collateral token precision).
+     * @return unitAmountOut The UNIT amount that would be bought in the bid (in UNIT precision).
+     */
+    function getMaxBuyUnitAmount() external view returns (uint256 maxCollateralAmountIn, uint256 unitAmountOut);
 }

@@ -5,8 +5,11 @@ pragma solidity 0.8.23;
 import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
 import { IUnitAuction } from '../../../contracts/interfaces/IUnitAuction.sol';
 import { TransferUtils } from '../../../contracts/libraries/TransferUtils.sol';
+import '../../../contracts/libraries/PrecisionUtils.sol';
 
 contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
+    using PrecisionUtils for uint256;
+
     function test_buyUnit_RevertsWhenNoActiveExpansionAuction() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
@@ -193,6 +196,53 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         assertEq(auctionCollateralBalanceAfter, auctionCollateralBalanceBefore);
         assertEq(unitTotalSupplyAfter - unitTotalSupplyBefore, unitAmount * 2);
         assertEq(bondingCurveCollateralBalanceAfter - bondingCurveCollateralBalanceBefore, collateralAmount * 2);
+    }
+
+    function test_sellUnit_GetMaxBuyUnitAmountAtAuctionStart() public {
+        _test_buyUnit_GetMaxBuyUnitAmount(0 seconds);
+    }
+
+    function test_sellUnit_GetMaxBuyUnitAmountMidAuction() public {
+        _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration() / 2);
+    }
+
+    function test_sellUnit_GetMaxBuyUnitAmountAtLastSecond() public {
+        _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration() - 1);
+    }
+
+    function test_sellUnit_GetMaxBuyUnitAmountAtAuctionTermination() public {
+        _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration());
+    }
+
+    function test_sellUnit_GetMaxBuyUnitAmountBeyondAuctionTermination() public {
+        _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration() + 1);
+    }
+
+    function _test_buyUnit_GetMaxBuyUnitAmount(uint256 timeAfterAuctionStart) internal {
+        // Arrange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(10 * 1e18); // Increase RR
+
+        if (timeAfterAuctionStart > 0) {
+            unitAuctionProxy.refreshState();
+            vm.warp(block.timestamp + timeAfterAuctionStart);
+        }
+
+        // Act
+        vm.prank(user);
+        (uint256 maxCollateralAmountIn, uint256 unitAmountOut) = unitAuctionProxy.getMaxBuyUnitAmount();
+
+        // Assert
+        uint256 unitCollateralPrice = unitAuctionProxy.getCurrentBuyUnitPrice();
+        uint256 expectedMaxCollateralAmountIn = bondingCurveProxy.quoteCollateralAmountInForTargetRR(
+            unitCollateralPrice
+        );
+        uint256 expectedUnitAmountOut = (expectedMaxCollateralAmountIn * unitAuctionProxy.STANDARD_PRECISION())
+            .toStandardPrecision(collateralERC20Token.decimals()) / unitCollateralPrice;
+        assertEq(maxCollateralAmountIn, expectedMaxCollateralAmountIn, 'invalid maxCollateralAmountIn');
+        assertEq(unitAmountOut, expectedUnitAmountOut, 'invalid unitAmountOut');
     }
 
     function test_buyUnit_ChecksUnitPricingAtTheBeginningOfAuction() public {

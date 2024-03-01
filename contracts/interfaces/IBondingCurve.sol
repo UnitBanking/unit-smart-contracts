@@ -150,7 +150,7 @@ interface IBondingCurve {
      * based on the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
      * @param unitCollateralPrice UNIT price, expressed in collateral token, that is used in the calculation.
      * @return unitAmount The maximum amount of UNIT that can be successfully burned without causing the reserve ratio
-     * to reach or exceed {ProtocolConstants.HIGH_RR}. The value is UNIT token precision.
+     * to reach or exceed {ProtocolConstants.HIGH_RR}. The value is in UNIT token precision.
      */
     function quoteUnitBurnAmountForHighRR(uint256 unitCollateralPrice) external view returns (uint256 unitAmount);
 
@@ -159,10 +159,10 @@ interface IBondingCurve {
      * {ProtocolConstants.TARGET_RR}. As collateral reserve increases, an equivalent amount of UNIT is minted based on
      * the UNIT/collateral price {unitCollateralPrice}, which is accounted for in the result.
      * @param unitCollateralPrice UNIT price, expressed in collateral token, that is used in the calculation.
-     * @return collateralAmount The maximum amount of collateral that can be successfully sent without causing the
-     * reserve ratio to reach {ProtocolConstants.TARGET_RR}. The value is collateral token precision.
+     * @return collateralAmount The maximum amount of collateral that can be successfully added to the reserve without
+     * causing the reserve ratio to reach {ProtocolConstants.TARGET_RR}. The value is in collateral token precision.
      */
-    function quoteCollateralAmountForTargetRR(
+    function quoteCollateralAmountInForTargetRR(
         uint256 unitCollateralPrice
     ) external view returns (uint256 collateralAmount);
 }

@@ -298,6 +298,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     /**
      * @inheritdoc IUnitAuction
      */
+    function getCurrentBuyUnitPrice() external view returns (uint256 currentBuyUnitPrice) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
+        }
+
+        return _getCurrentBuyUnitPrice(_auctionState.startPrice, _auctionState.startTime);
+    }
+
+    /**
+     * @inheritdoc IUnitAuction
+     */
     function quoteBuyUnit(
         uint256 desiredCollateralAmountIn
     ) external view returns (uint256 possibleCollateralAmountIn, uint256 unitAmountOut) {
@@ -322,6 +334,18 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
             possibleCollateralAmountIn = maxCollateralAmountIn;
             unitAmountOut = maxUnitAmountOut;
         }
+    }
+
+    /**
+     * @inheritdoc IUnitAuction
+     */
+    function getMaxBuyUnitAmount() external view returns (uint256 maxCollateralAmountIn, uint256 unitAmountOut) {
+        (uint256 reserveRatio, AuctionState memory _auctionState) = refreshStateInMemory();
+        if (_auctionState.variant != AUCTION_VARIANT_EXPANSION) {
+            revert UnitAuctionInitialReserveRatioOutOfRange(reserveRatio);
+        }
+
+        return _getMaxBuyUnitAmount(_getCurrentBuyUnitPrice(_auctionState.startPrice, _auctionState.startTime));
     }
 
     /**
@@ -441,7 +465,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     function _getMaxBuyUnitAmount(
         uint256 unitCollateralPrice
     ) internal view returns (uint256 maxCollateralAmountIn, uint256 unitAmountOut) {
-        maxCollateralAmountIn = bondingCurve.quoteUnitBurnAmountForHighRR(unitCollateralPrice);
+        maxCollateralAmountIn = bondingCurve.quoteCollateralAmountInForTargetRR(unitCollateralPrice);
         unitAmountOut = _quoteBuyUnit(maxCollateralAmountIn, unitCollateralPrice);
     }
 
