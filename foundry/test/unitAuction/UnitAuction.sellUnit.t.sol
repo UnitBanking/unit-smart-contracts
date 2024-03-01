@@ -201,27 +201,27 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
         assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
     }
 
-    function test_sellUnit_TooLargeBidAtAuctionStart() public {
-        _test_sellUnit_TooLargeBid(0 seconds, 4000000000000000006);
+    function test_sellUnit_RevertsOnTooLargeBidAtAuctionStart() public {
+        _test_sellUnit_RevertsOnTooLargeBid(0 seconds, 4000000000000000006);
     }
 
-    function test_sellUnit_TooLargeBidMidAuction() public {
-        _test_sellUnit_TooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() / 2, 4000000000000000001);
+    function test_sellUnit_RevertsOnTooLargeBidMidAuction() public {
+        _test_sellUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() / 2, 4000000000000000001);
     }
 
-    function test_sellUnit_TooLargeBidAtLastSecond() public {
-        _test_sellUnit_TooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() - 1, 4000000000000000001);
+    function test_sellUnit_RevertsOnTooLargeBidAtLastSecond() public {
+        _test_sellUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() - 1, 4000000000000000001);
     }
 
-    function test_sellUnit_TooLargeBidAtAuctionTermination() public {
-        _test_sellUnit_TooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration(), 4000000000000000006);
+    function test_sellUnit_RevertsOnTooLargeBidAtAuctionTermination() public {
+        _test_sellUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration(), 4000000000000000006);
     }
 
-    function test_sellUnit_TooLargeBidBeyondAuctionTermination() public {
-        _test_sellUnit_TooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() + 1, 4000000000000000004);
+    function test_sellUnit_RevertsOnTooLargeBidBeyondAuctionTermination() public {
+        _test_sellUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() + 1, 4000000000000000004);
     }
 
-    function _test_sellUnit_TooLargeBid(uint256 timeAfterAuctionStart, uint256 extectedReserveRatio) internal {
+    function _test_sellUnit_RevertsOnTooLargeBid(uint256 timeAfterAuctionStart, uint256 extectedReserveRatio) internal {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
