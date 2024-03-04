@@ -4,8 +4,9 @@ pragma solidity 0.8.23;
 
 import './IInflationOracle.sol';
 import './ICollateralUsdOracle.sol';
-import '../MineToken.sol';
-import '../UnitToken.sol';
+import '../interfaces/IMineToken.sol';
+import '../interfaces/IUnitToken.sol';
+import '../interfaces/IERC20.sol';
 
 interface IBondingCurve {
     /**
@@ -54,8 +55,8 @@ interface IBondingCurve {
      */
     function initialize(
         IERC20 _collateralToken,
-        UnitToken _unitToken,
-        MineToken _mineToken,
+        IUnitToken _unitToken,
+        IMineToken _mineToken,
         IInflationOracle _inflationOracle,
         ICollateralUsdOracle _collateralUsdOracle
     ) external;
