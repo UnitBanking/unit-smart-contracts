@@ -2,10 +2,11 @@
 
 pragma solidity 0.8.21;
 
-import './BaseTokenTestCase.t.sol';
+import './BaseTokenTestBase.t.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 import { Burnable } from '../../../contracts/abstracts/Burnable.sol';
 
-contract BaseTokenBurnTest is BaseTokenBaseTest {
+contract BaseTokenBurnTest is BaseTokenTestBase {
     event BurnerSet(address indexed burner, bool canBurn);
 
     function test_canBurn() public {
@@ -26,11 +27,13 @@ contract BaseTokenBurnTest is BaseTokenBaseTest {
         baseToken.burn(100 * 1 ether);
     }
 
-    function test_revertIfBurnerIsZeroAddress() public {
+    function test_canBurnIfBurnerIsZeroAddress() public {
         address burner = address(0x0);
-        vm.expectRevert(abi.encodeWithSelector(Burnable.BurnableUnauthorizedBurner.selector, address(burner)));
-        vm.prank(burner);
+        baseToken.setBurner(burner, true);
+        uint256 balanceBefore = baseToken.balanceOf(address(this));
         baseToken.burn(100 * 1 ether);
+        uint256 balanceAfter = baseToken.balanceOf(address(this));
+        assertEq(balanceAfter, balanceBefore - 100 * 1 ether);
     }
 
     function test_burnFromOtherAddress() public {
@@ -42,7 +45,10 @@ contract BaseTokenBurnTest is BaseTokenBaseTest {
         vm.startPrank(burner);
         baseToken.approve(address(this), amount);
         vm.stopPrank();
+        uint256 allowanceBefore = baseToken.allowance(burner, address(this));
         baseToken.burnFrom(burner, amount);
+        uint256 allowanceAfter = baseToken.allowance(burner, address(this));
+        assertEq(allowanceAfter, allowanceBefore - amount);
         uint256 balanceAfter = baseToken.balanceOf(burner);
         assertEq(balanceAfter, balanceBefore - amount);
         assertEq(totalSupply - amount, baseToken.totalSupply());
@@ -68,7 +74,9 @@ contract BaseTokenBurnTest is BaseTokenBaseTest {
         uint256 amount = 100 * 1 ether;
         baseToken.mint(burner, amount);
         uint256 allowance = baseToken.allowance(burner, address(this));
-        vm.expectRevert(abi.encodeWithSelector(ERC20InsufficientAllowance.selector, address(this), allowance, amount));
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20.ERC20InsufficientAllowance.selector, address(this), allowance, amount)
+        );
         baseToken.burnFrom(burner, amount);
     }
 

@@ -2,10 +2,11 @@
 
 pragma solidity 0.8.21;
 
-import './BaseTokenTestCase.t.sol';
+import './BaseTokenTestBase.t.sol';
 import { Mintable } from '../../../contracts/abstracts/Mintable.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 
-contract BaseTokenMintTest is BaseTokenBaseTest {
+contract BaseTokenMintTest is BaseTokenTestBase {
     event MinterSet(address indexed minter, bool canMint);
 
     function test_canMint() public {

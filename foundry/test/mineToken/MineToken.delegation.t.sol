@@ -4,12 +4,13 @@ pragma solidity 0.8.21;
 
 import 'forge-std/console.sol';
 import { Test } from 'forge-std/Test.sol';
-import { MineTokenTestCase } from './MineTokenTestCase.t.sol';
+import { MineTokenTestBase } from './MineTokenTestBase.t.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
+import { IVotes } from '../../../contracts/interfaces/IVote.sol';
 import '../utils/SigUtils.sol';
 
-contract MineTokenDelegationTest is MineTokenTestCase {
+contract MineTokenDelegationTest is MineTokenTestBase {
     SigUtils internal sigUtils;
     uint256 internal ownerPrivateKey = 0xA11CE;
     uint256 internal spenderPrivateKey = 0xB0B;
@@ -135,7 +136,7 @@ contract MineTokenDelegationTest is MineTokenTestCase {
 
     function test_revertIfBlockNumberIsTooHigh() public {
         mineToken.mint(address(this), 100 * 1 ether);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(IVotes.VotesBlockNumberTooHigh.selector, block.number + 10));
         mineToken.getPriorVotes(address(this), block.number + 10);
     }
 

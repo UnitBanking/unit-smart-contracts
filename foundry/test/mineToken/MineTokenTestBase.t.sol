@@ -7,7 +7,7 @@ import { MineToken } from '../../../contracts/MineToken.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
 import '../../../contracts/MineToken.sol';
 
-contract MineTokenTestCase is Test {
+contract MineTokenTestBase is Test {
     MineToken public mineToken;
     Proxy public proxy;
 
@@ -18,16 +18,5 @@ contract MineTokenTestCase is Test {
         mineToken = MineToken(address(proxy));
         mineToken.setMinter(address(this), true);
         mineToken.setBurner(address(this), true);
-    }
-
-    function test_initialize() public {
-        assertEq(mineToken.owner(), address(this));
-    }
-
-    function test_info() public {
-        assertEq(mineToken.name(), 'Mine');
-        assertEq(mineToken.symbol(), 'MINE');
-        assertEq(mineToken.decimals(), 18);
-        assertEq(mineToken.MAX_SUPPLY(), 1022700000 * 1 ether);
     }
 }

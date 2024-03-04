@@ -2,9 +2,10 @@
 
 pragma solidity 0.8.21;
 
-import './BaseTokenTestCase.t.sol';
+import './BaseTokenTestBase.t.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 
-contract BaseTokenErc20Test is BaseTokenBaseTest {
+contract BaseTokenErc20Test is BaseTokenTestBase {
     function test_initialize_InitializesToken() public {
         assertEq(baseToken.name(), 'ERC20 Token');
         assertEq(baseToken.symbol(), 'ERC20');
@@ -25,20 +26,22 @@ contract BaseTokenErc20Test is BaseTokenBaseTest {
         assertEq(receiverBalanceAfter, receiverBalanceBefore + amount);
     }
 
-    function test_revertIfRecipientIsZeroAddress() public {
+    function test_transfer_RevertsIfRecipientIsZeroAddress() public {
         address to = address(0);
         vm.expectRevert(
-            abi.encodeWithSelector(ERC20InvalidReceiver.selector, 0x0000000000000000000000000000000000000000)
+            abi.encodeWithSelector(IERC20.ERC20InvalidReceiver.selector, 0x0000000000000000000000000000000000000000)
         );
         uint256 amount = 10 * 1 ether;
         baseToken.transfer(to, amount);
     }
 
-    function test_revertIfSenderHasInsufficientBalance() public {
+    function test_transfer_RevertsIfSenderHasInsufficientBalance() public {
         uint256 balance = baseToken.balanceOf(address(this));
         uint256 amount = balance + 1;
         address to = address(0x1);
-        vm.expectRevert(abi.encodeWithSelector(ERC20InsufficientBalance.selector, address(this), balance, amount));
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20.ERC20InsufficientBalance.selector, address(this), balance, amount)
+        );
         baseToken.transfer(to, amount);
     }
 
@@ -51,14 +54,14 @@ contract BaseTokenErc20Test is BaseTokenBaseTest {
         assertEq(baseToken.allowance(address(this), spender), amount);
     }
 
-    function test_revertIfSpenderIsZeroAddress() public {
+    function test_approve_RevertsIfSpenderIsZeroAddress() public {
         address spender = address(0x0);
         uint256 amount = 10 * 1 ether;
-        vm.expectRevert(abi.encodeWithSelector(ERC20InvalidSpender.selector, spender));
+        vm.expectRevert(abi.encodeWithSelector(IERC20.ERC20InvalidSpender.selector, spender));
         baseToken.approve(spender, amount);
     }
 
-    function test_transferFromOtherAndAllowanceUpdated() public {
+    function test_transferFrom_OtherAndAllowanceUpdated() public {
         address from = address(0x1);
         address to = address(0x2);
         address spender = address(this);
@@ -73,15 +76,13 @@ contract BaseTokenErc20Test is BaseTokenBaseTest {
         baseToken.transferFrom(from, to, amount);
         uint256 fromBalanceAfter = baseToken.balanceOf(from);
         uint256 toBalanceAfter = baseToken.balanceOf(to);
-        vm.startPrank(from);
         uint256 spenderAllowanceAfter = baseToken.allowance(from, spender);
-        vm.stopPrank();
         assertEq(fromBalanceAfter, fromBalanceBefore - amount);
         assertEq(toBalanceAfter, toBalanceBefore + amount);
         assertEq(spenderAllowanceAfter, spenderAllowanceBefore - amount);
     }
 
-    function test_doNotUpdateAllowanceWhenMax() public {
+    function test_approve_DoNotUpdateAllowanceWhenMax() public {
         address from = address(0x1);
         address to = address(0x2);
         address spender = address(this);
@@ -98,7 +99,7 @@ contract BaseTokenErc20Test is BaseTokenBaseTest {
         assertEq(spenderAllowanceAfter, spenderAllowanceBefore);
     }
 
-    function test_revertTransferFromIfAllowanceIsLow() public {
+    function test_transferFrom_RevertsTransferFromIfAllowanceIsLow() public {
         address from = address(0x1);
         address to = address(0x2);
         address spender = address(this);
@@ -107,7 +108,9 @@ contract BaseTokenErc20Test is BaseTokenBaseTest {
         vm.startPrank(from);
         baseToken.approve(spender, amount - 1);
         vm.stopPrank();
-        vm.expectRevert(abi.encodeWithSelector(ERC20InsufficientAllowance.selector, spender, amount - 1, amount));
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20.ERC20InsufficientAllowance.selector, spender, amount - 1, amount)
+        );
         baseToken.transferFrom(from, to, amount);
     }
 }

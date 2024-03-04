@@ -2,10 +2,11 @@
 
 pragma solidity 0.8.21;
 
-import './BaseTokenTestCase.t.sol';
+import './BaseTokenTestBase.t.sol';
+import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
 
-contract BaseTokenOwnerTest is BaseTokenBaseTest {
+contract BaseTokenOwnerTest is BaseTokenTestBase {
     event OwnerSet(address indexed owner);
 
     function test_setOwner() public {

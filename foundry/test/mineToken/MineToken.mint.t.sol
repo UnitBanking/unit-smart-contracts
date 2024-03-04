@@ -3,11 +3,11 @@
 pragma solidity 0.8.21;
 
 import { Test } from 'forge-std/Test.sol';
-import { MineTokenTestCase } from './MineTokenTestCase.t.sol';
+import { MineTokenTestBase } from './MineTokenTestBase.t.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 
-contract MineTokenMintTest is MineTokenTestCase {
+contract MineTokenMintTest is MineTokenTestBase {
     function test_mint() public {
         uint256 balanceBefore = mineToken.balanceOf(address(this));
         uint256 totalSupply = mineToken.totalSupply();
