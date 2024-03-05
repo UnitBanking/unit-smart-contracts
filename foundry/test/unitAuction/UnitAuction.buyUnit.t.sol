@@ -198,6 +198,75 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         assertEq(bondingCurveCollateralBalanceAfter - bondingCurveCollateralBalanceBefore, collateralAmount * 2);
     }
 
+    function test_buyUnit_SuccessfulLargestBidAtAuctionStart() public {
+        _test_buyUnit_SuccessfulLargestBid(0 seconds);
+    }
+
+    function test_buyUnit_SuccessfulLargestBidMidAuction() public {
+        _test_buyUnit_SuccessfulLargestBid(unitAuctionProxy.contractionAuctionMaxDuration() / 2);
+    }
+
+    function test_buyUnit_SuccessfulLargestBidAtLastSecond() public {
+        _test_buyUnit_SuccessfulLargestBid(unitAuctionProxy.contractionAuctionMaxDuration() - 1);
+    }
+
+    function test_buyUnit_SuccessfulLargestBidAtAuctionTermination() public {
+        _test_buyUnit_SuccessfulLargestBid(unitAuctionProxy.contractionAuctionMaxDuration());
+    }
+
+    function test_buyUnit_SuccessfulLargestBidBeyondAuctionTermination() public {
+        _test_buyUnit_SuccessfulLargestBid(unitAuctionProxy.contractionAuctionMaxDuration() + 1);
+    }
+
+    function _test_buyUnit_SuccessfulLargestBid(uint256 timeAfterAuctionStart) internal {
+        // Arrange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+
+        // Get RR above TARGET_RR (i.e. in UNIT expansion range)
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(10 * 1e18);
+
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+        uint256 auctionCollateralBalanceBefore = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveUnitBalanceBefore = unitToken.balanceOf(address(bondingCurveProxy));
+        assertEq(auctionCollateralBalanceBefore, 0);
+        assertEq(auctionUnitBalanceBefore, 0);
+        assertEq(bondingCurveUnitBalanceBefore, 0);
+
+        if (timeAfterAuctionStart > 0) {
+            unitAuctionProxy.refreshState();
+            vm.warp(block.timestamp + timeAfterAuctionStart);
+        }
+
+        // Decrease UNIT burn price
+        collateralUsdOracle.setCollateralUsdPrice(collateralUsdOracle.getCollateralUsdPricePrecision() * 2);
+
+        // Act
+        vm.deal(user, 1 ether);
+        vm.startPrank(user);
+        (uint256 maxCollateralAmountIn, uint256 unitAmountOut) = unitAuctionProxy.getMaxBuyUnitAmount();
+        unitAuctionProxy.buyUnit(maxCollateralAmountIn);
+        vm.stopPrank();
+
+        // Assert
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveUnitBalanceAfter = unitToken.balanceOf(address(bondingCurveProxy));
+        assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore - maxCollateralAmountIn);
+        assertEq(userUnitBalanceAfter, userUnitBalanceBefore + unitAmountOut);
+        assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore + maxCollateralAmountIn);
+        assertEq(bondingCurveUnitBalanceAfter, bondingCurveUnitBalanceBefore);
+
+        uint256 auctionCollateralBalanceAfter = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceAfter = unitToken.balanceOf(address(unitAuctionProxy));
+        assertEq(auctionCollateralBalanceAfter, auctionCollateralBalanceBefore);
+        assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
+    }
+
     function test_sellUnit_GetMaxBuyUnitAmountAtAuctionStart() public {
         _test_buyUnit_GetMaxBuyUnitAmount(0 seconds);
     }
