@@ -267,6 +267,81 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
     }
 
+    function test_sellUnit_RevertsOnTooLargeBidAtAuctionStart() public {
+        _test_buyUnit_RevertsOnTooLargeBid(0 seconds, 4999999999999999999);
+    }
+
+    function test_sellUnit_RevertsOnTooLargeBidMidAuction() public {
+        _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() / 2, 4999999999999999999);
+    }
+
+    function test_sellUnit_RevertsOnTooLargeBidAtLastSecond() public {
+        _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() - 1, 4999999999999999999);
+    }
+
+    function test_sellUnit_RevertsOnTooLargeBidAtAuctionTermination() public {
+        _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration(), 4999999999999999999);
+    }
+
+    function test_sellUnit_RevertsOnTooLargeBidBeyondAuctionTermination() public {
+        _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() + 1, 4999999999999999999);
+    }
+
+    function _test_buyUnit_RevertsOnTooLargeBid(uint256 timeAfterAuctionStart, uint256 extectedReserveRatio) internal {
+        // Arrange
+        address user = _createUserAndMintUnitAndCollateralToken(1e18);
+
+        // Get RR above TARGET_RR (i.e. in UNIT expansion range)
+        vm.prank(address(bondingCurveProxy));
+        collateralERC20Token.mint(10 * 1e18);
+
+        uint256 userCollateralBalanceBefore = collateralERC20Token.balanceOf(user);
+        uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
+        uint256 auctionCollateralBalanceBefore = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveUnitBalanceBefore = unitToken.balanceOf(address(bondingCurveProxy));
+        assertEq(auctionCollateralBalanceBefore, 0);
+        assertEq(auctionUnitBalanceBefore, 0);
+        assertEq(bondingCurveUnitBalanceBefore, 0);
+
+        if (timeAfterAuctionStart > 0) {
+            unitAuctionProxy.refreshState();
+            vm.warp(block.timestamp + timeAfterAuctionStart);
+        }
+
+        // Decrease UNIT burn price
+        collateralUsdOracle.setCollateralUsdPrice(collateralUsdOracle.getCollateralUsdPricePrecision() * 2);
+
+        // Act
+        vm.deal(user, 1 ether);
+        vm.startPrank(user);
+        (uint256 maxCollateralAmountIn, ) = unitAuctionProxy.getMaxBuyUnitAmount();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IUnitAuction.UnitAuctionResultingReserveRatioOutOfRange.selector,
+                extectedReserveRatio
+            )
+        );
+        unitAuctionProxy.buyUnit(maxCollateralAmountIn + 1);
+        vm.stopPrank();
+
+        // Assert
+        uint256 userCollateralBalanceAfter = collateralERC20Token.balanceOf(user);
+        uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralERC20Token.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveUnitBalanceAfter = unitToken.balanceOf(address(bondingCurveProxy));
+        assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore);
+        assertEq(userUnitBalanceAfter, userUnitBalanceBefore);
+        assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore);
+        assertEq(bondingCurveUnitBalanceAfter, bondingCurveUnitBalanceBefore);
+
+        uint256 auctionCollateralBalanceAfter = collateralERC20Token.balanceOf(address(unitAuctionProxy));
+        uint256 auctionUnitBalanceAfter = unitToken.balanceOf(address(unitAuctionProxy));
+        assertEq(auctionCollateralBalanceAfter, auctionCollateralBalanceBefore);
+        assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
+    }
+
     function test_sellUnit_GetMaxBuyUnitAmountAtAuctionStart() public {
         _test_buyUnit_GetMaxBuyUnitAmount(0 seconds);
     }
