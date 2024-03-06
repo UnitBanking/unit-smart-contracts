@@ -19,8 +19,4 @@ contract UnitTokenTestBase is Test {
         unitToken.setBurner(address(this), true);
         unitToken.mint(address(this), 100 * 1 ether);
     }
-
-    function test_initialize() public {
-        assertEq(unitToken.owner(), address(this));
-    }
 }

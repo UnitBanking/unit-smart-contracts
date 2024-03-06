@@ -16,19 +16,6 @@ contract MineAuctionTestBase is Test {
     address public other = address(0x02);
     address public another = address(0x03);
 
-    error MineAuctionStartTimeTooEarly();
-    error MineAuctionInvalidBidAmount();
-    error MineAuctionNotCurrentAuctionId(uint256 auctionId);
-    error MineAuctionInvalidAuctionGroupId(uint256 auctionGroupId);
-    error MineAuctionNotCurrentAuctionGroupId(uint256 auctionGroupId);
-
-    error MineAuctionAuctionGroupIdInFuture(uint256 auctionGroupId);
-    error MineAuctionAuctionIdInFuture(uint256 auctionId);
-    error MineAuctionAuctionIdInFutureOrCurrent(uint256 auctionId);
-    error MineAuctionCurrentAuctionDisabled();
-
-    error MineAuctionInsufficientClaimAmount(uint256 amount);
-
     function setUp() public {
         bondingCurve = new BondingCurve(address(0x1));
 

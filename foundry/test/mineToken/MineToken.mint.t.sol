@@ -8,7 +8,7 @@ import { Proxy } from '../../../contracts/Proxy.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 
 contract MineTokenMintTest is MineTokenTestBase {
-    function test_mint() public {
+    function test_mint_UserCanMint() public {
         uint256 balanceBefore = mineToken.balanceOf(address(this));
         uint256 totalSupply = mineToken.totalSupply();
         mineToken.mint(address(this), 100 * 1 ether);
@@ -17,7 +17,7 @@ contract MineTokenMintTest is MineTokenTestBase {
         assertEq(balanceAfter, balanceBefore + 100 * 1 ether);
     }
 
-    function test_revertIfExceedsMaxSupply() public {
+    function test_mint_RevertsIfExceedsMaxSupply() public {
         uint256 maxSupply = mineToken.MAX_SUPPLY();
         vm.expectRevert(abi.encodeWithSelector(MineToken.MineTokenExceedMaxSupply.selector));
         mineToken.mint(address(this), maxSupply + 1);

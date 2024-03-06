@@ -15,9 +15,6 @@ contract BaseTokenPermitTest is BaseTokenTestBase {
     address internal owner = vm.addr(ownerPrivateKey);
     address internal spender = vm.addr(spenderPrivateKey);
 
-    error ERC20PermitSignatureExpired(uint256 expiry);
-    error ERC20InvalidSigner(address signer, address owner);
-
     function setUp() public override {
         super.setUp();
         sigUtils = new SigUtils(
@@ -32,7 +29,7 @@ contract BaseTokenPermitTest is BaseTokenTestBase {
         );
     }
 
-    function test_permit() public {
+    function test_permit_ValidPermit() public {
         SigUtils.Permit memory permit = SigUtils.Permit({
             owner: owner,
             spender: spender,
@@ -51,7 +48,7 @@ contract BaseTokenPermitTest is BaseTokenTestBase {
         assertEq(baseToken.nonces(owner), 1);
     }
 
-    function test_revertIfExpiredPermit() public {
+    function test_permit_RevertsIfExpiredPermit() public {
         SigUtils.Permit memory permit = SigUtils.Permit({
             owner: owner,
             spender: spender,
@@ -66,11 +63,11 @@ contract BaseTokenPermitTest is BaseTokenTestBase {
 
         vm.warp(1 days + 1 seconds); // fast forward one second past the deadline
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20PermitSignatureExpired.selector, permit.deadline));
+        vm.expectRevert(abi.encodeWithSelector(IERC20Permit.ERC20PermitSignatureExpired.selector, permit.deadline));
         baseToken.permit(permit.owner, permit.spender, permit.value, permit.deadline, v, r, s);
     }
 
-    function test_revertIfInvalidSigner() public {
+    function test_permit_RevertsIfInvalidSigner() public {
         SigUtils.Permit memory permit = SigUtils.Permit({
             owner: owner,
             spender: spender,
@@ -83,11 +80,11 @@ contract BaseTokenPermitTest is BaseTokenTestBase {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(spenderPrivateKey, digest); // spender signs owner's approval
 
-        vm.expectRevert(abi.encodeWithSelector(ERC20InvalidSigner.selector, spender, owner));
+        vm.expectRevert(abi.encodeWithSelector(IERC20Permit.ERC20InvalidSigner.selector, spender, owner));
         baseToken.permit(permit.owner, permit.spender, permit.value, permit.deadline, v, r, s);
     }
 
-    function testRevert_InvalidNonce() public {
+    function test_permit_RevertsIfInvalidNonce() public {
         SigUtils.Permit memory permit = SigUtils.Permit({
             owner: owner,
             spender: spender,
@@ -113,7 +110,7 @@ contract BaseTokenPermitTest is BaseTokenTestBase {
         baseToken.permit(permit.owner, permit.spender, permit.value, permit.deadline, v, r, s);
     }
 
-    function testRevert_SignatureReplay() public {
+    function test_permit_RevertsSignatureReplay() public {
         SigUtils.Permit memory permit = SigUtils.Permit({
             owner: owner,
             spender: spender,

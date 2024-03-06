@@ -9,7 +9,7 @@ import { Burnable } from '../../../contracts/abstracts/Burnable.sol';
 contract BaseTokenBurnTest is BaseTokenTestBase {
     event BurnerSet(address indexed burner, bool canBurn);
 
-    function test_canBurn() public {
+    function test_burn_UserCanBurn() public {
         uint256 balanceBefore = baseToken.balanceOf(address(this));
         uint256 totalSupply = baseToken.totalSupply();
         baseToken.burn(100 * 1 ether);
@@ -18,7 +18,7 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
         assertEq(balanceAfter, balanceBefore - 100 * 1 ether);
     }
 
-    function test_revertIfBurnerIsNotAuthorized() public {
+    function test_burn_RevertsIfBurnerIsNotAuthorized() public {
         address unauthorizedBurner = address(0x1);
         vm.expectRevert(
             abi.encodeWithSelector(Burnable.BurnableUnauthorizedBurner.selector, address(unauthorizedBurner))
@@ -27,7 +27,7 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
         baseToken.burn(100 * 1 ether);
     }
 
-    function test_canBurnIfBurnerIsZeroAddress() public {
+    function test_burn_CanBurnIfBurnerIsZeroAddress() public {
         address burner = address(0x0);
         baseToken.setBurner(burner, true);
         uint256 balanceBefore = baseToken.balanceOf(address(this));
@@ -36,15 +36,14 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
         assertEq(balanceAfter, balanceBefore - 100 * 1 ether);
     }
 
-    function test_burnFromOtherAddress() public {
+    function test_burn_BurnFromOtherAddress() public {
         address burner = address(0x1);
         uint256 amount = 100 * 1 ether;
         baseToken.mint(burner, amount);
         uint256 totalSupply = baseToken.totalSupply();
         uint256 balanceBefore = baseToken.balanceOf(burner);
-        vm.startPrank(burner);
+        vm.prank(burner);
         baseToken.approve(address(this), amount);
-        vm.stopPrank();
         uint256 allowanceBefore = baseToken.allowance(burner, address(this));
         baseToken.burnFrom(burner, amount);
         uint256 allowanceAfter = baseToken.allowance(burner, address(this));
@@ -54,22 +53,21 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
         assertEq(totalSupply - amount, baseToken.totalSupply());
     }
 
-    function test_burnFromZeroAmount() public {
+    function test_burn_BurnFromZeroAmount() public {
         address burner = address(0x1);
         uint256 amount = 0;
         baseToken.mint(burner, amount);
         uint256 totalSupply = baseToken.totalSupply();
         uint256 balanceBefore = baseToken.balanceOf(burner);
-        vm.startPrank(burner);
+        vm.prank(burner);
         baseToken.approve(address(this), amount);
-        vm.stopPrank();
         baseToken.burnFrom(burner, amount);
         uint256 balanceAfter = baseToken.balanceOf(burner);
         assertEq(balanceAfter, balanceBefore - amount);
         assertEq(totalSupply - amount, baseToken.totalSupply());
     }
 
-    function test_revertIfBurnFromNoAllowance() public {
+    function test_burn_RevertsIfBurnFromNoAllowance() public {
         address burner = address(0x1);
         uint256 amount = 100 * 1 ether;
         baseToken.mint(burner, amount);
@@ -80,27 +78,27 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
         baseToken.burnFrom(burner, amount);
     }
 
-    function test_revertIfBurnFromZeroAddress() public {
+    function test_burn_RevertsIfBurnFromZeroAddress() public {
         address burner = address(0x0);
         uint256 amount = 100 * 1 ether;
         vm.expectRevert(abi.encodeWithSelector(Burnable.BurnableInvalidTokenOwner.selector, address(burner)));
         baseToken.burnFrom(burner, amount);
     }
 
-    function test_setBurner() public {
+    function test_burn_UserCanSetBurner() public {
         address burner = address(0x1);
         baseToken.setBurner(burner, true);
         assert(baseToken.isBurner(burner));
     }
 
-    function test_revertIfSetBurnerSameValue() public {
+    function test_burn_RevertsIfSetBurnerSameValue() public {
         address burner = address(0x1);
         baseToken.setBurner(burner, true);
         vm.expectRevert(abi.encodeWithSelector(Burnable.BurnableSameValueAlreadySet.selector));
         baseToken.setBurner(burner, true);
     }
 
-    function test_setBurnerShouldEmitEvent() public {
+    function test_burn_SetBurnerShouldEmitEvent() public {
         address burner = address(0x1);
         vm.expectEmit(true, true, true, true);
         emit BurnerSet(burner, true);

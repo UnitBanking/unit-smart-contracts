@@ -9,7 +9,7 @@ import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 contract BaseTokenMintTest is BaseTokenTestBase {
     event MinterSet(address indexed minter, bool canMint);
 
-    function test_canMint() public {
+    function test_mint_UserCanMint() public {
         uint256 balanceBefore = baseToken.balanceOf(address(this));
         uint256 totalSupply = baseToken.totalSupply();
         baseToken.mint(address(this), 100 * 1 ether);
@@ -18,7 +18,7 @@ contract BaseTokenMintTest is BaseTokenTestBase {
         assertEq(balanceAfter, balanceBefore + 100 * 1 ether);
     }
 
-    function test_revertIfMinterIsNotAuthorized() public {
+    function test_mint_RevertsIfMinterIsNotAuthorized() public {
         address unauthorizedMinter = address(0x1);
         vm.expectRevert(
             abi.encodeWithSelector(Mintable.MintableUnauthorizedMinter.selector, address(unauthorizedMinter))
@@ -27,7 +27,7 @@ contract BaseTokenMintTest is BaseTokenTestBase {
         baseToken.mint(address(this), 100 * 1 ether);
     }
 
-    function test_mintToOtherAddress() public {
+    function test_mint_CanMintToOtherAddress() public {
         address receiver = address(0x1);
         uint256 balanceBefore = baseToken.balanceOf(receiver);
         baseToken.mint(receiver, 100 * 1 ether);
@@ -35,32 +35,32 @@ contract BaseTokenMintTest is BaseTokenTestBase {
         assertEq(balanceAfter, balanceBefore + 100 * 1 ether);
     }
 
-    function test_revertIfReceiverIsZeroAddress() public {
+    function test_mint_RevertsIfReceiverIsZeroAddress() public {
         address receiver = address(0x0);
         vm.expectRevert(abi.encodeWithSelector(Mintable.MintableInvalidReceiver.selector, receiver));
         baseToken.mint(receiver, 100 * 1 ether);
     }
 
-    function test_setMinter() public {
+    function test_mint_CanSetMinter() public {
         address minter = address(0x1);
         baseToken.setMinter(minter, true);
         assert(baseToken.isMinter(minter));
     }
 
-    function test_revertIfSetMinterWithZeroAddress() public {
+    function test_mint_RevertsIfSetMinterWithZeroAddress() public {
         address minter = address(0x0);
         vm.expectRevert(abi.encodeWithSelector(Mintable.MintableInvalidMinter.selector, minter));
         baseToken.setMinter(minter, true);
     }
 
-    function test_revertIfSetMinterWithSameValue() public {
+    function test_mint_RevertsIfSetMinterWithSameValue() public {
         address minter = address(0x1);
         baseToken.setMinter(minter, true);
         vm.expectRevert(abi.encodeWithSelector(Mintable.MintableSameValueAlreadySet.selector));
         baseToken.setMinter(minter, true);
     }
 
-    function test_setMinterShouldEmitEvent() public {
+    function test_mint_SetMinterShouldEmitEvent() public {
         address minter = address(0x1);
         vm.expectEmit(true, true, true, true);
         emit MinterSet(minter, true);

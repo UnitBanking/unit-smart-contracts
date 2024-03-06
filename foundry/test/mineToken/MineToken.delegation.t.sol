@@ -36,13 +36,13 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         );
     }
 
-    function test_canDelegate() public {
+    function test_delegation_UserCanDelegate() public {
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
         assertEq(mineToken.delegatees(address(this)), delegatee);
     }
 
-    function test_mintSetDefaultDelegatee() public {
+    function test_delegation_MintSetDefaultDelegatee() public {
         address other = address(0x123);
         address defaultDelegatee = mineToken.defaultDelegatee();
         mineToken.mint(other, 100 * 1 ether);
@@ -51,7 +51,7 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertLt(mineToken.getCurrentVotes(defaultDelegatee), total);
     }
 
-    function test_transferShouldSetDelegateeAsDefaultDelegatee() public {
+    function test_delegation_TransferShouldSetDelegateeAsDefaultDelegatee() public {
         mineToken.mint(address(this), 100 * 1 ether);
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
@@ -61,7 +61,7 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.delegatees(other), mineToken.defaultDelegatee());
     }
 
-    function test_delegateShouldEmitEvent() public {
+    function test_delegation_DelegateShouldEmitEvent() public {
         address delegatee = address(0x123);
         vm.expectEmit(true, true, true, true);
         emit DelegateSet(address(this), mineToken.delegatees(address(this)), delegatee);
@@ -70,7 +70,7 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.delegatees(address(this)), delegatee);
     }
 
-    function test_shouldDelegateToDefaultDelegatee() public {
+    function test_delegation_ShouldDelegateToDefaultDelegatee() public {
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
         assertEq(mineToken.delegatees(address(this)), delegatee);
@@ -78,15 +78,15 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.delegatees(address(this)), mineToken.defaultDelegatee());
     }
 
-    function test_initialVoteZero() public {
+    function test_delegation_InitialVoteZero() public {
         assertEq(mineToken.getCurrentVotes(address(this)), 0);
     }
 
-    function test_defaultVoteToDefaultDelegatee() public {
+    function test_delegation_DefaultVoteToDefaultDelegatee() public {
         assertEq(mineToken.getCurrentVotes(mineToken.defaultDelegatee()), 0);
     }
 
-    function test_burnMintUpdateVotes() public {
+    function test_delegation_BurnMintUpdateVotes() public {
         mineToken.mint(address(this), 100 * 1 ether);
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
@@ -96,14 +96,14 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.getCurrentVotes(delegatee), 100 * 1 ether);
     }
 
-    function test_votesAfterDelegate() public {
+    function test_delegation_VotesAfterDelegate() public {
         mineToken.mint(address(this), 100 * 1 ether);
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
         assertEq(mineToken.getCurrentVotes(delegatee), 100 * 1 ether);
     }
 
-    function test_getPriorVotes() public {
+    function test_delegation_GetPriorVotes() public {
         mineToken.mint(address(this), 100 * 1 ether);
         address delegatee = address(0x123);
         uint256 blockNumber = block.number;
@@ -113,7 +113,7 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.getPriorVotes(delegatee, blockNumber - 1), 0);
     }
 
-    function test_updateDefaultDelegateeAndGetPriorVotes() public {
+    function test_delegation_UpdateDefaultDelegateeAndGetPriorVotes() public {
         address defaultDelegatee = mineToken.defaultDelegatee();
         uint256 votesBefore = mineToken.getCurrentVotes(defaultDelegatee);
         mineToken.mint(address(this), 100 * 1 ether);
@@ -127,20 +127,20 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.getCurrentVotes(defaultDelegatee), 0);
     }
 
-    function test_updateVotesAfterMint() public {
+    function test_delegation_UpdateVotesAfterMint() public {
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
         mineToken.mint(address(this), 100 * 1 ether);
         assertEq(mineToken.getCurrentVotes(delegatee), 100 * 1 ether);
     }
 
-    function test_revertIfBlockNumberIsTooHigh() public {
+    function test_delegation_RevertsIfBlockNumberIsTooHigh() public {
         mineToken.mint(address(this), 100 * 1 ether);
         vm.expectRevert(abi.encodeWithSelector(IVotes.VotesBlockNumberTooHigh.selector, block.number + 10));
         mineToken.getPriorVotes(address(this), block.number + 10);
     }
 
-    function test_delegateBySig() public {
+    function test_delegation_DelegateBySig() public {
         uint256 nonce = mineToken.nonces(owner);
         uint256 expiry = block.timestamp + 100;
         SigUtils.Delegation memory delegation = SigUtils.Delegation({

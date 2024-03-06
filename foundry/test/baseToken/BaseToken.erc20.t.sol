@@ -67,9 +67,8 @@ contract BaseTokenErc20Test is BaseTokenTestBase {
         address spender = address(this);
         uint256 amount = 10 * 1 ether;
         baseToken.mint(from, amount);
-        vm.startPrank(from);
+        vm.prank(from);
         baseToken.approve(spender, amount);
-        vm.stopPrank();
         uint256 fromBalanceBefore = baseToken.balanceOf(from);
         uint256 toBalanceBefore = baseToken.balanceOf(to);
         uint256 spenderAllowanceBefore = baseToken.allowance(from, spender);
@@ -88,14 +87,12 @@ contract BaseTokenErc20Test is BaseTokenTestBase {
         address spender = address(this);
         uint256 amount = type(uint256).max;
         baseToken.mint(from, 10 * 1 ether);
-        vm.startPrank(from);
+        vm.prank(from);
         baseToken.approve(spender, amount);
         uint256 spenderAllowanceBefore = baseToken.allowance(from, spender);
-        vm.stopPrank();
         baseToken.transferFrom(from, to, 1 ether);
-        vm.startPrank(from);
+        vm.prank(from);
         uint256 spenderAllowanceAfter = baseToken.allowance(from, spender);
-        vm.stopPrank();
         assertEq(spenderAllowanceAfter, spenderAllowanceBefore);
     }
 
@@ -105,9 +102,8 @@ contract BaseTokenErc20Test is BaseTokenTestBase {
         address spender = address(this);
         uint256 amount = 10 * 1 ether;
         baseToken.mint(from, amount);
-        vm.startPrank(from);
+        vm.prank(from);
         baseToken.approve(spender, amount - 1);
-        vm.stopPrank();
         vm.expectRevert(
             abi.encodeWithSelector(IERC20.ERC20InsufficientAllowance.selector, spender, amount - 1, amount)
         );

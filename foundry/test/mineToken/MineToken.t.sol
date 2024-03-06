@@ -7,7 +7,7 @@ contract MineTokenTest is MineTokenTestBase {
         assertEq(mineToken.owner(), address(this));
     }
 
-    function test_info() public {
+    function test_info_CorrectTokenInfo() public {
         assertEq(mineToken.name(), 'Mine');
         assertEq(mineToken.symbol(), 'MINE');
         assertEq(mineToken.decimals(), 18);

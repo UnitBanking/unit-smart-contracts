@@ -1,9 +1,11 @@
 pragma solidity 0.8.21;
+
 import './MineAuctionTestBase.t.sol';
 import { TransferUtils } from '../../../contracts/libraries/TransferUtils.sol';
+import { IMineAuction } from '../../../contracts/interfaces/IMineAuction.sol';
 
 contract MineAuctionTest is MineAuctionTestBase {
-    function test_canAppendAuctionGroup() public {
+    function test_addAuctionGroup_UserCanAppendAuctionGroup() public {
         (uint256 startTime, , uint256 bidDuration) = mineAuction.getAuctionGroup(0);
         uint32 expectedBidDuration = 2 * 60 * 60;
         uint32 expectedSettleDuration = 60 * 30;
@@ -23,11 +25,11 @@ contract MineAuctionTest is MineAuctionTestBase {
         assertEq(lastBidDuration, expectedBidDuration);
     }
 
-    function test_revertIfNewStartTimeIsEarlyThanLast() public {
+    function test_addAuctionGroup_RevertsIfNewStartTimeIsEarlyThanLast() public {
         (uint256 startTime, , uint256 bidDuration) = mineAuction.getAuctionGroup(0);
         uint32 expectedBidDuration = 2 * 60 * 60;
         uint32 expectedSettleDuration = 60 * 30;
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionStartTimeTooEarly.selector));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionStartTimeTooEarly.selector));
         mineAuction.addAuctionGroup(
             uint64(startTime) + uint64(bidDuration) - 1,
             expectedSettleDuration,
@@ -35,7 +37,7 @@ contract MineAuctionTest is MineAuctionTestBase {
         );
     }
 
-    function test_canBid() public {
+    function test_bid_UserCanBid() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         assertEq(auctionGroupId, 0);
@@ -45,11 +47,11 @@ contract MineAuctionTest is MineAuctionTestBase {
         assertGt(rewardAmount, 0);
     }
 
-    function test_revertIfTokenNotApproved() public {
+    function test_bid_RevertsIfTokenNotApproved() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         address someone = address(0x22);
-        vm.startPrank(someone);
+        vm.prank(someone);
         baseToken.approve(someone, 0);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -63,21 +65,23 @@ contract MineAuctionTest is MineAuctionTestBase {
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
     }
 
-    function test_revertIfBidAmountIsZero() public {
+    function test_bid_RevertsIfBidAmountIsZero() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInvalidBidAmount.selector));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionInvalidBidAmount.selector));
         mineAuction.bid(auctionGroupId, 0, 0);
     }
 
-    function test_revertIfAuctionGroupOutOfBound() public {
+    function test_bid_RevertsIfAuctionGroupOutOfBound() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInvalidAuctionGroupId.selector, auctionGroupId + 1));
+        vm.expectRevert(
+            abi.encodeWithSelector(IMineAuction.MineAuctionInvalidAuctionGroupId.selector, auctionGroupId + 1)
+        );
         mineAuction.bid(auctionGroupId + 1, 0, 100 * 1 ether);
     }
 
-    function test_revertIfAuctionGroupIsNotCurrent() public {
+    function test_bid_RevertIfAuctionGroupIsNotCurrent() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.addAuctionGroup(
@@ -91,33 +95,33 @@ contract MineAuctionTest is MineAuctionTestBase {
             uint32(bidDuration)
         );
         vm.warp(uint64(startTime) + uint64(bidDuration) + 100);
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionNotCurrentAuctionGroupId.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionNotCurrentAuctionGroupId.selector, 0));
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionNotCurrentAuctionGroupId.selector, 2));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionNotCurrentAuctionGroupId.selector, 2));
         mineAuction.bid(auctionGroupId + 2, 0, 100 * 1 ether);
     }
 
-    function test_revertIfAuctionIdIsNotCurrent() public {
+    function test_bid_RevertsIfAuctionIdIsNotCurrent() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         vm.warp(uint64(startTime) + uint64(bidDuration) + uint64(settleDuration) + 100);
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionNotCurrentAuctionId.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionNotCurrentAuctionId.selector, 0));
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionNotCurrentAuctionId.selector, 2));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionNotCurrentAuctionId.selector, 2));
         mineAuction.bid(auctionGroupId, 2, 100 * 1 ether);
     }
 
-    function test_revertIfInSettlement() public {
+    function test_bid_RevertsIfInSettlement() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         vm.warp(uint64(startTime) + uint64(bidDuration) + 100);
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionNotCurrentAuctionId.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionNotCurrentAuctionId.selector, 0));
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
     }
 
-    function test_revertIfGroupIdInFuture() public {
+    function test_view_RevertsIfGroupIdInFuture() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.addAuctionGroup(
@@ -126,17 +130,17 @@ contract MineAuctionTest is MineAuctionTestBase {
             uint32(bidDuration)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionAuctionGroupIdInFuture.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionAuctionGroupIdInFuture.selector, 1));
         mineAuction.getAuction(1, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionAuctionGroupIdInFuture.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionAuctionGroupIdInFuture.selector, 1));
         mineAuction.getClaimed(1, 0, address(0x01));
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionAuctionGroupIdInFuture.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionAuctionGroupIdInFuture.selector, 1));
         mineAuction.getBid(1, 0, address(0x01));
     }
 
-    function test_revertIfAuctionIdInFuture() public {
+    function test_getAuction_RevertsIfAuctionIdInFuture() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.addAuctionGroup(
@@ -145,25 +149,25 @@ contract MineAuctionTest is MineAuctionTestBase {
             uint32(bidDuration)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionAuctionIdInFuture.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionAuctionIdInFuture.selector, 1));
         mineAuction.getAuction(0, 1);
     }
 
-    function test_revertIfAuctionGroupIdInvalidInView() public {
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInvalidAuctionGroupId.selector, 1));
+    function test_view_RevertsIfAuctionGroupIdInvalidInView() public {
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionInvalidAuctionGroupId.selector, 1));
         mineAuction.getAuction(1, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInvalidAuctionGroupId.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionInvalidAuctionGroupId.selector, 1));
         mineAuction.getAuctionGroup(1);
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInvalidAuctionGroupId.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionInvalidAuctionGroupId.selector, 1));
         mineAuction.getClaimed(1, 0, address(0x01));
 
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInvalidAuctionGroupId.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionInvalidAuctionGroupId.selector, 1));
         mineAuction.getBid(1, 0, address(0x01));
     }
 
-    function test_getAuctionInfo() public {
+    function test_getAuctionInfo_ValidAuctionInfo() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
@@ -187,16 +191,18 @@ contract MineAuctionTest is MineAuctionTestBase {
         assertGt(claimableAmount, 0);
     }
 
-    function test_revertIfClaimAmountTooLarge() public {
+    function test_claim_RevertsIfClaimAmountTooLarge() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
         vm.warp(uint64(startTime) + uint64(bidDuration) + uint64(settleDuration) + 100);
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionInsufficientClaimAmount.selector, type(uint256).max));
+        vm.expectRevert(
+            abi.encodeWithSelector(IMineAuction.MineAuctionInsufficientClaimAmount.selector, type(uint256).max)
+        );
         mineAuction.claim(auctionGroupId, 0, type(uint256).max);
     }
 
-    function test_canClaim() public {
+    function test_claim_UserCanClaim() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
@@ -209,7 +215,7 @@ contract MineAuctionTest is MineAuctionTestBase {
         assertEq(balanceAfter - balanceBefore, 100 * 1 ether);
     }
 
-    function test_canClaimToOther() public {
+    function test_claim_UserCanClaimToOther() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
@@ -225,7 +231,7 @@ contract MineAuctionTest is MineAuctionTestBase {
         assertEq(balanceBidderBefore, balanceBidderAfter);
     }
 
-    function test_shouldRevertIfInGroupGap() public {
+    function test_bid_RevertsIfInGroupGap() public {
         (uint256 auctionGroupId, uint256 startTime, uint256 settleDuration, uint256 bidDuration) = mineAuction
             .getCurrentAuctionGroup();
         mineAuction.addAuctionGroup(
@@ -234,7 +240,7 @@ contract MineAuctionTest is MineAuctionTestBase {
             uint32(bidDuration)
         );
         vm.warp(uint64(startTime) + uint64(bidDuration) + uint32(settleDuration) + 100);
-        vm.expectRevert(abi.encodeWithSelector(MineAuctionCurrentAuctionDisabled.selector));
+        vm.expectRevert(abi.encodeWithSelector(IMineAuction.MineAuctionCurrentAuctionDisabled.selector));
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
     }
 }
