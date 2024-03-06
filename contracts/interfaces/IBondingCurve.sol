@@ -44,22 +44,6 @@ interface IBondingCurve {
      */
 
     /**
-     * @notice Initializes the proxy contract's.
-     * Sets the values for {unitToken}, {mineToken}, {inflationOracle} and {collateralUsdOracle}.
-     * @dev Calls Proxiable.initialize() at the end to set `initialized` flag.
-     * @param _unitToken UNIT token address.
-     * @param _mineToken MINE token address.
-     * @param _inflationOracle Inflation oracle.
-     * @param _collateralUsdOracle Collateral Token-USD price oracle.
-     */
-    function initialize(
-        IUnitToken _unitToken,
-        IMineToken _mineToken,
-        IInflationOracle _inflationOracle,
-        ICollateralUsdOracle _collateralUsdOracle
-    ) external;
-
-    /**
      * @notice Transfers collateral token held by this contract to the `receiver`.
      * Used in UNIT contraction auction when collateral token is transferred to the user as a result of their bid.
      * @dev Can only be called by the UNIT auction contract.

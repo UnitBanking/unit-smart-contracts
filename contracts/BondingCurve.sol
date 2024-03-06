@@ -59,6 +59,12 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     IERC20 public immutable collateralToken;
     uint256 private immutable collateralTokenDecimals;
 
+    IUnitToken public immutable unitToken;
+    IMineToken public immutable mineToken;
+
+    IInflationOracle public immutable inflationOracle;
+    ICollateralUsdOracle public immutable collateralUsdOracle;
+
     /**
      * ================ STATE VARIABLES ================
      */
@@ -73,12 +79,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     UD60x18 public lastUnitUsdPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t')) – ln(Index(t'- 20years)))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
-
-    IInflationOracle public inflationOracle;
-    ICollateralUsdOracle public collateralUsdOracle;
-
-    IUnitToken public unitToken;
-    IMineToken public mineToken;
 
     address public unitAuction;
 
@@ -97,33 +97,19 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @dev This contract is meant to be used through a proxy. The constructor makes the implementation contract
      * uninitializable, which makes it unusable when called directly.
      */
-    constructor(IERC20 _collateralToken, address collateralBurnAddress) {
+    constructor(
+        IERC20 _collateralToken,
+        address collateralBurnAddress,
+        IUnitToken _unitToken,
+        IMineToken _mineToken,
+        IInflationOracle _inflationOracle,
+        ICollateralUsdOracle _collateralUsdOracle
+    ) {
         STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
         COLLATERAL_BURN_ADDRESS = collateralBurnAddress;
 
         collateralToken = _collateralToken;
         collateralTokenDecimals = _collateralToken.decimals();
-
-        super.initialize();
-    }
-
-    /**
-     * ================ EXTERNAL & PUBLIC FUNCTIONS ================
-     */
-
-    /**
-     * @inheritdoc IBondingCurve
-     */
-    function initialize(
-        IUnitToken _unitToken,
-        IMineToken _mineToken,
-        IInflationOracle _inflationOracle,
-        ICollateralUsdOracle _collateralUsdOracle
-    ) external {
-        _setOwner(msg.sender);
-
-        lastUnitUsdPrice = UNIT; // 1
-
         unitToken = _unitToken;
         mineToken = _mineToken;
         inflationOracle = _inflationOracle;
@@ -139,6 +125,18 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         if (collateralUsdPricePrecision != STANDARD_PRECISION) {
             revert BondingCurveInvalidCollateralPricePrecision(collateralUsdPricePrecision, STANDARD_PRECISION);
         }
+
+        super.initialize();
+    }
+
+    /**
+     * ================ EXTERNAL & PUBLIC FUNCTIONS ================
+     */
+
+    function initialize() public override {
+        _setOwner(msg.sender);
+
+        lastUnitUsdPrice = UNIT; // 1
 
         updateInternals();
 
@@ -340,6 +338,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
                 collateralToken.balanceOf(address(this)).toStandardPrecision(collateralTokenDecimals) *
                 STANDARD_PRECISION) - (desiredRR * unitUsdPrice * unitToken.totalSupply() * unitCollateralPrice)) /
             (((desiredRR * unitUsdPrice) - (collateralUsdPrice * unitCollateralPrice)) * STANDARD_PRECISION);
+
         collateralAmount = collateralAmount.fromStandardPrecision(collateralTokenDecimals);
     }
 

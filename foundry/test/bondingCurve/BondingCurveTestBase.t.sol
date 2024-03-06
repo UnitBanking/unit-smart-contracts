@@ -7,7 +7,7 @@ import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
 import { CollateralUsdOracleMock } from '../../../contracts/test/CollateralUsdOracleMock.sol';
 import { CollateralERC20TokenTest } from '../../../contracts/test/CollateralERC20TokenTest.sol';
-import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
+import { Proxiable } from '../../../contracts/abstracts/Proxiable.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 import { UnitToken } from '../../../contracts/UnitToken.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
@@ -52,18 +52,19 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.initialize();
 
         // set up BondingCurve contract
-        bondingCurveImplementation = new BondingCurveHarness(collateralToken, TestUtils.COLLATERAL_BURN_ADDRESS);
+        bondingCurveImplementation = new BondingCurveHarness(
+            collateralToken,
+            TestUtils.COLLATERAL_BURN_ADDRESS,
+            unitToken,
+            mineToken,
+            inflationOracle,
+            collateralUsdOracle
+        );
         bondingCurveProxyType = new Proxy(address(this));
 
         bondingCurveProxyType.upgradeToAndCall(
             address(bondingCurveImplementation),
-            abi.encodeWithSelector(
-                IBondingCurve.initialize.selector,
-                address(unitToken),
-                address(mineToken),
-                inflationOracle,
-                collateralUsdOracle
-            )
+            abi.encodeWithSelector(Proxiable.initialize.selector)
         );
 
         bondingCurveProxy = BondingCurveHarness(payable(bondingCurveProxyType));
