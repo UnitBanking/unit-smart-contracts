@@ -4,7 +4,7 @@ pragma solidity 0.8.23;
 
 import { BondingCurveTestBase } from './BondingCurveTestBase.t.sol';
 import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
-import { Mintable } from '../../../contracts/abstracts/Mintable.sol';
+import { IMintable } from '../../../contracts/interfaces/IMintable.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
 
 contract BondingCurveMintTest is BondingCurveTestBase {
@@ -111,7 +111,7 @@ contract BondingCurveMintTest is BondingCurveTestBase {
 
         // Act && Assert
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(Mintable.MintableInvalidReceiver.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(IMintable.MintableInvalidReceiver.selector, address(0)));
         bondingCurveProxy.mint(address(0), collateralAmountIn);
     }
 

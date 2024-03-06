@@ -3,15 +3,13 @@
 pragma solidity 0.8.23;
 
 import './abstracts/BaseToken.sol';
-import './interfaces/IVote.sol';
+import './interfaces/IMineToken.sol';
 
 /**
  * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
  * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
  */
-contract MineToken is BaseToken, IVotes {
-    error MineTokenExceedMaxSupply();
-
+contract MineToken is BaseToken, IMineToken {
     struct Checkpoint {
         uint32 fromBlock;
         uint96 votes;
@@ -47,15 +45,15 @@ contract MineToken is BaseToken, IVotes {
         super.initialize();
     }
 
-    function name() public pure override returns (string memory) {
+    function name() public pure override(ERC20, IERC20) returns (string memory) {
         return 'Mine';
     }
 
-    function symbol() public pure override returns (string memory) {
+    function symbol() public pure override(ERC20, IERC20) returns (string memory) {
         return 'MINE';
     }
 
-    function mint(address receiver, uint256 amount) public override {
+    function mint(address receiver, uint256 amount) public override(BaseToken, IMintable) {
         if (delegatees[receiver] == address(0)) {
             _delegate(receiver, defaultDelegatee);
         }
@@ -82,11 +80,11 @@ contract MineToken is BaseToken, IVotes {
         _updateVotes(delegatees[from], delegatees[to], value);
     }
 
-    function delegate(address delegatee) external {
+    function delegate(address delegatee) external override {
         return _delegate(msg.sender, delegatee);
     }
 
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external {
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external override {
         if (block.timestamp > expiry) {
             revert VotesDelegationSignatureExpired(expiry);
         }
@@ -105,12 +103,12 @@ contract MineToken is BaseToken, IVotes {
         return _delegate(signatory, delegatee);
     }
 
-    function getCurrentVotes(address account) external view returns (uint96) {
+    function getCurrentVotes(address account) external view override returns (uint96) {
         uint32 nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    function getPriorVotes(address account, uint256 blockNumber) public view returns (uint96) {
+    function getPriorVotes(address account, uint256 blockNumber) public view override returns (uint96) {
         if (blockNumber >= block.number) {
             revert VotesBlockNumberTooHigh(blockNumber);
         }

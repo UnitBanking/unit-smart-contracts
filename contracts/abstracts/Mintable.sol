@@ -2,19 +2,14 @@
 
 pragma solidity 0.8.23;
 
+import '../interfaces/IMintable.sol';
+
 /**
  * @dev IMPORTANT: This contract is used as parent contract in contracts that implement a proxy pattern.
  * Adding, removing, changing or rearranging state variables in this contract can result in a storage collision
  * in child contracts in case of a contract upgrade.
  */
-abstract contract Mintable {
-    event MinterSet(address indexed minter, bool canMint);
-
-    error MintableInvalidMinter(address minter);
-    error MintableInvalidReceiver(address receiver);
-    error MintableSameValueAlreadySet();
-    error MintableUnauthorizedMinter(address minter);
-
+abstract contract Mintable is IMintable {
     mapping(address minter => bool canMint) public isMinter;
 
     function _setMinter(address minter, bool canMint) internal {
