@@ -19,13 +19,14 @@ abstract contract UnitAuctionTestBase is Test {
     uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
     uint8 public constant AUCTION_VARIANT_EXPANSION = 3;
 
-    Proxy public proxy;
     UnitAuctionHarness public unitAuctionImplementation;
     UnitAuctionHarness public unitAuctionProxy;
+
     BondingCurve public bondingCurveProxy;
-    CollateralERC20TokenTest public collateralToken;
+
     UnitToken public unitToken;
     MineToken public mineToken;
+    CollateralERC20TokenTest public collateralToken;
     InflationOracleHarness public inflationOracle;
     CollateralUsdOracleMock public collateralUsdOracle;
 
@@ -38,9 +39,6 @@ abstract contract UnitAuctionTestBase is Test {
         // set up block timestamp
         vm.warp(TestUtils.START_TIMESTAMP);
 
-        // set up collateral token
-        collateralToken = new CollateralERC20TokenTest();
-
         // set up Unit token contract
         unitToken = new UnitToken(); // TODO: use Proxy
         unitToken.initialize();
@@ -48,6 +46,9 @@ abstract contract UnitAuctionTestBase is Test {
         // set up Mine token contract
         mineToken = new MineToken(); // TODO: use Proxy
         mineToken.initialize();
+
+        // set up collateral token
+        collateralToken = new CollateralERC20TokenTest();
 
         // set up oracle contracts
         inflationOracle = new InflationOracleHarness();
@@ -57,20 +58,19 @@ abstract contract UnitAuctionTestBase is Test {
 
         // set up BondingCurve contract
         BondingCurve bondingCurveImplementation = new BondingCurve(
-            collateralToken,
-            TestUtils.COLLATERAL_BURN_ADDRESS,
             unitToken,
             mineToken,
+            collateralToken,
+            TestUtils.COLLATERAL_BURN_ADDRESS,
             inflationOracle,
             collateralUsdOracle
         );
-        Proxy _proxy = new Proxy(address(this));
-
-        _proxy.upgradeToAndCall(
+        Proxy proxy = new Proxy(address(this));
+        proxy.upgradeToAndCall(
             address(bondingCurveImplementation),
             abi.encodeWithSelector(Proxiable.initialize.selector)
         );
-        bondingCurveProxy = BondingCurve(payable(_proxy));
+        bondingCurveProxy = BondingCurve(payable(proxy));
 
         unitToken.setMinter(address(bondingCurveProxy), true);
         unitToken.setBurner(address(bondingCurveProxy), true);
@@ -91,7 +91,6 @@ abstract contract UnitAuctionTestBase is Test {
             address(unitAuctionImplementation),
             abi.encodeWithSelector(Proxiable.initialize.selector)
         );
-
         unitAuctionProxy = UnitAuctionHarness(payable(proxy));
 
         unitToken.setMinter(address(unitAuctionProxy), true);

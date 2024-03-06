@@ -9,11 +9,17 @@ import { TestUtils } from '../utils/TestUtils.t.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
 
 contract UnitAuctionTest is UnitAuctionTestBase {
-    function test_constructor_stateVariablesSetCorrectly() public {
-        // Arrange & Act & Assert
+    function test_implementation_isInitialized() public {
         assertEq(unitAuctionImplementation.initialized(), true);
+    }
+
+    function test_proxy_stateVariablesAndImmutablesSetCorrectly() public {
+        assertEq(unitAuctionProxy.initialized(), true);
+        assertEq(unitAuctionProxy.STANDARD_PRECISION(), TestUtils.STANDARD_PRECISION);
+
         assertEq(address(unitAuctionProxy.bondingCurve()), address(bondingCurveProxy));
         assertEq(address(unitAuctionProxy.unitToken()), address(unitToken));
+        assertEq(address(unitAuctionProxy.collateralToken()), address(collateralToken));
     }
 
     function test_receive_NoDirectTransfer() public {

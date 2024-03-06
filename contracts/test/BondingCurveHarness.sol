@@ -7,18 +7,18 @@ import { unwrap } from '@prb/math/src/UD60x18.sol';
 
 contract BondingCurveHarness is BondingCurve {
     constructor(
-        IERC20 _collateralToken,
-        address collateralBurnAddress,
         IUnitToken _unitToken,
         IMineToken _mineToken,
+        IERC20 _collateralToken,
+        address collateralBurnAddress,
         IInflationOracle _inflationOracle,
         ICollateralUsdOracle _collateralUsdOracle
     )
         BondingCurve(
-            _collateralToken,
-            collateralBurnAddress,
             _unitToken,
             _mineToken,
+            _collateralToken,
+            collateralBurnAddress,
             _inflationOracle,
             _collateralUsdOracle
         )

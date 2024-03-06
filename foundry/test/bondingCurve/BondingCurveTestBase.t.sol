@@ -16,15 +16,14 @@ import { TestUtils } from '../utils/TestUtils.t.sol';
 abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
 
-    CollateralERC20TokenTest public collateralToken;
-    InflationOracleHarness public inflationOracle;
-    CollateralUsdOracleMock public collateralUsdOracle;
-    UnitToken public unitToken;
-    MineToken public mineToken;
-
-    Proxy public bondingCurveProxyType;
     BondingCurveHarness public bondingCurveImplementation;
     BondingCurveHarness public bondingCurveProxy;
+
+    CollateralERC20TokenTest public collateralToken;
+    UnitToken public unitToken;
+    MineToken public mineToken;
+    InflationOracleHarness public inflationOracle;
+    CollateralUsdOracleMock public collateralUsdOracle;
 
     address public wallet = vm.addr(1);
 
@@ -53,21 +52,19 @@ abstract contract BondingCurveTestBase is Test {
 
         // set up BondingCurve contract
         bondingCurveImplementation = new BondingCurveHarness(
-            collateralToken,
-            TestUtils.COLLATERAL_BURN_ADDRESS,
             unitToken,
             mineToken,
+            collateralToken,
+            TestUtils.COLLATERAL_BURN_ADDRESS,
             inflationOracle,
             collateralUsdOracle
         );
-        bondingCurveProxyType = new Proxy(address(this));
-
-        bondingCurveProxyType.upgradeToAndCall(
+        Proxy proxy = new Proxy(address(this));
+        proxy.upgradeToAndCall(
             address(bondingCurveImplementation),
             abi.encodeWithSelector(Proxiable.initialize.selector)
         );
-
-        bondingCurveProxy = BondingCurveHarness(payable(bondingCurveProxyType));
+        bondingCurveProxy = BondingCurveHarness(payable(proxy));
 
         unitToken.setMinter(address(bondingCurveProxy), true);
         unitToken.setBurner(address(bondingCurveProxy), true);

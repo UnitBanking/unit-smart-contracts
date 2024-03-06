@@ -43,9 +43,9 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     uint256 public immutable STANDARD_PRECISION;
 
     IBondingCurve public immutable bondingCurve;
+    IUnitToken public immutable unitToken;
     IERC20 public immutable collateralToken;
     uint256 private immutable collateralTokenDecimals;
-    IUnitToken public immutable unitToken;
 
     uint8 public constant AUCTION_VARIANT_NONE = 1;
     uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
@@ -96,10 +96,10 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
         STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
 
         bondingCurve = _bondingCurve;
+        unitToken = _unitToken;
         IERC20 _collateralToken = _bondingCurve.collateralToken();
         collateralToken = _collateralToken;
         collateralTokenDecimals = _collateralToken.decimals();
-        unitToken = _unitToken;
 
         super.initialize();
     }

@@ -8,16 +8,23 @@ import { TestUtils } from '../utils/TestUtils.t.sol';
 
 contract BondingCurveHarnessTest is BondingCurveTestBase {
     /**
-     * ================ COLLATERAL_BURN_ADDRESS() ================
+     * ================ initial state ================
      */
 
-    function test_COLLATERAL_BURN_ADDRESS_CorrectlySetsAddressInProxyContract() public {
-        // Arrange & Act
-        (, bytes memory data) = address(bondingCurveProxyType).call(abi.encodeWithSelector(0xb8588101));
+    function test_implementation_isInitalized() public {
+        assertEq(bondingCurveImplementation.initialized(), true);
+    }
 
-        // Assert
-        address collateralBurnAddress = abi.decode(data, (address));
-        assertEq(collateralBurnAddress, TestUtils.COLLATERAL_BURN_ADDRESS);
+    function test_proxy_stateVariablesAndImmutablesSetCorrectly() public {
+        assertEq(bondingCurveProxy.initialized(), true);
+        assertEq(bondingCurveProxy.STANDARD_PRECISION(), TestUtils.STANDARD_PRECISION);
+        assertEq(bondingCurveProxy.COLLATERAL_BURN_ADDRESS(), TestUtils.COLLATERAL_BURN_ADDRESS);
+
+        assertEq(address(bondingCurveProxy.unitToken()), address(unitToken));
+        assertEq(address(bondingCurveProxy.mineToken()), address(mineToken));
+        assertEq(address(bondingCurveProxy.collateralToken()), address(collateralToken));
+        assertEq(address(bondingCurveProxy.inflationOracle()), address(inflationOracle));
+        assertEq(address(bondingCurveProxy.collateralUsdOracle()), address(collateralUsdOracle));
     }
 
     /**

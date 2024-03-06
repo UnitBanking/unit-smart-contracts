@@ -56,11 +56,10 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     uint256 public immutable STANDARD_PRECISION;
     address public immutable COLLATERAL_BURN_ADDRESS;
 
-    IERC20 public immutable collateralToken;
-    uint256 private immutable collateralTokenDecimals;
-
     IUnitToken public immutable unitToken;
     IMineToken public immutable mineToken;
+    IERC20 public immutable collateralToken;
+    uint256 private immutable collateralTokenDecimals;
 
     IInflationOracle public immutable inflationOracle;
     ICollateralUsdOracle public immutable collateralUsdOracle;
@@ -98,20 +97,20 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * uninitializable, which makes it unusable when called directly.
      */
     constructor(
-        IERC20 _collateralToken,
-        address collateralBurnAddress,
         IUnitToken _unitToken,
         IMineToken _mineToken,
+        IERC20 _collateralToken,
+        address collateralBurnAddress,
         IInflationOracle _inflationOracle,
         ICollateralUsdOracle _collateralUsdOracle
     ) {
         STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
         COLLATERAL_BURN_ADDRESS = collateralBurnAddress;
 
-        collateralToken = _collateralToken;
-        collateralTokenDecimals = _collateralToken.decimals();
         unitToken = _unitToken;
         mineToken = _mineToken;
+        collateralToken = _collateralToken;
+        collateralTokenDecimals = _collateralToken.decimals();
         inflationOracle = _inflationOracle;
         collateralUsdOracle = _collateralUsdOracle;
 
