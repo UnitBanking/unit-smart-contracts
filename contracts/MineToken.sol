@@ -84,7 +84,14 @@ contract MineToken is BaseToken, IMineToken {
         return _delegate(msg.sender, delegatee);
     }
 
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external override {
+    function delegateBySig(
+        address delegatee,
+        uint256 nonce,
+        uint256 expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
         if (block.timestamp > expiry) {
             revert VotesDelegationSignatureExpired(expiry);
         }
