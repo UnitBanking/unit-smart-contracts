@@ -340,6 +340,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
                 collateralToken.balanceOf(address(this)).toStandardPrecision(collateralTokenDecimals) *
                 STANDARD_PRECISION) - (desiredRR * unitUsdPrice * unitToken.totalSupply() * unitCollateralPrice)) /
             (((desiredRR * unitUsdPrice) - (collateralUsdPrice * unitCollateralPrice)) * STANDARD_PRECISION);
+        collateralAmount = collateralAmount.fromStandardPrecision(collateralTokenDecimals);
     }
 
     /**
