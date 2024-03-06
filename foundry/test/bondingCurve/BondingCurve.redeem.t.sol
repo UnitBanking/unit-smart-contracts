@@ -10,8 +10,8 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         // Arrange
         uint256 mineTokenAmount = 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
-        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
@@ -21,8 +21,8 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         bondingCurveProxy.redeem(mineTokenAmount);
 
         // Assert
-        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyAfter = mineToken.totalSupply();
         assertEq(mineToken.balanceOf(user), 0);
         assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore + 494505494505496);
@@ -34,8 +34,8 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         // Arrange
         uint256 mineTokenAmount = 1e8 * 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
-        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
@@ -46,8 +46,8 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         bondingCurveProxy.redeem(mineTokenAmount);
 
         // Assert
-        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
         uint256 mineTotalSupplyAfter = mineToken.totalSupply();
         assertEq(mineToken.balanceOf(user), mineTokenAmount);
         assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore);
@@ -60,8 +60,8 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         uint256 mineTokenAmount = 1e8 * 1e18;
         address user = _createUserAndMintUnitAndMineTokens(1e18, mineTokenAmount);
         uint256 mineTotalSupplyBefore = mineToken.totalSupply();
-        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
-        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
         vm.prank(user);
         mineToken.approve(address(bondingCurveProxy), mineTokenAmount);
 
@@ -72,8 +72,8 @@ contract BondingCurveRedeemTest is BondingCurveTestBase {
         // Assert
         uint256 userMineBalanceAfter = mineToken.balanceOf(user);
         uint256 mineTotalSupplyAfter = mineToken.totalSupply();
-        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
-        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
         assertEq(userMineBalanceAfter, mineTokenAmount);
         assertEq(mineTotalSupplyAfter, mineTotalSupplyBefore);
         assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore);

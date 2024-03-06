@@ -152,7 +152,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
 
         // Assert
         assertEq(excessCollateral, 999000999001004);
-        assertGe(collateralERC20TokenTest.balanceOf(address(bondingCurveProxy)), unitCollateralValue);
+        assertGe(collateralToken.balanceOf(address(bondingCurveProxy)), unitCollateralValue);
     }
 
     function test_getExcessCollateralReserve_ReturnsZero() public {
@@ -211,15 +211,15 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         uint256 collateralAmount = 1e18;
         uint256 userCollateralBalance = 100 * 1e18;
         vm.startPrank(user);
-        collateralERC20TokenTest.mint(userCollateralBalance);
-        collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
+        collateralToken.mint(userCollateralBalance);
+        collateralToken.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
 
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
-        uint256 bondingCurveCollateralBalance = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalance = collateralToken.balanceOf(address(bondingCurveProxy));
         vm.prank(address(bondingCurveProxy));
-        collateralERC20TokenTest.burn(bondingCurveCollateralBalance); // remove collateral token form BondingCurve to lower RR
+        collateralToken.burn(bondingCurveCollateralBalance); // remove collateral token form BondingCurve to lower RR
 
         // Act && Assert
         vm.prank(user);

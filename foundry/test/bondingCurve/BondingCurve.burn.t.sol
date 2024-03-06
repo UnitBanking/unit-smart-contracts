@@ -11,8 +11,8 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
         uint256 collateralAmount = 1e18;
         address user = _createUserAndMintUnit(collateralAmount);
         uint256 unitTokenBalanceBefore = unitToken.balanceOf(user);
-        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
         uint256 burnAmount = 499191452233793422; // 998382904467586844/2
         uint256 collateralWithdrawnAmount = 499000999000999000;
         vm.prank(user);
@@ -24,8 +24,8 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
         // Assert
         uint256 unitTokenBalanceAfter = unitToken.balanceOf(user);
-        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
         assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore - burnAmount);
         assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralWithdrawnAmount);
         assertEq(bondingCurveCollateralBalanceBefore - bondingCurveCollateralBalanceAfter, collateralWithdrawnAmount);
@@ -36,8 +36,8 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
         uint256 collateralAmount = 1e18;
         address user = _createUserAndMintUnit(collateralAmount);
         uint256 unitTokenBalanceBefore = unitToken.balanceOf(user);
-        uint256 userCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceBefore = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
 
         // Act
         vm.prank(user);
@@ -45,8 +45,8 @@ contract BondingCurveBurnTest is BondingCurveTestBase {
 
         // Assert
         uint256 unitTokenBalanceAfter = unitToken.balanceOf(user);
-        uint256 userCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceAfter = collateralERC20TokenTest.balanceOf(address(bondingCurveProxy));
+        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
         assertEq(unitTokenBalanceAfter, unitTokenBalanceBefore);
         assertEq(userCollateralBalanceBefore, userCollateralBalanceAfter);
         assertEq(bondingCurveCollateralBalanceBefore, bondingCurveCollateralBalanceAfter);

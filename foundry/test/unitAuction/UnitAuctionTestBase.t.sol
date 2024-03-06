@@ -24,7 +24,7 @@ abstract contract UnitAuctionTestBase is Test {
     UnitAuctionHarness public unitAuctionImplementation;
     UnitAuctionHarness public unitAuctionProxy;
     BondingCurve public bondingCurveProxy;
-    CollateralERC20TokenTest public collateralERC20Token;
+    CollateralERC20TokenTest public collateralToken;
     UnitToken public unitToken;
     MineToken public mineToken;
     InflationOracleHarness public inflationOracle;
@@ -40,7 +40,7 @@ abstract contract UnitAuctionTestBase is Test {
         vm.warp(TestUtils.START_TIMESTAMP);
 
         // set up collateral token
-        collateralERC20Token = new CollateralERC20TokenTest();
+        collateralToken = new CollateralERC20TokenTest();
 
         // set up Unit token contract
         unitToken = new UnitToken(); // TODO: use Proxy
@@ -57,14 +57,13 @@ abstract contract UnitAuctionTestBase is Test {
         collateralUsdOracle = new CollateralUsdOracleMock();
 
         // set up BondingCurve contract
-        BondingCurve bondingCurveImplementation = new BondingCurve(TestUtils.COLLATERAL_BURN_ADDRESS);
+        BondingCurve bondingCurveImplementation = new BondingCurve(collateralToken, TestUtils.COLLATERAL_BURN_ADDRESS);
         Proxy _proxy = new Proxy(address(this));
 
         _proxy.upgradeToAndCall(
             address(bondingCurveImplementation),
             abi.encodeWithSelector(
                 IBondingCurve.initialize.selector,
-                address(collateralERC20Token),
                 address(unitToken),
                 address(mineToken),
                 inflationOracle,
@@ -81,7 +80,7 @@ abstract contract UnitAuctionTestBase is Test {
 
         // send initial collateral token amount to bondingCurveProxy contract
         vm.prank(address(bondingCurveProxy));
-        collateralERC20Token.mint(TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE);
+        collateralToken.mint(TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE);
         vm.prank(address(bondingCurveProxy));
         unitToken.mint(wallet, TestUtils.INITIAL_UNIT_VALUE);
 
@@ -108,9 +107,9 @@ abstract contract UnitAuctionTestBase is Test {
         // mint collateral token and approve contracts
         uint256 userCollateralBalance = 100 * 1e18;
         vm.startPrank(user);
-        collateralERC20Token.mint(userCollateralBalance);
-        collateralERC20Token.approve(address(bondingCurveProxy), userCollateralBalance);
-        collateralERC20Token.approve(address(unitAuctionProxy), userCollateralBalance);
+        collateralToken.mint(userCollateralBalance);
+        collateralToken.approve(address(bondingCurveProxy), userCollateralBalance);
+        collateralToken.approve(address(unitAuctionProxy), userCollateralBalance);
         vm.stopPrank();
 
         vm.warp(TestUtils.START_TIMESTAMP + 10 days);
@@ -130,9 +129,9 @@ abstract contract UnitAuctionTestBase is Test {
         // mint collateral token and approve contracts
         uint256 userCollateralBalance = 500 * 1e18;
         vm.startPrank(user);
-        collateralERC20Token.mint(userCollateralBalance);
-        collateralERC20Token.approve(address(bondingCurveProxy), userCollateralBalance);
-        collateralERC20Token.approve(address(unitAuctionProxy), userCollateralBalance);
+        collateralToken.mint(userCollateralBalance);
+        collateralToken.approve(address(bondingCurveProxy), userCollateralBalance);
+        collateralToken.approve(address(unitAuctionProxy), userCollateralBalance);
         unitToken.approve(address(bondingCurveProxy), collateralAmountIn);
         unitToken.approve(address(unitAuctionProxy), collateralAmountIn);
         vm.stopPrank();

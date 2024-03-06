@@ -56,6 +56,9 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     uint256 public immutable STANDARD_PRECISION;
     address public immutable COLLATERAL_BURN_ADDRESS;
 
+    IERC20 public immutable collateralToken;
+    uint256 private immutable collateralTokenDecimals;
+
     /**
      * ================ STATE VARIABLES ================
      */
@@ -70,9 +73,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     UD60x18 public lastUnitUsdPrice; // IP(t')
     uint256 public lastOracleInflationRate; // r(t') = min(100%, max(0, (ln(Index(t')) – ln(Index(t'- 20years)))/20years))
     uint256 public lastOracleUpdateTimestamp; // t'
-
-    IERC20 public collateralToken;
-    uint256 private collateralTokenDecimals;
 
     IInflationOracle public inflationOracle;
     ICollateralUsdOracle public collateralUsdOracle;
@@ -97,9 +97,12 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @dev This contract is meant to be used through a proxy. The constructor makes the implementation contract
      * uninitializable, which makes it unusable when called directly.
      */
-    constructor(address collateralBurnAddress) {
+    constructor(IERC20 _collateralToken, address collateralBurnAddress) {
         STANDARD_PRECISION = ProtocolConstants.STANDARD_PRECISION;
         COLLATERAL_BURN_ADDRESS = collateralBurnAddress;
+
+        collateralToken = _collateralToken;
+        collateralTokenDecimals = _collateralToken.decimals();
 
         super.initialize();
     }
@@ -112,7 +115,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
      * @inheritdoc IBondingCurve
      */
     function initialize(
-        IERC20 _collateralToken,
         IUnitToken _unitToken,
         IMineToken _mineToken,
         IInflationOracle _inflationOracle,
@@ -122,8 +124,6 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
 
         lastUnitUsdPrice = UNIT; // 1
 
-        collateralToken = _collateralToken;
-        collateralTokenDecimals = _collateralToken.decimals();
         unitToken = _unitToken;
         mineToken = _mineToken;
         inflationOracle = _inflationOracle;
