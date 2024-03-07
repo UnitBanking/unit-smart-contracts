@@ -127,20 +127,20 @@ contract MineTokenDelegationTest is MineTokenTestBase {
         assertEq(mineToken.getCurrentVotes(defaultDelegatee), 0);
     }
 
-    function test_delegation_UpdateVotesAfterMint() public {
+    function test_delegate_UpdateVotesAfterMint() public {
         address delegatee = address(0x123);
         mineToken.delegate(delegatee);
         mineToken.mint(address(this), 100 * 1 ether);
         assertEq(mineToken.getCurrentVotes(delegatee), 100 * 1 ether);
     }
 
-    function test_delegation_RevertsIfBlockNumberIsTooHigh() public {
+    function test_getPriorVotes_RevertsIfBlockNumberIsTooHigh() public {
         mineToken.mint(address(this), 100 * 1 ether);
         vm.expectRevert(abi.encodeWithSelector(IVotes.VotesBlockNumberTooHigh.selector, block.number + 10));
         mineToken.getPriorVotes(address(this), block.number + 10);
     }
 
-    function test_delegation_DelegateBySig() public {
+    function test_delegateBySig_DelegateBySig() public {
         uint256 nonce = mineToken.nonces(owner);
         uint256 expiry = block.timestamp + 100;
         SigUtils.Delegation memory delegation = SigUtils.Delegation({
