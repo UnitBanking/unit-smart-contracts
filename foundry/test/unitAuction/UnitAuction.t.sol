@@ -20,6 +20,7 @@ contract UnitAuctionTest is UnitAuctionTestBase {
         assertEq(address(unitAuctionProxy.bondingCurve()), address(bondingCurveProxy));
         assertEq(address(unitAuctionProxy.unitToken()), address(unitToken));
         assertEq(address(unitAuctionProxy.collateralToken()), address(collateralToken));
+        assertEq(unitAuctionProxy.exposed_collateralTokenDecimals(), collateralToken.decimals());
     }
 
     function test_receive_NoDirectTransfer() public {

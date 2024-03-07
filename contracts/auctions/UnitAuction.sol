@@ -45,7 +45,7 @@ contract UnitAuction is IUnitAuction, Proxiable, Ownable {
     IBondingCurve public immutable bondingCurve;
     IUnitToken public immutable unitToken;
     IERC20 public immutable collateralToken;
-    uint256 private immutable collateralTokenDecimals;
+    uint256 internal immutable collateralTokenDecimals;
 
     uint8 public constant AUCTION_VARIANT_NONE = 1;
     uint8 public constant AUCTION_VARIANT_CONTRACTION = 2;
