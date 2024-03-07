@@ -246,7 +246,8 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
 
         if (unitUsdPrice != 0 && unitTokenTotalSupply != 0) {
             reserveRatio =
-                ((collateralUsdOracle.getCollateralUsdPrice() * collateralToken.balanceOf(address(this))) *
+                ((collateralUsdOracle.getCollateralUsdPrice() *
+                    collateralToken.balanceOf(address(this)).toStandardPrecision(collateralTokenDecimals)) *
                     STANDARD_PRECISION) /
                 (unitUsdPrice * unitTokenTotalSupply);
         }
