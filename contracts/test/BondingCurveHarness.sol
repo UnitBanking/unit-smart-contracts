@@ -24,7 +24,11 @@ contract BondingCurveHarness is BondingCurve {
         )
     {}
 
-    function exposed_getUnitUsdPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
+    function exposed_getUnitUsdPriceForTimestamp(uint256 timestamp) external view returns (uint256) {
         return unwrap(_getUnitUsdPriceForTimestamp(timestamp));
+    }
+
+    function exposed_collateralTokenDecimals() external view returns (uint256) {
+        return collateralTokenDecimals;
     }
 }

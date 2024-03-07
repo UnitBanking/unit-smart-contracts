@@ -23,6 +23,7 @@ contract BondingCurveHarnessTest is BondingCurveTestBase {
         assertEq(address(bondingCurveProxy.unitToken()), address(unitToken));
         assertEq(address(bondingCurveProxy.mineToken()), address(mineToken));
         assertEq(address(bondingCurveProxy.collateralToken()), address(collateralToken));
+        assertEq(bondingCurveProxy.exposed_collateralTokenDecimals(), collateralToken.decimals());
         assertEq(address(bondingCurveProxy.inflationOracle()), address(inflationOracle));
         assertEq(address(bondingCurveProxy.collateralUsdOracle()), address(collateralUsdOracle));
     }

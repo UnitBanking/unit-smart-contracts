@@ -59,7 +59,7 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
     IUnitToken public immutable unitToken;
     IMineToken public immutable mineToken;
     IERC20 public immutable collateralToken;
-    uint256 private immutable collateralTokenDecimals;
+    uint256 internal immutable collateralTokenDecimals;
 
     IInflationOracle public immutable inflationOracle;
     ICollateralUsdOracle public immutable collateralUsdOracle;
