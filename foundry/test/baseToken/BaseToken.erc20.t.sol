@@ -91,7 +91,6 @@ contract BaseTokenErc20Test is BaseTokenTestBase {
         baseToken.approve(spender, amount);
         uint256 spenderAllowanceBefore = baseToken.allowance(from, spender);
         baseToken.transferFrom(from, to, 1 ether);
-        vm.prank(from);
         uint256 spenderAllowanceAfter = baseToken.allowance(from, spender);
         assertEq(spenderAllowanceAfter, spenderAllowanceBefore);
     }

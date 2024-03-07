@@ -9,7 +9,7 @@ import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
 contract BaseTokenOwnerTest is BaseTokenTestBase {
     event OwnerSet(address indexed owner);
 
-    function test_owner_SetOwner() public {
+    function test_setOwner_SetOwner() public {
         address newOwner = address(0x1);
         baseToken.setOwner(newOwner);
         assertEq(baseToken.owner(), newOwner);
