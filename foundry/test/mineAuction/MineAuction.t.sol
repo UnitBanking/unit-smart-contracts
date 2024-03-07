@@ -52,7 +52,7 @@ contract MineAuctionTest is MineAuctionTestBase {
             .getCurrentAuctionGroup();
         address someone = address(0x22);
         vm.prank(someone);
-        baseToken.approve(someone, 0);
+        baseToken.approve(address(mineAuction), 0);
         vm.expectRevert(
             abi.encodeWithSelector(
                 TransferUtils.TransferUtilsERC20TransferFromFailed.selector,
@@ -62,6 +62,7 @@ contract MineAuctionTest is MineAuctionTestBase {
                 100 * 1 ether
             )
         );
+        vm.prank(someone);
         mineAuction.bid(auctionGroupId, 0, 100 * 1 ether);
     }
 
