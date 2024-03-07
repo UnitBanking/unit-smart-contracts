@@ -223,14 +223,23 @@ contract BondingCurve is IBondingCurve, Proxiable, ReentrancyGuard, Ownable {
         }
     }
 
+    /**
+     * @inheritdoc IBondingCurve
+     */
     function getUnitUsdPrice() public view returns (uint256) {
         return _getUnitUsdPriceForTimestamp(block.timestamp).unwrap();
     }
 
+    /**
+     * @inheritdoc IBondingCurve
+     */
     function getUnitCollateralPrice() external view returns (uint256) {
         return _getUnitCollateralPrice(0);
     }
 
+    /**
+     * @inheritdoc IBondingCurve
+     */
     function getReserveRatio() public view returns (uint256 reserveRatio) {
         uint256 unitUsdPrice = getUnitUsdPrice();
         uint256 unitTokenTotalSupply = unitToken.totalSupply();
