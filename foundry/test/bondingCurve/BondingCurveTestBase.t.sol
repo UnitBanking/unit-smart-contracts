@@ -1,35 +1,29 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import { Test } from 'forge-std/Test.sol';
 import { BondingCurveHarness } from '../../../contracts/test/BondingCurveHarness.sol';
 import { InflationOracleHarness } from '../../../contracts/test/InflationOracleHarness.sol';
-import { EthUsdOracleMock } from '../../../contracts/test/EthUsdOracleMock.sol';
+import { CollateralUsdOracleMock } from '../../../contracts/test/CollateralUsdOracleMock.sol';
 import { CollateralERC20TokenTest } from '../../../contracts/test/CollateralERC20TokenTest.sol';
-import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
+import { Proxiable } from '../../../contracts/abstracts/Proxiable.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
 import { UnitToken } from '../../../contracts/UnitToken.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
+import { TestUtils } from '../utils/TestUtils.t.sol';
 
 abstract contract BondingCurveTestBase is Test {
     uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
-    uint256 internal constant START_TIMESTAMP = 1699023595;
-    uint256 internal constant INITIAL_COLLATERAL_TOKEN_VALUE = 5 wei;
-    uint256 internal constant INITIAL_UNIT_VALUE = 1 wei;
-    uint256 internal constant HIGH_RR = 4;
 
-    address internal constant COLLATERAL_BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
-    CollateralERC20TokenTest public collateralERC20TokenTest;
-    InflationOracleHarness public inflationOracle;
-    EthUsdOracleMock public ethUsdOracle;
-    UnitToken public unitToken;
-    MineToken public mineToken;
-
-    Proxy public bondingCurveProxyType;
     BondingCurveHarness public bondingCurveImplementation;
     BondingCurveHarness public bondingCurveProxy;
+
+    CollateralERC20TokenTest public collateralToken;
+    UnitToken public unitToken;
+    MineToken public mineToken;
+    InflationOracleHarness public inflationOracle;
+    CollateralUsdOracleMock public collateralUsdOracle;
 
     address public wallet = vm.addr(1);
 
@@ -38,16 +32,16 @@ abstract contract BondingCurveTestBase is Test {
         vm.deal(wallet, 10 ether);
 
         // set up block timestamp
-        vm.warp(START_TIMESTAMP);
+        vm.warp(TestUtils.START_TIMESTAMP);
 
         // set up collateral token
-        collateralERC20TokenTest = new CollateralERC20TokenTest();
+        collateralToken = new CollateralERC20TokenTest();
 
         // set up oracle contracts
         inflationOracle = new InflationOracleHarness();
         inflationOracle.setPriceIndexTwentyYearsAgo(77);
         inflationOracle.setLatestPriceIndex(121);
-        ethUsdOracle = new EthUsdOracleMock();
+        collateralUsdOracle = new CollateralUsdOracleMock();
 
         // set up Unit token contract
         unitToken = new UnitToken(); // TODO: use Proxy
@@ -57,22 +51,20 @@ abstract contract BondingCurveTestBase is Test {
         mineToken.initialize();
 
         // set up BondingCurve contract
-        bondingCurveImplementation = new BondingCurveHarness(COLLATERAL_BURN_ADDRESS);
-        bondingCurveProxyType = new Proxy(address(this));
-
-        bondingCurveProxyType.upgradeToAndCall(
-            address(bondingCurveImplementation),
-            abi.encodeWithSelector(
-                IBondingCurve.initialize.selector,
-                address(collateralERC20TokenTest),
-                address(unitToken),
-                address(mineToken),
-                inflationOracle,
-                ethUsdOracle
-            )
+        bondingCurveImplementation = new BondingCurveHarness(
+            unitToken,
+            mineToken,
+            collateralToken,
+            TestUtils.COLLATERAL_BURN_ADDRESS,
+            inflationOracle,
+            collateralUsdOracle
         );
-
-        bondingCurveProxy = BondingCurveHarness(payable(bondingCurveProxyType));
+        Proxy proxy = new Proxy(address(this));
+        proxy.upgradeToAndCall(
+            address(bondingCurveImplementation),
+            abi.encodeWithSelector(Proxiable.initialize.selector)
+        );
+        bondingCurveProxy = BondingCurveHarness(payable(proxy));
 
         unitToken.setMinter(address(bondingCurveProxy), true);
         unitToken.setBurner(address(bondingCurveProxy), true);
@@ -81,9 +73,9 @@ abstract contract BondingCurveTestBase is Test {
 
         // send initial collateral token amount to bondingCurveProxy contract
         vm.prank(address(bondingCurveProxy));
-        collateralERC20TokenTest.mint(INITIAL_COLLATERAL_TOKEN_VALUE);
+        collateralToken.mint(TestUtils.INITIAL_COLLATERAL_TOKEN_VALUE);
         vm.prank(address(bondingCurveProxy));
-        unitToken.mint(wallet, INITIAL_UNIT_VALUE);
+        unitToken.mint(wallet, TestUtils.INITIAL_UNIT_VALUE);
     }
 
     function _createUserAndMintUnit(uint256 collateralAmountIn) internal returns (address user) {
@@ -91,11 +83,11 @@ abstract contract BondingCurveTestBase is Test {
         user = vm.addr(2);
         uint256 userCollateralBalance = 100 * 1e18;
         vm.startPrank(user);
-        collateralERC20TokenTest.mint(userCollateralBalance);
-        collateralERC20TokenTest.approve(address(bondingCurveProxy), userCollateralBalance);
+        collateralToken.mint(userCollateralBalance);
+        collateralToken.approve(address(bondingCurveProxy), userCollateralBalance);
         vm.stopPrank();
 
-        vm.warp(START_TIMESTAMP + 10 days);
+        vm.warp(TestUtils.START_TIMESTAMP + 10 days);
 
         // Act
         vm.prank(user);

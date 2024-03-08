@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import './ERC20.sol';
 import './Mintable.sol';
 import './Burnable.sol';
 import './Ownable.sol';
 import './Proxiable.sol';
-import '../interfaces/IERC20Permit.sol';
+import '../interfaces/IBaseToken.sol';
 
-abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IERC20Permit {
+/**
+ * @dev IMPORTANT: This contract implements a proxy pattern. Do not modify inheritance list in this contract.
+ * Adding, removing, changing or rearranging these base contracts can result in a storage collision after a contract upgrade.
+ *
+ * IMPORTANT: This contract is used as parent contract in contracts that implement a proxy pattern.
+ * Adding, removing, changing or rearranging state variables in this contract can result in a storage collision
+ * in child contracts in case of a contract upgrade.
+ */
+abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IBaseToken {
     bytes32 public constant DOMAIN_TYPEHASH =
         keccak256('EIP712Domain(string name,uint256 chainId,address verifyingContract)');
     bytes32 public constant PERMIT_TYPEHASH =
@@ -32,24 +40,24 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         _setBurner(burner, canBurn);
     }
 
-    function mint(address receiver, uint256 amount) public virtual override {
+    function mint(address receiver, uint256 amount) public virtual override(Mintable, IMintable) {
         super.mint(receiver, amount);
         _update(address(0), receiver, amount);
     }
 
-    function burn(uint256 amount) public virtual override {
+    function burn(uint256 amount) public virtual override(Burnable, IBurnable) {
         super.burn(amount);
         _update(msg.sender, address(0), amount);
     }
 
-    function burnFrom(address from, uint256 amount) public virtual override {
+    function burnFrom(address from, uint256 amount) public virtual override(Burnable, IBurnable) {
         super.burnFrom(from, amount);
         _spendAllowance(from, msg.sender, amount);
         _update(from, address(0), amount);
     }
 
     function permit(
-        address owner,
+        address _owner,
         address spender,
         uint256 value,
         uint256 expiry,
@@ -63,12 +71,12 @@ abstract contract BaseToken is Ownable, Proxiable, ERC20, Mintable, Burnable, IE
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
         );
-        uint256 nonce = nonces[owner]++;
-        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, expiry));
+        uint256 nonce = nonces[_owner]++;
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, _owner, spender, value, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01', domainSeparator, structHash));
         address signer = ecrecover(digest, v, r, s);
-        if (signer != owner) {
-            revert ERC20InvalidSigner(signer, owner);
+        if (signer != _owner) {
+            revert ERC20InvalidSigner(signer, _owner);
         }
         _approve(signer, spender, value, true);
     }

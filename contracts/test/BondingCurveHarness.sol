@@ -1,17 +1,34 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
-import '../interfaces/IERC20.sol';
-import '../interfaces/IInflationOracle.sol';
-import '../interfaces/IEthUsdOracle.sol';
 import '../BondingCurve.sol';
 import { unwrap } from '@prb/math/src/UD60x18.sol';
 
 contract BondingCurveHarness is BondingCurve {
-    constructor(address collateralBurnAddress) BondingCurve(collateralBurnAddress) {}
+    constructor(
+        IUnitToken _unitToken,
+        IMineToken _mineToken,
+        IERC20 _collateralToken,
+        address collateralBurnAddress,
+        IInflationOracle _inflationOracle,
+        ICollateralUsdOracle _collateralUsdOracle
+    )
+        BondingCurve(
+            _unitToken,
+            _mineToken,
+            _collateralToken,
+            collateralBurnAddress,
+            _inflationOracle,
+            _collateralUsdOracle
+        )
+    {}
 
-    function exposed_getUnitUsdPriceForTimestamp(uint256 timestamp) public view returns (uint256) {
+    function exposed_getUnitUsdPriceForTimestamp(uint256 timestamp) external view returns (uint256) {
         return unwrap(_getUnitUsdPriceForTimestamp(timestamp));
+    }
+
+    function exposed_collateralTokenDecimals() external view returns (uint256) {
+        return collateralTokenDecimals;
     }
 }
