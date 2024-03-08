@@ -360,55 +360,26 @@ contract UnitAuctionSellUnitTest is UnitAuctionTestBase {
     }
 
     function test_sellUnit_ChecksUnitPricingAtTheBeginningOfAuction() public {
-        // Arrange
-        address user = _setUpBondingCurveAndUnitAuction();
-        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
-
-        uint256 collateralAmount = 314794767497862116;
-        uint256 unitAmount = 1e18;
-
-        // Act & Assert
-        vm.expectEmit();
-        emit IUnitAuction.UnitSold(user, unitAmount, collateralAmount);
-        vm.prank(user);
-        unitAuctionProxy.sellUnit(unitAmount);
-
-        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
-        assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralAmount);
+        _test_sellUnit_ChecksUnitPricing(0, 314794767497862116);
     }
 
     function test_sellUnit_ChecksUnitPricingInTheMiddleOfAuction() public {
-        // Arrange
-        address user = _setUpBondingCurveAndUnitAuction();
-        uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
-        uint256 contractionAuctionMaxDuration = unitAuctionProxy.contractionAuctionMaxDuration();
-
-        // set the middle of the contraction auction
-        vm.warp(block.timestamp + (contractionAuctionMaxDuration / 2));
-
-        uint256 collateralAmount = 210588809201578605;
-        uint256 unitAmount = 1e18;
-
-        // Act & Assert
-        vm.expectEmit();
-        emit IUnitAuction.UnitSold(user, unitAmount, collateralAmount);
-        vm.prank(user);
-        unitAuctionProxy.sellUnit(unitAmount);
-
-        uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
-        assertEq(userCollateralBalanceAfter - userCollateralBalanceBefore, collateralAmount);
+        _test_sellUnit_ChecksUnitPricing(unitAuctionProxy.contractionAuctionMaxDuration() / 2, 210588809201578605);
     }
 
     function test_sellUnit_ChecksUnitPricingAtTheEndOfAuction() public {
+        _test_sellUnit_ChecksUnitPricing(unitAuctionProxy.contractionAuctionMaxDuration(), 140877966026675010);
+    }
+
+    function _test_sellUnit_ChecksUnitPricing(uint256 timeAfterAuctionStart, uint256 expectedCollateralAmount) private {
         // Arrange
         address user = _setUpBondingCurveAndUnitAuction();
         uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
-        uint256 contractionAuctionMaxDuration = unitAuctionProxy.contractionAuctionMaxDuration();
 
         // set the end of the contraction auction
-        vm.warp(block.timestamp + contractionAuctionMaxDuration);
+        vm.warp(block.timestamp + timeAfterAuctionStart);
 
-        uint256 collateralAmount = 140877966026675010;
+        uint256 collateralAmount = expectedCollateralAmount;
         uint256 unitAmount = 1e18;
 
         // Act & Assert
