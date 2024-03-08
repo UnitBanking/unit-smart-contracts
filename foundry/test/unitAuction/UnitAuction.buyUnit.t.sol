@@ -267,23 +267,23 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
     }
 
-    function test_sellUnit_RevertsOnTooLargeBidAtAuctionStart() public {
+    function test_buyUnit_RevertsOnTooLargeBidAtAuctionStart() public {
         _test_buyUnit_RevertsOnTooLargeBid(0 seconds, 4999999999999999999);
     }
 
-    function test_sellUnit_RevertsOnTooLargeBidMidAuction() public {
+    function test_buyUnit_RevertsOnTooLargeBidMidAuction() public {
         _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() / 2, 4999999999999999999);
     }
 
-    function test_sellUnit_RevertsOnTooLargeBidAtLastSecond() public {
+    function test_buyUnit_RevertsOnTooLargeBidAtLastSecond() public {
         _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() - 1, 4999999999999999999);
     }
 
-    function test_sellUnit_RevertsOnTooLargeBidAtAuctionTermination() public {
+    function test_buyUnit_RevertsOnTooLargeBidAtAuctionTermination() public {
         _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration(), 4999999999999999999);
     }
 
-    function test_sellUnit_RevertsOnTooLargeBidBeyondAuctionTermination() public {
+    function test_buyUnit_RevertsOnTooLargeBidBeyondAuctionTermination() public {
         _test_buyUnit_RevertsOnTooLargeBid(unitAuctionProxy.contractionAuctionMaxDuration() + 1, 4999999999999999999);
     }
 
@@ -342,23 +342,23 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         assertEq(auctionUnitBalanceAfter, auctionUnitBalanceBefore);
     }
 
-    function test_sellUnit_GetMaxBuyUnitAmountAtAuctionStart() public {
+    function test_buyUnit_GetMaxBuyUnitAmountAtAuctionStart() public {
         _test_buyUnit_GetMaxBuyUnitAmount(0 seconds);
     }
 
-    function test_sellUnit_GetMaxBuyUnitAmountMidAuction() public {
+    function test_buyUnit_GetMaxBuyUnitAmountMidAuction() public {
         _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration() / 2);
     }
 
-    function test_sellUnit_GetMaxBuyUnitAmountAtLastSecond() public {
+    function test_buyUnit_GetMaxBuyUnitAmountAtLastSecond() public {
         _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration() - 1);
     }
 
-    function test_sellUnit_GetMaxBuyUnitAmountAtAuctionTermination() public {
+    function test_buyUnit_GetMaxBuyUnitAmountAtAuctionTermination() public {
         _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration());
     }
 
-    function test_sellUnit_GetMaxBuyUnitAmountBeyondAuctionTermination() public {
+    function test_buyUnit_GetMaxBuyUnitAmountBeyondAuctionTermination() public {
         _test_buyUnit_GetMaxBuyUnitAmount(unitAuctionProxy.expansionAuctionMaxDuration() + 1);
     }
 
