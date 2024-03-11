@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 // The FED's report presents the price index with 3 decimal places (see https://fred.stlouisfed.org/series/PCEPI).
 // We are including two additional digits of precision as a precaution.

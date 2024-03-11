@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Based on OpenZeppelin Contracts (last updated v5.0.0) (utils/ReentrancyGuard.sol)
 
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.23;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -18,6 +18,10 @@ pragma solidity ^0.8.21;
  * TIP: If you would like to learn more about reentrancy and alternative ways
  * to protect against it, check out our blog post
  * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ *
+ * IMPORTANT: This contract is used as parent contract in contracts that implement a proxy pattern.
+ * Adding, removing, changing or rearranging state variables in this contract can result in a storage collision
+ * in child contracts in case of a contract upgrade.
  */
 abstract contract ReentrancyGuard {
     // Booleans are more expensive than uint256 or any type that takes up a full
