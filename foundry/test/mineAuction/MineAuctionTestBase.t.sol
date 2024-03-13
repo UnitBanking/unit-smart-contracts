@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import { Test } from 'forge-std/Test.sol';
 import '../../../contracts/MineAuction.sol';
@@ -17,7 +17,7 @@ contract MineAuctionTestBase is Test {
     address public another = address(0x03);
 
     function setUp() public {
-        bondingCurve = new BondingCurve(address(0x1));
+        bondingCurve = BondingCurve(address(0x1));
 
         baseToken = new BaseTokenTest();
         baseToken.initialize();
@@ -41,11 +41,9 @@ contract MineAuctionTestBase is Test {
         baseToken.mint(other, 100000 * 1 ether);
         baseToken.mint(another, 100000 * 1 ether);
         baseToken.approve(address(mineAuction), type(uint256).max);
-        vm.startPrank(other);
+        vm.prank(other);
         baseToken.approve(address(mineAuction), type(uint256).max);
-        vm.stopPrank();
-        vm.startPrank(another);
+        vm.prank(another);
         baseToken.approve(address(mineAuction), type(uint256).max);
-        vm.stopPrank();
     }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import './BaseTokenTestBase.t.sol';
 import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
@@ -49,7 +49,7 @@ contract BaseTokenErc20Test is BaseTokenTestBase {
         address spender = address(0x1);
         uint256 amount = 10 * 1 ether;
         vm.expectEmit(true, true, true, true);
-        emit Approval(address(this), spender, amount);
+        emit IERC20.Approval(address(this), spender, amount);
         baseToken.approve(spender, amount);
         assertEq(baseToken.allowance(address(this), spender), amount);
     }

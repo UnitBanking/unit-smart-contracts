@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import 'forge-std/console.sol';
 import { Test } from 'forge-std/Test.sol';
 import { MineTokenTestBase } from './MineTokenTestBase.t.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
 import { MineToken } from '../../../contracts/MineToken.sol';
-import { IVotes } from '../../../contracts/interfaces/IVote.sol';
+import { IVotes } from '../../../contracts/interfaces/IVotes.sol';
 import '../utils/SigUtils.sol';
 
 contract MineTokenDelegationTest is MineTokenTestBase {
@@ -17,10 +17,6 @@ contract MineTokenDelegationTest is MineTokenTestBase {
 
     address internal owner = vm.addr(ownerPrivateKey);
     address internal spender = vm.addr(spenderPrivateKey);
-
-    event DelegateSet(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-    event DelegateVotesSet(address indexed delegate, uint256 previousBalance, uint256 newBalance);
-    event DefaultDelegateeSet(address indexed oldDefaultDelegate, address indexed newDefaultDelegate);
 
     function setUp() public override {
         super.setUp();
@@ -64,8 +60,8 @@ contract MineTokenDelegationTest is MineTokenTestBase {
     function test_delegate_DelegateShouldEmitEvent() public {
         address delegatee = address(0x123);
         vm.expectEmit(true, true, true, true);
-        emit DelegateSet(address(this), mineToken.delegatees(address(this)), delegatee);
-        emit DelegateVotesSet(delegatee, 0, 100 * 1 ether);
+        emit IVotes.DelegateSet(address(this), mineToken.delegatees(address(this)), delegatee);
+        emit IVotes.DelegateVotesSet(delegatee, 0, 100 * 1 ether);
         mineToken.delegate(delegatee);
         assertEq(mineToken.delegatees(address(this)), delegatee);
     }

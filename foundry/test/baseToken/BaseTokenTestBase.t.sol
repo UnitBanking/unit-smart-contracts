@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import { Test } from 'forge-std/Test.sol';
 import { BaseTokenTest } from '../../../contracts/test/BaseTokenTest.sol';
@@ -8,9 +8,6 @@ import '../utils/SigUtils.sol';
 
 abstract contract BaseTokenTestBase is Test {
     BaseTokenTest public baseToken;
-
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Transfer(address indexed from, address indexed to, uint256 value);
 
     function setUp() public virtual {
         baseToken = new BaseTokenTest();

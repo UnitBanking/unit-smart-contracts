@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import './BaseTokenTestBase.t.sol';
 import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
-import { Burnable } from '../../../contracts/abstracts/Burnable.sol';
+import { IBurnable } from '../../../contracts/abstracts/Burnable.sol';
 
 contract BaseTokenBurnTest is BaseTokenTestBase {
-    event BurnerSet(address indexed burner, bool canBurn);
-
     function test_burn_UserCanBurn() public {
         uint256 balanceBefore = baseToken.balanceOf(address(this));
         uint256 totalSupply = baseToken.totalSupply();
@@ -21,7 +19,7 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
     function test_burn_RevertsIfBurnerIsNotAuthorized() public {
         address unauthorizedBurner = address(0x1);
         vm.expectRevert(
-            abi.encodeWithSelector(Burnable.BurnableUnauthorizedBurner.selector, address(unauthorizedBurner))
+            abi.encodeWithSelector(IBurnable.BurnableUnauthorizedBurner.selector, address(unauthorizedBurner))
         );
         vm.prank(unauthorizedBurner);
         baseToken.burn(100 * 1 ether);
@@ -81,7 +79,7 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
     function test_burn_RevertsIfBurnFromZeroAddress() public {
         address burner = address(0x0);
         uint256 amount = 100 * 1 ether;
-        vm.expectRevert(abi.encodeWithSelector(Burnable.BurnableInvalidTokenOwner.selector, address(burner)));
+        vm.expectRevert(abi.encodeWithSelector(IBurnable.BurnableInvalidTokenOwner.selector, address(burner)));
         baseToken.burnFrom(burner, amount);
     }
 
@@ -94,14 +92,14 @@ contract BaseTokenBurnTest is BaseTokenTestBase {
     function test_burn_RevertsIfSetBurnerSameValue() public {
         address burner = address(0x1);
         baseToken.setBurner(burner, true);
-        vm.expectRevert(abi.encodeWithSelector(Burnable.BurnableSameValueAlreadySet.selector));
+        vm.expectRevert(abi.encodeWithSelector(IBurnable.BurnableSameValueAlreadySet.selector));
         baseToken.setBurner(burner, true);
     }
 
     function test_burn_SetBurnerShouldEmitEvent() public {
         address burner = address(0x1);
         vm.expectEmit(true, true, true, true);
-        emit BurnerSet(burner, true);
+        emit IBurnable.BurnerSet(burner, true);
         baseToken.setBurner(burner, true);
     }
 }

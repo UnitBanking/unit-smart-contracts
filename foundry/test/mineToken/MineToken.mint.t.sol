@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import { Test } from 'forge-std/Test.sol';
 import { MineTokenTestBase } from './MineTokenTestBase.t.sol';
 import { Proxy } from '../../../contracts/Proxy.sol';
-import { MineToken } from '../../../contracts/MineToken.sol';
+import { IMineToken } from '../../../contracts/interfaces/IMineToken.sol';
 
 contract MineTokenMintTest is MineTokenTestBase {
     function test_mint_UserCanMint() public {
@@ -19,7 +19,7 @@ contract MineTokenMintTest is MineTokenTestBase {
 
     function test_mint_RevertsIfExceedsMaxSupply() public {
         uint256 maxSupply = mineToken.MAX_SUPPLY();
-        vm.expectRevert(abi.encodeWithSelector(MineToken.MineTokenExceedMaxSupply.selector));
+        vm.expectRevert(abi.encodeWithSelector(IMineToken.MineTokenExceedMaxSupply.selector));
         mineToken.mint(address(this), maxSupply + 1);
     }
 }

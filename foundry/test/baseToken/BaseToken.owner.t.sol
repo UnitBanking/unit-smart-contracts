@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.23;
 
 import './BaseTokenTestBase.t.sol';
 import { IERC20 } from '../../../contracts/interfaces/IERC20.sol';
 import { Ownable } from '../../../contracts/abstracts/Ownable.sol';
 
 contract BaseTokenOwnerTest is BaseTokenTestBase {
-    event OwnerSet(address indexed owner);
-
     function test_setOwner_SetOwner() public {
         address newOwner = address(0x1);
         baseToken.setOwner(newOwner);
@@ -39,7 +37,7 @@ contract BaseTokenOwnerTest is BaseTokenTestBase {
     function test_owner_SetOwnerShouldEmitEvent() public {
         address newOwner = address(0x1);
         vm.expectEmit(true, true, true, true);
-        emit OwnerSet(newOwner);
+        emit Ownable.OwnerSet(newOwner);
         baseToken.setOwner(newOwner);
     }
 }
