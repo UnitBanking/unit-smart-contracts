@@ -13,20 +13,20 @@ contract BaseTokenOwnerTest is BaseTokenTestBase {
         assertEq(baseToken.owner(), newOwner);
     }
 
-    function test_owner_RevertsIfUnauthorizedOwner() public {
+    function test_setOwner_RevertsIfUnauthorizedOwner() public {
         address unauthorizedOwner = address(0x1);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedOwner.selector, unauthorizedOwner));
         vm.prank(unauthorizedOwner);
         baseToken.setOwner(address(0x2));
     }
 
-    function test_owner_RevertsIfSetOwnerWithZeroAddress() public {
+    function test_setOwner_RevertsIfSetOwnerWithZeroAddress() public {
         address newOwner = address(0x0);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, newOwner));
         baseToken.setOwner(newOwner);
     }
 
-    function test_owner_RevertsIfSetOwnerWithSameValue() public {
+    function test_setOwner_RevertsIfSetOwnerWithSameValue() public {
         address newOwner = address(0x1);
         baseToken.setOwner(newOwner);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableSameValueAlreadySet.selector));
@@ -34,7 +34,7 @@ contract BaseTokenOwnerTest is BaseTokenTestBase {
         baseToken.setOwner(newOwner);
     }
 
-    function test_owner_SetOwnerShouldEmitEvent() public {
+    function test_setOwner_SetOwnerShouldEmitEvent() public {
         address newOwner = address(0x1);
         vm.expectEmit(true, true, true, true);
         emit Ownable.OwnerSet(newOwner);
