@@ -7,6 +7,8 @@ import { IBondingCurve } from '../../../contracts/interfaces/IBondingCurve.sol';
 import { TestUtils } from '../utils/TestUtils.t.sol';
 
 contract BondingCurveHarnessTest is BondingCurveTestBase {
+    uint256 internal constant ORACLE_UPDATE_INTERVAL = 30 days;
+
     /**
      * ================ initial state ================
      */
