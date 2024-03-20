@@ -4,6 +4,7 @@ pragma solidity 0.8.23;
 
 import { UnitAuctionTestBase } from './UnitAuctionTestBase.t.sol';
 import { IUnitAuction } from '../../../contracts/interfaces/IUnitAuction.sol';
+import { BondingCurve } from '../../../contracts/BondingCurve.sol';
 import { TransferUtils } from '../../../contracts/libraries/TransferUtils.sol';
 import '../../../contracts/libraries/PrecisionUtils.sol';
 
@@ -29,7 +30,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 collateralAmount = collateralToken.balanceOf(user) + 1;
 
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(5 * 1e18); // increases RR
 
         // Act & Assert
@@ -39,7 +40,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
                 TransferUtils.TransferUtilsERC20TransferFromFailed.selector,
                 address(collateralToken),
                 user,
-                address(bondingCurveProxy),
+                bondingCurve,
                 99000000000000000001
             )
         );
@@ -51,7 +52,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 collateralAmount = collateralToken.balanceOf(user);
 
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(5 * 1e18); // increases RR
 
         unitAuctionProxy.refreshState();
@@ -72,7 +73,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 collateralAmount = collateralToken.balanceOf(user);
 
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(5 * 1e18); // increases RR
 
         // Act & Assert
@@ -89,7 +90,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
     function test_buyUnit_RevertsWhenReserveRatioNotDecreased() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18); // increases RR
 
         // Act & Assert
@@ -103,7 +104,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
         uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
 
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18); // increases RR
 
         unitAuctionProxy.refreshState();
@@ -122,14 +123,14 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
     function test_buyUnit_SuccessfullyBuysUnit() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18); // increases RR
 
         uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
         uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
         uint256 auctionCollateralBalanceBefore = collateralToken.balanceOf(address(unitAuctionProxy));
         uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
-        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(bondingCurve);
         uint256 unitTotalSupplyBefore = unitToken.totalSupply();
 
         uint256 unitAmount = 99838290446758684;
@@ -146,7 +147,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
         uint256 auctionCollateralBalanceAfter = collateralToken.balanceOf(address(unitAuctionProxy));
         uint256 auctionUnitBalanceAfter = unitToken.balanceOf(address(unitAuctionProxy));
-        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(bondingCurve);
         uint256 unitTotalSupplyAfter = unitToken.totalSupply();
         assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount);
         assertEq(userCollateralBalanceBefore - userCollateralBalanceAfter, collateralAmount);
@@ -159,14 +160,14 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
     function test_buyUnit_SuccessfullyBuysUnit2Times() public {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18); // increases RR
 
         uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
         uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
         uint256 auctionCollateralBalanceBefore = collateralToken.balanceOf(address(unitAuctionProxy));
         uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
-        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(bondingCurve);
         uint256 unitTotalSupplyBefore = unitToken.totalSupply();
 
         uint256 unitAmount = 99838290446758684;
@@ -188,7 +189,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
         uint256 auctionCollateralBalanceAfter = collateralToken.balanceOf(address(unitAuctionProxy));
         uint256 auctionUnitBalanceAfter = unitToken.balanceOf(address(unitAuctionProxy));
-        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(bondingCurve);
         uint256 unitTotalSupplyAfter = unitToken.totalSupply();
         assertEq(userUnitBalanceAfter - userUnitBalanceBefore, unitAmount * 2);
         assertEq(userCollateralBalanceBefore - userCollateralBalanceAfter, collateralAmount * 2);
@@ -223,15 +224,15 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
 
         // Get RR above TARGET_RR (i.e. in UNIT expansion range)
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18);
 
         uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
         uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
         uint256 auctionCollateralBalanceBefore = collateralToken.balanceOf(address(unitAuctionProxy));
         uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
-        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
-        uint256 bondingCurveUnitBalanceBefore = unitToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(bondingCurve);
+        uint256 bondingCurveUnitBalanceBefore = unitToken.balanceOf(bondingCurve);
         assertEq(auctionCollateralBalanceBefore, 0);
         assertEq(auctionUnitBalanceBefore, 0);
         assertEq(bondingCurveUnitBalanceBefore, 0);
@@ -254,8 +255,8 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         // Assert
         uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
         uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
-        uint256 bondingCurveUnitBalanceAfter = unitToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(bondingCurve);
+        uint256 bondingCurveUnitBalanceAfter = unitToken.balanceOf(bondingCurve);
         assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore - maxCollateralAmountIn);
         assertEq(userUnitBalanceAfter, userUnitBalanceBefore + unitAmountOut);
         assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore + maxCollateralAmountIn);
@@ -292,15 +293,15 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
 
         // Get RR above TARGET_RR (i.e. in UNIT expansion range)
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18);
 
         uint256 userCollateralBalanceBefore = collateralToken.balanceOf(user);
         uint256 userUnitBalanceBefore = unitToken.balanceOf(user);
         uint256 auctionCollateralBalanceBefore = collateralToken.balanceOf(address(unitAuctionProxy));
         uint256 auctionUnitBalanceBefore = unitToken.balanceOf(address(unitAuctionProxy));
-        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(address(bondingCurveProxy));
-        uint256 bondingCurveUnitBalanceBefore = unitToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceBefore = collateralToken.balanceOf(bondingCurve);
+        uint256 bondingCurveUnitBalanceBefore = unitToken.balanceOf(bondingCurve);
         assertEq(auctionCollateralBalanceBefore, 0);
         assertEq(auctionUnitBalanceBefore, 0);
         assertEq(bondingCurveUnitBalanceBefore, 0);
@@ -329,8 +330,8 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         // Assert
         uint256 userCollateralBalanceAfter = collateralToken.balanceOf(user);
         uint256 userUnitBalanceAfter = unitToken.balanceOf(user);
-        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(address(bondingCurveProxy));
-        uint256 bondingCurveUnitBalanceAfter = unitToken.balanceOf(address(bondingCurveProxy));
+        uint256 bondingCurveCollateralBalanceAfter = collateralToken.balanceOf(bondingCurve);
+        uint256 bondingCurveUnitBalanceAfter = unitToken.balanceOf(bondingCurve);
         assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore);
         assertEq(userUnitBalanceAfter, userUnitBalanceBefore);
         assertEq(bondingCurveCollateralBalanceAfter, bondingCurveCollateralBalanceBefore);
@@ -366,7 +367,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         // Arrange
         address user = _createUserAndMintUnitAndCollateralToken(1e18);
 
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10 * 1e18); // Increase RR
 
         if (timeAfterAuctionStart > 0) {
@@ -380,7 +381,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
 
         // Assert
         uint256 unitCollateralPrice = unitAuctionProxy.getCurrentBuyUnitPrice();
-        uint256 expectedMaxCollateralAmountIn = bondingCurveProxy.quoteCollateralAmountInForTargetRR(
+        uint256 expectedMaxCollateralAmountIn = BondingCurve(bondingCurve).quoteCollateralAmountInForTargetRR(
             unitCollateralPrice
         );
         uint256 expectedUnitAmountOut = (expectedMaxCollateralAmountIn * unitAuctionProxy.STANDARD_PRECISION())
@@ -430,7 +431,7 @@ contract UnitAuctionBuyUnitTest is UnitAuctionTestBase {
         collateralUsdOracle.setCollateralUsdPrice(35e17);
         vm.warp(block.timestamp + 356 days);
 
-        vm.prank(address(bondingCurveProxy));
+        vm.prank(bondingCurve);
         collateralToken.mint(10000e18);
 
         // mint collateral and unit tokens
